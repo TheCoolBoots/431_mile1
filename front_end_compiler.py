@@ -10,6 +10,26 @@ TASK 1: create python class for each format as described in overview.pdf
 """
 
 # program → types declarations functions
+def m_prog(types, declarations, functions):
+    def __init__(self, types, declarations, functions):
+      self.types = types
+      self.declarations = declarations
+      self.functions = functions
+
+
+print("hello")
+with open("test.json") as jsonFile:
+    jsonContents = json.load(jsonFile)
+    print(type(jsonContents))
+    match jsonContents:
+        case {'types':_,'declarations':_,'functions':_}:
+            # prog = m_prog()
+            print("MATCHED")
+        case _:
+            print("FAILED")
+
+        
+
 
 # types → {type declaration}∗
 
@@ -84,6 +104,7 @@ TASK 2: recursively parse json file into python classes
     pattern match at each level of json file: https://www.python.org/dev/peps/pep-0636/
     NOTE maybe this isn't required? can do all semantic checks just on json?
 """
+
 
 """
 TASK 3: static semantic checks
