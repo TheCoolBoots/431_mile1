@@ -257,10 +257,248 @@ print("hello")
 with open("test.json") as jsonFile:
     jsonContents = json.load(jsonFile)
     print(type(jsonContents))
+    # program
     match jsonContents:
+        # m_prog
         case {'types':_,'declarations':_,'functions':_}:
             # prog = m_prog()
             print("MATCHED")
+
+        # m_decl 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+# CONSIDER USING | (or)
+        # m_type (int)
+        case 'int':
+            # type = m_type()
+            print("MATCHED")
+
+        # m_type (string)
+        case 'string':
+            # type = m_type()
+            print("MATCHED")
+
+        # m_type (struct)
+        case _: # THIS ONE CANT REALLY BE RIGHT
+            # type = m_type()
+            print("MATCHED")
+
+
+
+# COME BACK TO THIS
+        # m_id_list 
+        case {'id': ... }:
+            # id_list = m_id_list()
+            print("MATCHED")
+
+
+# good?
+        # m_declaration 
+        case {'type':_,'id':_,'list':_}:
+            # declaration = m_declaration()
+            print("MATCHED")
+
+
+
+# SHOULD BE JUST 1 OR MORE m_declaration. NOT SURE HOW TO DO THAT YET
+        # m_declarations 
+        case *{'type':_,'id':_,'list':_} : # maybe something like this??
+            # declarations = m_declarations()
+            print("MATCHED")
+
+
+
+
+# NO CLUE HERE
+        # m_nested_decl → decl ; {decl ;}∗
+        case {'line':_,'type':_,'id':_}:
+            # nested_decl = m_nested_decl()
+            print("MATCHED")
+
+
+# good?
+        # m_type_declaration → struct id { nested decl } ;
+        case {'line':_,'id':_,'fields':[_]}:
+            # type_declaration = m_type_declaration()
+            print("MATCHED")
+
+
+# 0 or more m_type_declaration, still dont know how to do that
+        # m_types → {type declaration}∗
+        case [*{"line":_,"id":_,"fields":_}]: # this * is wrong
+            # types = m_types()
+            print("MATCHED")
+
+
+
+            
+
+
+
+        # m_parameters 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_return_type
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_return_type 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_function 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_functions 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_prog 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_assignment 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_print 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_conditional
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_loop 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_delete 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_ret 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_invocation 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+            
+        # m_statement 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED") 
+
+
+        # m_statement_list 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_block 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_lvalue 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_expression
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_boolterm 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_eqterm 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_relterm 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_simple 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_term 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_unary 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_selector 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_factor 
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
+        # m_args
+        case {'line':_,'type':_,'id':_}:
+            # decl = m_decl()
+            print("MATCHED")
+
+
         case _:
             print("FAILED")
 
