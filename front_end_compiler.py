@@ -2,12 +2,23 @@
 # import numpy as np
 import json
 
+
+class m_expression:
+    None
+class m_block:
+    None
+class m_arguments:
+    None
+class m_lvalue:
+    None
+
 """
 TASK 1: create python class for each format as described in overview.pdf
     name class m_[name of thing]
     ex def m_program(types declarations functions)
     NOTE maybe this isn't required? can do all semantic checks just on json?
 """
+
 
 class m_id:
     def __init__(self, identifier:str):
@@ -16,24 +27,26 @@ class m_id:
 # type → int | bool | struct id
 class m_type:
     def __init__(self, typeID:str):
-        self.type = type
+        self.type = typeID
     def __init__(self, typeID:m_id):
-        self.type = type
+        self.type = typeID
 
 # decl → type id
 class m_decl:
-    def __init__(self, type, id):
+    def __init__(self, type:m_type, id:m_id):
       self.type = type
       self.id = id
 
 # id list → id {,id}∗
 class m_id_list:
     def __init__(self, id_list:list[m_id]):
-        self.id_list = id_list
+        self.id_list = id_list # TODO check id_list len >= 1
+        if len(self.id_list < 1):
+            print("ERROR: according to overview.pdf, an id_list should have 1 or more ids. This condition is not met somewhere")
 
 # declaration → type id list ;
 class m_declaration:
-    def __init__(self, type, id_list):
+    def __init__(self, type:m_type, id_list:m_id_list):
         self.type = type
         self.id_list = id_list
 
@@ -45,7 +58,9 @@ class m_declarations:
 # nested decl → decl ; {decl ;}∗
 class m_nested_decl:
     def __init__(self, declarations:list[m_decl]):
-      self.declarations = declarations
+      self.declarations = declarations  # TODO check declarations len >= 1
+      if len(self.declarations < 1):
+            print(f"ERROR: according to overview.pdf, a nested_decl should have 1 or more ids. This condition is not met somewhere")
 
 # type declaration → struct id { nested decl } ;
 class m_type_declaration:
@@ -60,15 +75,19 @@ class m_types:
 
 # parameters → ( {decl {,decl}∗}opt)
 class m_parameters:
-    def __init__(self, decls:list[m_decl]):
-        self.decls = decls
+    def __init__(self, decls:list[m_decl] = None):
+        self.decls = decls  # TODO if decls != None, len needs to be >= 1
+        if(self.decls != None and len(decls) < 1):
+            print(f"ERROR: according to overview.pdf, a paramaters should have 1 or more decls. This condition is not met somewhere")
 
 # return type → type | void
 class m_return_type:
     def __init__(self, type:m_type):
         self.type = type
     def __init__(self, type:str):
-        self.type = type    # this is for when return type is void
+        self.type = type    # TODO check if return val is "void"
+        if(self.type != "void"):
+            print(f'ERROR: the return type should either be a valid type or void.')
 
 # function → fun id parameters return type { declarations statement list }
 class m_function:
@@ -86,55 +105,60 @@ class m_functions:
 
 # program → types declarations functions
 class m_prog:
-    def __init__(self, types:m_types, declarations, functions):
+    def __init__(self, types:m_types, declarations:m_declarations, functions:m_functions):
         self.types = types
         self.declarations = declarations
         self.functions = functions
 
 # assignment → lvalue = { expression | read } ;
 class m_assignment:
-    def __init__(self, lvalue, assignmentVal):
-      self.lvalue = lvalue
-      self.assignmentVal = assignmentVal
+    def __init__(self, lvalue:m_lvalue, assignmentVal:m_expression):
+        self.lvalue = lvalue
+        self.assignmentVal = assignmentVal
+    def __init__(self, lvalue:m_lvalue, assignmentVal:str):
+        self.lvalue = lvalue
+        self.assignmentVal = assignmentVal # check if assignmentVal is "read"
+        if self.assignmentVal != 'read':
+            print('ERROR: the right side of an assignment should either parse to an expression or "read"')
 
 # print → print expression {endl}opt;
 class m_print:
-    def __init__(self, expression, endl:bool):
+    def __init__(self, expression:m_expression, endl:bool = None):
         self.expression = expression
         self.endl = endl
 
 # conditional → if ( expression ) block {else block}opt
 class m_conditional:
-    def __init__(self, expression, ifBlock, elseBlock = None):
+    def __init__(self, expression:m_expression, ifBlock:m_block, elseBlock:m_block = None):
         self.expression = expression
         self.ifBlock = ifBlock
         self.elseBlock = elseBlock
 
 # loop → while ( expression ) block
 class m_loop:
-    def __init__(self, expression, block):
+    def __init__(self, expression:m_expression, block:m_block):
         self.expression = expression
         self.block = block
 
 # delete → delete expression ;
 class m_delete:
-    def __init__(self, expression):
+    def __init__(self, expression:m_expression):
       self.expression = expression
 
 # ret → return {expression}opt;
 class m_ret:
-    def __init__(self, expression = None):
+    def __init__(self, expression:m_expression = None):
         self.expression = expression
 
 # invocation → id arguments ;
 class m_invocation:
-    def __init__(self, id:m_id, arguments):
+    def __init__(self, id:m_id, arguments:m_arguments):
         self.id = id
         self.arguments = arguments
 
 # statement → block | assignment | print | conditional | loop | delete | ret | invocation
 class m_statement:
-    def __init__(self, contents): # :m_block    NOTE cyclical definition statement -> block -> statement list -> statement
+    def __init__(self, contents:m_block): #  NOTE cyclical definition statement -> block -> statement list -> statement
         self.contents = contents
     def __init__(self, contents:m_assignment):
         self.contents = contents
@@ -161,97 +185,73 @@ class m_block:
     def __init__(self, statement_list:m_statement_list):
         self.statement_list = statement_list
 
-
 # lvalue → id {.id}∗
-def m_lvalue(m_ids:list[m_id]):
-    def __init__(self, m_ids):
-        self.m_ids = m_ids
+class m_lvalue:
+    def __init__(self, m_ids:list[m_id]):
+        self.m_ids = m_ids  # length of m_ids should be >= 1
+        if len(self.m_ids) < 1:
+            print(f"ERROR: according to overview.pdf, a lvalue should have 1 or more ids. This condition is not met somewhere")
 
+# ( expression ) | id {arguments}opt| number | true | false | new id | null
+class m_factor:
+    def __init__(self, contents:m_expression):
+        self.expression = contents
+    def __init__(self, contents:m_id, arguments:m_arguments = None):
+        self.expression = contents
+        self.arguments = arguments
+    def __init__(self, contents:int):
+        self.expression = contents
+    def __init__(self, contents:str):
+        self.expression = contents  # TODO contents should either be "true", "false", or "null"
+        keywords = ['true', 'false', 'null']
+        if self.expression not in keywords:
+            print(f'ERROR: invalid keyword in m_factor. Got {self.expression} but expected one of {keywords}.')
+    def __init__(self, contents:str, id:m_id):  # for the new id case
+        self.expression = contents  # TODO contents should be "new"
+        if self.expression != "new":
+            print(f'ERROR: expected keyword "new" in m_factor but got keyword {self.expression}')
+        self.id = id
 
-# expression → boolterm {|| boolterm}∗
-def m_expression(boolterms:list[m_boolterm], operators:list[str] ):
-    def __init__(self, boolterms, operators):
-        self.boolterms = boolterms
-        self.operators = operators
-
-
-# boolterm → eqterm {&& eqterm}∗
-def m_boolterm(eqterms:list[eqterm], operators:list[str] ):
-    def __init__(self, eqterms, operators):
-        self.eqterms = eqterms
-        self.operators = operators
-
-
-# SIMLAR TO RELTERM, SIMPLE, TERM, AND UNARY, NOT SURE WHAT TO DO WITH THE OPERATORS
-# eqterm → relterm {{== | ! =} relterm}∗
-def m_eqterm(relterms:list[m_relterm], operators:list[str]):
-    def __init__(self, relterms, operators):
-        self.relterms = relterms
-        self.operators = operators
-
-
-# SIMLAR TO SIMPLE, TERM, AND UNARY, NOT SURE WHAT TO DO WITH THE OPERATORS
-# relterm → simple {{<| >| <= | >=} simple}∗
-def m_relterm(simples:list[m_simple], operators:list[str]):
-    def __init__(self, simples, operators):
-        self.simples = simples
-        self.operators = operators
-
-
-# SIMLAR TO TERM AND UNARY, NOT SURE WHAT TO DO HERE
-# simple → term {{+ | −} term}∗
-def m_simple(terms:list[m_term], operators:list[str] ):
-    def __init__(self, terms:list[m_term], operators:list[str]):
-        self.terms = terms
-        self.operators = operators
-
-
-# NOT SURE HOW TO DEAL WITH * AND / HERE
-# term → unary {{∗ | /} unary}∗
-def m_term(unarys:list[m_unary], operators:list[str]):
-    def __init__(self, unarys:list[m_unary], operators:list[str]):
-        self.unarys = unarys
-        self.operators = operators
-
-
-# WASNT SURE WHAT TO PUT IN THE operator FIELD FOR - AND !
-# unary → {! | −}∗selector
-def m_unary(operators:list[str], selector:m_selector):
-    def __init__(self, operators:list[str], selector[m_selector]):
-        self.operators = operators
-        self.selector = selector
-
-
-# NOT SURE WHAT THE . BEFORE id indicates here
 # selector → factor {.id}∗
-def m_selector(factor:m_factor, identifiers:list[m_id]):
+class m_selector:
     def __init__(self, factor:m_factor, identifiers:list[m_id]):
         self.factor = factor
         self.identifiers = identifiers
 
+# unary → {! | −}∗selector
+class m_unary:
+    def __init__(self, operators:list[str], selector:m_selector):
+        self.operators = operators
+        self.selector = selector
 
-# THIS IS WEIRD WITH MULTIPLE FIELDS IN SOME PLACES
-# THERE IS AN UNDERLINE UNDER THE expression PARENS, WHAT DOES THIS MEAN?
-# factor → ( expression ) | id {arguments}opt| number | true | false | new id | null
-def m_factor(factorInput):
-    def __init__(expression:m_expression):
-      self.expression = expression
+# term → unary {{∗ | /} unary}∗
+class m_term:
+    def __init__(self, unarys:list[m_unary], operators:list[str]):
+        self.unarys = unarys
+        self.operators = operators
 
-    # def __init__(:):
-    #   self. = 
-    # def __init__(expression:m_expression):
-    #   self.expression = expression
-    # def __init__(expression:m_expression):
-    #   self.expression = expression
-      
+# simple → term {{+ | −} term}∗
+class m_simple:
+    def __init__(self, terms:list[m_term], operators:list[str]):
+        self.terms = terms
+        self.operators = operators
 
-# THERE IS AN UNDERLINE UNDER THE OUTSIDE PARENS, WHAT DOES THIS MEAN?
-# arguments → ( {expression {,expression}∗}opt)
-def m_args(expressions:list[m_expression]):
-    def __init__(self, expressions:list[m_expression]):
-      self.expressions = expressions
+# relterm → simple {{<| >| <= | >=} simple}∗
+class m_relterm:
+    def __init__(self, simples:list[m_simple], operators:list[str]):
+        self.simples = simples
+        self.operators = operators
 
+# eqterm → relterm {{== | ! =} relterm}∗
+class m_eqterm:
+    def __init__(self, relterms:list[m_relterm], operators:list[str]):
+        self.relterms = relterms
+        self.operators = operators
 
+# boolterm → eqterm {&& eqterm}∗
+class m_boolterm:
+    def __init__(self, eqterms:list[m_eqterm]):
+        self.eqterms = eqterms
 
 print("hello")
 with open("test.json") as jsonFile:
@@ -502,6 +502,9 @@ with open("test.json") as jsonFile:
         case _:
             print("FAILED")
 
+class m_arguments:
+    def __init__(self, expressions:list[m_expression] = None):
+        self.expressions = expressions
 
 
 """
