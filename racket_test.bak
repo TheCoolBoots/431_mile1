@@ -1,0 +1,2 @@
+#lang typed/racket
+(read-plain-xexpr "test.json")
