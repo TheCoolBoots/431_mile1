@@ -1,16 +1,11 @@
-#lang racket
+#lang typed/racket
+(require typed/json)
 
+(define x (file->string "test.json"))
 
-(require json)
-
-(define x (string->jsexpr (file->string "test.json")))
-
-; {"types":[],"declarations":[{"line":1,"type":"int","id":"a"}],"functions":[]}
-
-
-
+(: testJson (-> String String))
 (define (testJson expr)
-  (match expr
+  (match (string->jsexpr expr)
     [(hash-table ('declarations a) ('functions b) ('types c)) "matched to json"]
     [other "fail"]))
 
