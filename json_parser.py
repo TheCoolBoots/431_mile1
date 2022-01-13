@@ -13,33 +13,15 @@ TASK 2: recursively parse json file into python classes
 def parseJson(jsonContents):
     match jsonContents:
         case {'types':_,'declarations':_,'functions':_}:
-            if type(jsonContents['types']) is list:
-                type_declarations = []
-                for type_decl in jsonContents['types']:
-                    type_declarations.append(parseJson(type_decl))
-                all_type_declarations = all(type(ele) == m_type_declaration for ele in type_declarations)
-                # if(all_type_declarations):
-                #     print("YAY")
-            if type(jsonContents['declarations']) is list:
-                declarations = []
-                for decl in jsonContents['declarations']:
-                    declarations.append(parseJson(decl))
-                all_declarations = all(type(ele) == m_declaration for ele in type_declarations)
-            return
+            types = parseTypes(jsonContents['types'])
+            declarations = parseDeclarations(jsonContents['declarations'])
+            functions = parseFunctions(jsonContents['functions'])
+            return m_prog(types, declarations, functions)
 
-        # type → int | bool | struct id
         case {'line':_,'id':_,'fields':_}:
             # check if id is protected keyword?
-            if type(jsonContents['fields']) is list:
-                m_decls = []
-                for type_decl in jsonContents['fields']:
-                    m_decls.append(parseJson(type_decl))
-                all_m_decls = all(type(ele) == m_declaration for ele in m_decls)
-                # if(all_m_decls):
-                #     print("YAY")
-            return m_type_declaration(m_id(id), m_nested_decl(m_decls))
+            return parseTypeDeclarations(jsonContents)
 
-        # nested decl → decl ; {decl ;}∗
         case {'line':_,'type':_,'id':_}:
             return m_declaration(parseJson(jsonContents['type']), parseJson(jsonContents['id']))
 
@@ -52,10 +34,43 @@ def parseJson(jsonContents):
         case other:
             return m_id(other)
 
-print("hello")
-with open("test.json") as jsonFile:
-    jsonContents = json.load(jsonFile)
-    parseJson(jsonContents)
+def parseDeclarations(json):
+    if type(json) is list:
+        dcls = []
+        for decl in json:
+            dcls.append(parseJson(decl))
+        all_declarations = all(type(ele) == m_declaration for ele in dcls)
+                # if all_declarations:
+                #     print('YAY')
+        return m_declarations(dcls)
+
+def parseTypes(json):
+    if type(json) is list:
+        type_declarations = []
+        for type_decl in json:
+            type_declarations.append(parseJson(type_decl))
+        all_type_declarations = all(type(ele) == m_type_declaration for ele in type_declarations)
+        # if(all_type_declarations):
+        #     print("YAY")
+        return m_types(type_declarations)
+
+def parseFunctions(json):
+    return m_functions([])
+
+def parseTypeDeclarations(jsonContents):
+    m_decls = []
+    if type(jsonContents['fields']) is list:
+        for type_decl in jsonContents['fields']:
+            m_decls.append(parseJson(type_decl))
+            all_m_decls = all(type(ele) == m_declaration for ele in m_decls)
+            # if(all_m_decls):
+            #     print("YAY")
+    return m_type_declaration(m_id(jsonContents['id']), m_declarations(m_decls))
+
+# print("")
+# with open("test.json") as jsonFile:
+#     jsonContents = json.load(jsonFile)
+#     parseJson(jsonContents)
 
         # # # m_type (struct)
         # # case _: # THIS ONE CANT REALLY BE RIGHT
