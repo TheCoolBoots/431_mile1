@@ -258,6 +258,8 @@ with open("test.json") as jsonFile:
     jsonContents = json.load(jsonFile)
     print(type(jsonContents))
     # program
+
+def parseJson(jsonContents):
     match jsonContents:
         # m_prog
         case {'types':_,'declarations':_,'functions':_}:
@@ -269,7 +271,7 @@ with open("test.json") as jsonFile:
             # decl = m_decl()
             print("MATCHED")
 
-# CONSIDER USING | (or)
+        # CONSIDER USING | (or)
         # m_type (int)
         case 'int':
             # type = m_type()
@@ -280,12 +282,10 @@ with open("test.json") as jsonFile:
             # type = m_type()
             print("MATCHED")
 
-        # m_type (struct)
-        case _: # THIS ONE CANT REALLY BE RIGHT
-            # type = m_type()
-            print("MATCHED")
-
-
+        # # m_type (struct)
+        # case _: # THIS ONE CANT REALLY BE RIGHT
+        #     # type = m_type()
+        #     print("MATCHED")
 
 # COME BACK TO THIS
         # m_id_list → id {,id}∗
@@ -293,55 +293,40 @@ with open("test.json") as jsonFile:
             # id_list = m_id_list()
             print("MATCHED")
 
-
-# good?
+        # good?
         # m_declaration 
         case {'type':_,'id':_,'list':_}:
             # declaration = m_declaration()
             print("MATCHED")
 
-
-
-# SHOULD BE JUST 1 OR MORE m_declaration. NOT SURE HOW TO DO THAT YET
+        # SHOULD BE JUST 1 OR MORE m_declaration. NOT SURE HOW TO DO THAT YET
         # m_declarations 
-        case *{'type':_,'id':_,'list':_} : # maybe something like this??
+        case {'type':_,'id':_,'list':_} : # maybe something like this??
             # declarations = m_declarations()
             print("MATCHED")
 
-
-
-
-# NO CLUE HERE
+        # NO CLUE HERE
         # m_nested_decl → decl ; {decl ;}∗
         case {'line':_,'type':_,'id':_}:
             # nested_decl = m_nested_decl()
             print("MATCHED")
 
-
-# good?
+        # good?
         # m_type_declaration → struct id { nested decl } ;
         case {'line':_,'id':_,'fields':[_]}:
             # type_declaration = m_type_declaration()
             print("MATCHED")
 
-
-# 0 or more m_type_declaration, still dont know how to do that
+        # 0 or more m_type_declaration, still dont know how to do that
         # m_types → {type declaration}∗
-        case [*{"line":_,"id":_,"fields":_}]: # this * is wrong
+        case [{"line":_,"id":_,"fields":_}]: # this * is wrong
             # types = m_types()
             print("MATCHED")
-
-
-
-            
-
-
 
         # m_parameters 
         case {'line':_,'type':_,'id':_}:
             # decl = m_decl()
             print("MATCHED")
-
 
         # m_return_type
         case {'line':_,'type':_,'id':_}:
