@@ -1,1 +1,42 @@
-{"types":[{"line":1,"id":"B","fields":[{"line":3,"type":"int","id":"a"}]}],"declarations":[{"line":5,"type":"int","id":"i"}],"functions":[{"line":6,"id":"f","parameters":[],"return_type":"int","declarations":[],"body":[{"line":7,"stmt":"return","exp":{"line":7,"exp":"num","value":"1"}}]}]}
+{
+    "types": [
+      {
+        "line": 1,
+        "id": "B",
+        "fields": [
+          {
+            "line": 3,
+            "type": "int",
+            "id": "a"
+          }
+        ]
+      }
+    ],
+    "declarations": [
+      {
+        "line": 5,
+        "type": "int",
+        "id": "i"
+      }
+    ],
+    "functions": [
+      {
+        "line": 6,
+        "id": "f",
+        "parameters": [],
+        "return_type": "int",
+        "declarations": [],
+        "body": [
+          {
+            "line": 7,
+            "stmt": "return",
+            "exp": {
+              "line": 7,
+              "exp": "num",
+              "value": "1"
+            }
+          }
+        ]
+      }
+    ]
+  }
