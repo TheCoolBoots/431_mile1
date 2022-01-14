@@ -1,0 +1,69 @@
+{
+  "types": [],
+  "declarations": [],
+  "functions": [
+    {
+      "line": 1,
+      "id": "main",
+      "parameters": [
+        {
+          "line": 1,
+          "type": "int",
+          "id": "b"
+        }
+      ],
+      "return_type": "int",
+      "declarations": [
+        {
+          "line": 3,
+          "type": "int",
+          "id": "i"
+        }
+      ],
+      "body": [
+        {
+          "line": 4,
+          "stmt": "assign",
+          "source": {
+            "line": 4,
+            "exp": "binary",
+            "operator": "+",
+            "lft": {
+              "line": 4,
+              "exp": "binary",
+              "operator": "-",
+              "lft": {
+                "line": 4,
+                "exp": "num",
+                "value": "2"
+              },
+              "rht": {
+                "line": 4,
+                "exp": "num",
+                "value": "3"
+              }
+            },
+            "rht": {
+              "line": 4,
+              "exp": "num",
+              "value": "5"
+            }
+          },
+          "target": {
+            "line": 4,
+            "id": "i"
+          }
+        },
+        {
+          "line": 5,
+          "stmt": "return",
+          "exp": {
+            "line": 5,
+            "exp": "num",
+            "value": "0"
+          }
+        }
+      ]
+    }
+  ]
+}

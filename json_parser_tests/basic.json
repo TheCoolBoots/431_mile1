@@ -1,0 +1,28 @@
+{
+    "types": [
+      {
+        "line": 1,
+        "id": "B",
+        "fields": [
+          {
+            "line": 3,
+            "type": "int",
+            "id": "a"
+          }
+        ]
+      }
+    ],
+    "declarations": [
+      {
+        "line": 5,
+        "type": "int",
+        "id": "i"
+      },
+      {
+        "line": 5,
+        "type": "int",
+        "id": "j"
+      }
+    ],
+    "functions": []
+  }

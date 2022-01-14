@@ -3,15 +3,19 @@ struct B
     int a;
 };
 
+int a;
+int b;
+
 fun tst() int
 {
+    int a;
     return 1;
 }
 
 fun main() int
 {
     int j;
-    int i;
+    int i = j;
 
 
     if(i < 3)
@@ -32,3 +36,5 @@ fun main() int
     }
     tst();
 }
+
+int c;
