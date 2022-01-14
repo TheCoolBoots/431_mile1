@@ -27,16 +27,26 @@
           "source": {
             "line": 4,
             "exp": "binary",
-            "operator": "-",
+            "operator": "+",
             "lft": {
               "line": 4,
-              "exp": "num",
-              "value": "2"
+              "exp": "binary",
+              "operator": "-",
+              "lft": {
+                "line": 4,
+                "exp": "num",
+                "value": "2"
+              },
+              "rht": {
+                "line": 4,
+                "exp": "num",
+                "value": "3"
+              }
             },
             "rht": {
               "line": 4,
               "exp": "num",
-              "value": "3"
+              "value": "5"
             }
           },
           "target": {

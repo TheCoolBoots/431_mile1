@@ -1,6 +1,8 @@
-fun main() int
+fun main(int b) int
 {
-    int i;
-    i = 2 - 3;
+    int a;
+    int b;
+    b = 3;
+    a = b + 1;
     return 0;
 }

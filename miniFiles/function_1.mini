@@ -1,0 +1,6 @@
+fun main(int b) int
+{
+    int i;
+    i = 2 - 3 + 5;
+    return 0;
+}

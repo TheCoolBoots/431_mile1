@@ -8,15 +8,38 @@ TASK 1: create python class for each format as described in overview.pdf
 """
 
 # placeholder classes; will be overwritten at compile time
-class m_expression:
-    None
+
 class m_block:
     None
 class m_arguments:
     None
 class m_lvalue:
     None
+class m_statement_list:
+    None
+class m_binop:
+    None
 
+class m_bool:
+    def __init__(self, val:bool):
+        self.val = val
+    def __eq__(self, __o: object) -> bool:
+        if type(__o) != type(self):
+            return False
+        return not (self.val ^ __o.val)
+
+class m_null:
+    def __eq__(self, __o: object) -> bool:
+        if type(__o) != type(self):
+            return False
+
+class m_num:
+    def __init__(self, val:int):
+        self.val = val
+    def __eq__(self, __o: object) -> bool:
+        if type(__o) != type(self):
+            return False
+        return self.val == __o.val
 
 class m_id:
     def __init__(self, identifier:str):
@@ -154,7 +177,7 @@ class m_return_type:
 
 # function → fun id parameters return type { declarations statement list }
 class m_function:
-    def __init__(self, id:m_id, parameters:m_declarations, return_type:m_return_type, declarations:m_declarations, statement_list):
+    def __init__(self, id:m_id, parameters:m_declarations, return_type:m_return_type, declarations:m_declarations, statement_list:m_statement_list):
         self.id = id
         self.parameters = parameters
         self.return_type = return_type
@@ -196,14 +219,9 @@ class m_prog:
 
 # assignment → lvalue = { expression | read } ;
 class m_assignment:
-    def __init__(self, lvalue:m_lvalue, assignmentVal:m_expression):
+    def __init__(self, lvalue:m_lvalue, assignmentVal):
         self.lvalue = lvalue
         self.assignmentVal = assignmentVal
-    def __init__(self, lvalue:m_lvalue, assignmentVal:str):
-        self.lvalue = lvalue
-        self.assignmentVal = assignmentVal # check if assignmentVal is "read"
-        if self.assignmentVal != 'read':
-            print('ERROR: the right side of an assignment should either parse to an expression or "read"')
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
@@ -212,7 +230,7 @@ class m_assignment:
 
 # print → print expression {endl}opt;
 class m_print:
-    def __init__(self, expression:m_expression, endl:bool = None):
+    def __init__(self, expression, endl:bool = None):
         self.expression = expression
         self.endl = endl
     def __eq__(self, __o: object) -> bool:
@@ -223,7 +241,7 @@ class m_print:
 
 # conditional → if ( expression ) block {else block}opt
 class m_conditional:
-    def __init__(self, expression:m_expression, ifBlock:m_block, elseBlock:m_block = None):
+    def __init__(self, expression, ifBlock:m_block, elseBlock:m_block = None):
         self.expression = expression
         self.ifBlock = ifBlock
         self.elseBlock = elseBlock
@@ -235,7 +253,7 @@ class m_conditional:
 
 # loop → while ( expression ) block
 class m_loop:
-    def __init__(self, expression:m_expression, block:m_block):
+    def __init__(self, expression, block:m_block):
         self.expression = expression
         self.block = block
     def __eq__(self, __o: object) -> bool:
@@ -246,7 +264,7 @@ class m_loop:
 
 # delete → delete expression ;
 class m_delete:
-    def __init__(self, expression:m_expression):
+    def __init__(self, expression):
         self.expression = expression
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
@@ -256,7 +274,7 @@ class m_delete:
 
 # ret → return {expression}opt;
 class m_ret:
-    def __init__(self, expression:m_expression = None):
+    def __init__(self, expression = None):
         self.expression = expression
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
@@ -343,7 +361,7 @@ class m_lvalue:
 
 # ( expression ) | id {arguments}opt| number | true | false | new id | null
 class m_factor:
-    def __init__(self, contents:m_expression):
+    def __init__(self, contents):
         self.expression = contents
         self.rest = None
     def __init__(self, contents:m_id, arguments:m_arguments = None):
@@ -400,101 +418,128 @@ class m_unary:
                 return False
         return self.selector == __o.selector
 
+# class m_expression:
+#     def __init__(self, contents:m_binop) -> None:
+#         self.contents = contents
+#     def __init__(self, contents:m_num) -> None:
+#         self.contents = contents
+#     def __init__(self, contents:m_bool) -> None:
+#         self.contents = contents
+#     def __init__(self, contents:m_null) -> None:
+#         self.contents = contents
+#     def __eq__(self, __o: object) -> bool:
+#         if type(self) != type(__o):
+#             return False
+#         return self.contents == __o.contents
 
-# term → unary {{∗ | /} unary}∗
-class m_term:
-    def __init__(self, unarys:list[m_unary], operators:list[str]):
-        self.unarys = unarys
-        self.operators = operators
+class m_binop:
+    def __init__(self, operator:str, left, right):
+        self.operator = operator
+        self.left = left
+        self.right = right
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        if len(self.unarys) != len(__o.unarys):
-            return False
-        for i in range(len(self.unarys)):
-            if not (self.unarys[i] == __o.unarys[i]):
-                return False
-        if len(self.operators) != len(__o.operators):
-            return False
-        for i in range(len(self.operators)):
-            if not (self.operators[i] == __o.operators[i]):
-                return False
-        return True
+        return self.operator == __o.operator and self.left == __o.left and self.right == __o.right
 
 
-# simple → term {{+ | −} term}∗
-class m_simple:
-    def __init__(self, terms:list[m_term], operators:list[str]):
-        self.terms = terms
-        self.operators = operators
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.terms) != len(__o.terms):
-            return False
-        for i in range(len(self.terms)):
-            if not (self.terms[i] == __o.terms[i]):
-                return False
-        if len(self.operators) != len(__o.operators):
-            return False
-        for i in range(len(self.operators)):
-            if not (self.operators[i] == __o.operators[i]):
-                return False
-        return True
+
+# all binary operators are parsed by parser into a single type, so can scratch all that out
+# similarly, all "expressions" will be explicitly defined by parser, and thus we won't need to consider them
+# # term → unary {{∗ | /} unary}∗
+# class m_term:
+#     def __init__(self, unarys:list[m_unary], operators:list[str]):
+#         self.unarys = unarys
+#         self.operators = operators
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.unarys) != len(__o.unarys):
+#             return False
+#         for i in range(len(self.unarys)):
+#             if not (self.unarys[i] == __o.unarys[i]):
+#                 return False
+#         if len(self.operators) != len(__o.operators):
+#             return False
+#         for i in range(len(self.operators)):
+#             if not (self.operators[i] == __o.operators[i]):
+#                 return False
+#         return True
 
 
-# relterm → simple {{<| >| <= | >=} simple}∗
-class m_relterm:
-    def __init__(self, simples:list[m_simple], operators:list[str]):
-        self.simples = simples
-        self.operators = operators
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.simples) != len(__o.simples):
-            return False
-        for i in range(len(self.simples)):
-            if not (self.simples[i] == __o.simples[i]):
-                return False
-        if len(self.operators) != len(__o.operators):
-            return False
-        for i in range(len(self.operators)):
-            if not (self.operators[i] == __o.operators[i]):
-                return False
-        return True
+# # simple → term {{+ | −} term}∗
+# class m_simple:
+#     def __init__(self, terms:list[m_term], operators:list[str]):
+#         self.terms = terms
+#         self.operators = operators
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.terms) != len(__o.terms):
+#             return False
+#         for i in range(len(self.terms)):
+#             if not (self.terms[i] == __o.terms[i]):
+#                 return False
+#         if len(self.operators) != len(__o.operators):
+#             return False
+#         for i in range(len(self.operators)):
+#             if not (self.operators[i] == __o.operators[i]):
+#                 return False
+#         return True
 
 
-# eqterm → relterm {{== | ! =} relterm}∗
-class m_eqterm:
-    def __init__(self, relterms:list[m_relterm], operators:list[str]):
-        self.relterms = relterms
-        self.operators = operators
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.relterms) != len(__o.relterms):
-            return False
-        for i in range(len(self.relterms)):
-            if not (self.relterms[i] == __o.relterms[i]):
-                return False
-        if len(self.operators) != len(__o.operators):
-            return False
-        for i in range(len(self.operators)):
-            if not (self.operators[i] == __o.operators[i]):
-                return False
-        return True
+# # relterm → simple {{<| >| <= | >=} simple}∗
+# class m_relterm:
+#     def __init__(self, simples:list[m_simple], operators:list[str]):
+#         self.simples = simples
+#         self.operators = operators
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.simples) != len(__o.simples):
+#             return False
+#         for i in range(len(self.simples)):
+#             if not (self.simples[i] == __o.simples[i]):
+#                 return False
+#         if len(self.operators) != len(__o.operators):
+#             return False
+#         for i in range(len(self.operators)):
+#             if not (self.operators[i] == __o.operators[i]):
+#                 return False
+#         return True
 
 
-# boolterm → eqterm {&& eqterm}∗
-class m_boolterm:
-    def __init__(self, eqterms:list[m_eqterm]):
-        self.eqterms = eqterms
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.eqterms) != len(__o.eqterms):
-            return False
-        for i in range(len(self.eqterms)):
-            if not (self.eqterms[i] == __o.eqterms[i]):
-                return False
-        return True
+# # eqterm → relterm {{== | ! =} relterm}∗
+# class m_eqterm:
+#     def __init__(self, relterms:list[m_relterm], operators:list[str]):
+#         self.relterms = relterms
+#         self.operators = operators
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.relterms) != len(__o.relterms):
+#             return False
+#         for i in range(len(self.relterms)):
+#             if not (self.relterms[i] == __o.relterms[i]):
+#                 return False
+#         if len(self.operators) != len(__o.operators):
+#             return False
+#         for i in range(len(self.operators)):
+#             if not (self.operators[i] == __o.operators[i]):
+#                 return False
+#         return True
+
+
+# # boolterm → eqterm {&& eqterm}∗
+# class m_boolterm:
+#     def __init__(self, eqterms:list[m_eqterm]):
+#         self.eqterms = eqterms
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.eqterms) != len(__o.eqterms):
+#             return False
+#         for i in range(len(self.eqterms)):
+#             if not (self.eqterms[i] == __o.eqterms[i]):
+#                 return False
+#         return True
