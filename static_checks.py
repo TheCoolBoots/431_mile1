@@ -29,11 +29,6 @@ def type_check(expression ,typeEnvironment: dict):
         print("MATCHED")
 
 
-    # # m_decl 
-    # elif expressionType is m_decl:
-    #     print("MATCHED")
-
-
     # m_type
     elif expressionType is m_type:
         print("MATCHED")
@@ -44,17 +39,6 @@ def type_check(expression ,typeEnvironment: dict):
         else:
             # failure, how do we want to return?
             return False
-
-
-
-    # # m_id_list → id {,id}∗
-    # elif expressionType is m_id_list:
-    #     print("MATCHED")
-    #     for i in expression.id_list:
-    #         if i == "int" or i == "bool" or i in typeEnvironment:
-    #             continue
-    #         else:
-    #             return False
 
 
     # ADD SOMETHING TO THE ENVIRONMENT
@@ -69,8 +53,6 @@ def type_check(expression ,typeEnvironment: dict):
 
         # extend the environment to have the id-type mapping
         return extendEnv(typeEnviroment, expression.id, expression.type) # DOUBLE CHECK THIS LINE
-        
-
 
 
     # ADD SOMETHING TO THE ENVIRONMENT
@@ -83,26 +65,33 @@ def type_check(expression ,typeEnvironment: dict):
 
 
             
+    # m_bool
+    elif expressionType is m_bool:
+        print("MATCHED")
 
 
+    # m_null
+    elif expressionType is m_null:
+        print("MATCHED")
 
-    # m_nested_decl → decl ; {decl ;}∗
-    elif expressionType is m_nested_decl:
+
+    # m_num
+    elif expressionType is m_num:
+        print("MATCHED")
+
+
+    # m_num
+    elif expressionType is m_num:
         print("MATCHED")
 
 
     # m_type_declaration → struct id { nested decl } ;
-    elif expressionType is m_type_declarations:
+    elif expressionType is m_type_declaration:
         print("MATCHED")
 
 
     # m_types → {type declaration}∗
     elif expressionType is m_types:
-        print("MATCHED")
-
-
-    # m_parameters 
-    elif expressionType is m_parameters:
         print("MATCHED")
 
 
@@ -178,37 +167,11 @@ def type_check(expression ,typeEnvironment: dict):
         print("MATCHED")
 
 
-    # m_expression
-    elif expressionType is m_expression:
-        print("MATCHED")
-
-
-    # m_boolterm 
-    elif expressionType is m_boolterm:
-        print("MATCHED")
-
-
-    # m_eqterm 
-    elif expressionType is m_eqterm:
-        print("MATCHED")
-
-
-    # m_relterm 
-    elif expressionType is m_relterm:
-        print("MATCHED")
-
-
-    # m_simple 
-    elif expressionType is m_simple:
-        print("MATCHED")
-
-
-    # m_term 
-    elif expressionType is m_term:
-        print("MATCHED")
-
-
     # m_unary 
+    elif expressionType is m_unary:
+        print("MATCHED")
+
+    # m_binop
     elif expressionType is m_unary:
         print("MATCHED")
 
@@ -234,8 +197,48 @@ def type_check(expression ,typeEnvironment: dict):
         print("FAILED TO RECOGNIZE TYPE")
         return False
 
+    # # m_decl 
+    # elif expressionType is m_decl:
+    #     print("MATCHED")
+
+        # # m_expression
+    # elif expressionType is m_expression:
+    #     print("MATCHED")
+
+    # # m_eqterm 
+    # elif expressionType is m_eqterm:
+    #     print("MATCHED")
 
 
+    # # m_relterm 
+    # elif expressionType is m_relterm:
+    #     print("MATCHED")
+
+    # # m_simple 
+    # elif expressionType is m_simple:
+    #     print("MATCHED")
+
+    # # m_term 
+    # elif expressionType is m_term:
+    #     print("MATCHED")
+
+    # # m_parameters 
+    # elif expressionType is m_parameters:
+    #     print("MATCHED")
+
+    # # m_nested_decl → decl ; {decl ;}∗
+    # elif expressionType is m_nested_decl:
+    #     print("MATCHED")
+
+
+    # # m_id_list → id {,id}∗
+    # elif expressionType is m_id_list:
+    #     print("MATCHED")
+    #     for i in expression.id_list:
+    #         if i == "int" or i == "bool" or i in typeEnvironment:
+    #             continue
+    #         else:
+    #             return False
 
 
 
