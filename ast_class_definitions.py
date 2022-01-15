@@ -54,7 +54,7 @@ class m_id:
 class m_type:
     def __init__(self, typeID:str):
         self.type = typeID
-        typeKeywords = ['int', 'bool']
+        typeKeywords = ['int', 'bool', 'void']
         if self.type not in typeKeywords:
             print(f'ERROR: invalid type. Expected {typeKeywords} but got {self.type}')
     def __init__(self, typeID:m_id):
@@ -161,23 +161,24 @@ class m_types:
 #             print(f"ERROR: according to overview.pdf, a paramaters should have 1 or more decls. This condition is not met somewhere")
 
 
+# is obslete; can just be stored as m_type
 # return type → type | void
-class m_return_type:
-    def __init__(self, type:m_type):
-        self.type = type
-    def __init__(self, type:str):
-        self.type = type    # TODO check if return val is "void"
-        if(self.type != "void"):
-            print(f'ERROR: the return type should either be a valid type or void.')
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        return self.type == __o.type
+# class m_return_type:
+#     def __init__(self, type:str):
+#         self.type = type    # TODO check if return val is "void"
+#         if(self.type != "void"):
+#             print(f'ERROR: the return type should either be a valid type or void.')
+#     def __init__(self, type:m_type):
+#         self.type = type
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         return self.type == __o.type
 
 
 # function → fun id parameters return type { declarations statement list }
 class m_function:
-    def __init__(self, id:m_id, parameters:m_declarations, return_type:m_return_type, declarations:m_declarations, statement_list:m_statement_list):
+    def __init__(self, id:m_id, parameters:m_declarations, return_type:m_type, declarations:m_declarations, statement_list:m_statement_list):
         self.id = id
         self.parameters = parameters
         self.return_type = return_type
@@ -219,13 +220,13 @@ class m_prog:
 
 # assignment → lvalue = { expression | read } ;
 class m_assignment:
-    def __init__(self, lvalue:m_lvalue, assignmentVal):
-        self.lvalue = lvalue
-        self.assignmentVal = assignmentVal
+    def __init__(self, target:m_lvalue, assignmentExpression):
+        self.target = target
+        self.assignmentExpression = assignmentExpression
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.lvalue == __o.lvalue and self.assignmentVal == __o.assignmentVal
+        return self.target == __o.target and self.assignmentExpression == __o.assignmentExpression
 
 
 # print → print expression {endl}opt;
@@ -248,7 +249,9 @@ class m_conditional:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.expression == __o.expression and self.ifBlock == __o.ifBlock and self.elseBlock == __o.elseBlock
+        equal = self.expression == __o.expression and self.ifBlock == __o.ifBlock and self.elseBlock == __o.elseBlock
+        print(f'conditional is equal? {equal}')
+        return equal
 
 
 # loop → while ( expression ) block
@@ -259,7 +262,10 @@ class m_loop:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.expression == __o.expression and self.block == __o.block
+        equal = self.expression == __o.expression and self.block == __o.block
+        # print(f'm_loops equal? {equal}')
+        # print(type(self.block), type(__o.block))
+        return equal
 
 
 # delete → delete expression ;
@@ -339,7 +345,9 @@ class m_block:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.statement_list == __o.statement_list
+        equal = self.statement_list == __o.statement_list
+        # print(f"m_blocks equal? {equal}")
+        return equal
 
 
 # lvalue → id {.id}∗
@@ -418,6 +426,7 @@ class m_unary:
                 return False
         return self.selector == __o.selector
 
+
 # class m_expression:
 #     def __init__(self, contents:m_binop) -> None:
 #         self.contents = contents
@@ -432,6 +441,7 @@ class m_unary:
 #             return False
 #         return self.contents == __o.contents
 
+
 class m_binop:
     def __init__(self, operator:str, left, right):
         self.operator = operator
@@ -441,7 +451,6 @@ class m_binop:
         if type(__o) != type(self):
             return False
         return self.operator == __o.operator and self.left == __o.left and self.right == __o.right
-
 
 
 # all binary operators are parsed by parser into a single type, so can scratch all that out

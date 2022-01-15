@@ -62,7 +62,38 @@ class test_json_parser(unittest.TestCase):
         expectedProg = m_prog(types, declarations, functions)
 
         self.assertEqual(ast, expectedProg)
+
+    def test_loop(self):
+        with open('json_parser_tests/loop.json') as file:
+            contents = json.load(file)
+        ast = parse(contents)
+
+        whileBody = m_block(m_statement_list([m_statement(m_print(m_num(7), False))]))
+        whileGuard = m_bool(True)
+        whileStatement = m_statement(m_loop(whileGuard, whileBody))
+        mainBody = m_function(m_id('main'), m_declarations([]), m_type('int'), m_declarations([]), m_statement_list([whileStatement])) 
+        functions = m_functions([mainBody])
+        expectedProg = m_prog(m_types([]), m_declarations([]), functions)
+
+        self.assertEqual(ast, expectedProg)
+
+    def test_if(self):
+        with open('json_parser_tests/if.json') as file:
+            contents = json.load(file)
+        ast = parse(contents)
+
+        thenBlock = m_block(m_statement_list([m_statement(m_print(m_num(7), False))]))
+        guardClause = m_binop('==', m_id('a'), m_num(3))
+        ifStatement = m_statement(m_conditional(guardClause, thenBlock))
+        assignStatement = m_statement(m_assignment(m_lvalue([m_id('a')]), m_num(3)))
+
+        functionBody = m_statement_list([assignStatement, ifStatement])
+        declarations = m_declarations([m_declaration(m_type('int'), m_id('a'))])
+        mainBody = m_function(m_id('main'), m_declarations([]), m_type('int'), declarations, functionBody) 
         
+        expectedProg = m_prog(m_types([]), m_declarations([]), m_functions([mainBody]))
+
+        self.assertEqual(ast, expectedProg)
 
 if __name__ == '__main__':
     unittest.main()

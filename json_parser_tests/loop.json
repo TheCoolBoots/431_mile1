@@ -1,0 +1,38 @@
+{
+    "types": [],
+    "declarations": [],
+    "functions": [
+      {
+        "line": 1,
+        "id": "main",
+        "parameters": [],
+        "return_type": "int",
+        "declarations": [],
+        "body": [
+          {
+            "line": 3,
+            "stmt": "while",
+            "guard": {
+              "line": 3,
+              "exp": "true"
+            },
+            "body": {
+              "stmt": "block",
+              "list": [
+                {
+                  "line": 5,
+                  "stmt": "print",
+                  "exp": {
+                    "line": 5,
+                    "exp": "num",
+                    "value": "7"
+                  },
+                  "endl": false
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }

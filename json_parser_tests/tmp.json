@@ -1,0 +1,55 @@
+{
+    "types": [
+      {
+        "line": 1,
+        "id": "A",
+        "fields": [
+          {
+            "line": 2,
+            "type": "int",
+            "id": "a"
+          },
+          {
+            "line": 3,
+            "type": "int",
+            "id": "b"
+          }
+        ]
+      }
+    ],
+    "declarations": [],
+    "functions": [
+      {
+        "line": 6,
+        "id": "main",
+        "parameters": [],
+        "return_type": "int",
+        "declarations": [
+          {
+            "line": 7,
+            "type": "A",
+            "id": "temp"
+          }
+        ],
+        "body": [
+          {
+            "line": 8,
+            "stmt": "assign",
+            "source": {
+              "line": 8,
+              "exp": "num",
+              "value": "5"
+            },
+            "target": {
+              "line": 8,
+              "left": {
+                "line": 8,
+                "id": "A"
+              },
+              "id": "a"
+            }
+          }
+        ]
+      }
+    ]
+  }

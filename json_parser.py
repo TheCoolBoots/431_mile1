@@ -20,7 +20,10 @@ def parse(json):
 
         case {'line':_,'id':_,'fields':_}:
             # check if id is protected keyword?
-            return parseTypeDeclarations(json)
+            m_decls = []
+            for type_decl in json['fields']:
+                m_decls.append(parse(type_decl))
+            return m_type_declaration(m_id(json['id']), m_declarations(m_decls))
 
         case {'line':_,'type':_,'id':_}:
             return m_declaration(parse(json['type']), parse(json['id']))
@@ -34,11 +37,29 @@ def parse(json):
         case {'line':_, 'exp':'num', 'value':_}:
             return m_num(int(json['value']))
 
+        case {'line':_, 'exp':'true' | 'false'}:
+            return m_bool(bool(json['exp']))
+
         case {'line':_, 'stmt':'return', 'exp':_}:
             return m_statement(m_ret(parse(json['exp'])))
 
+        case {'line':_, 'stmt':'print', 'exp':_, 'endl':_}:
+            return m_statement(m_print(parse(json['exp']), bool(json['endl'])))
+
         case {'line':_, 'stmt':'assign', 'source':_, 'target':_}:
             return m_statement(m_assignment(parse(json['target']), parse(json['source'])))
+
+        case {'line':_, 'stmt':'while', 'guard':_, 'body':_}:
+            return m_statement(m_loop(parse(json['guard']), parse(json['body'])))
+        
+        case {'line':_, 'stmt':'if', 'guard':_, 'then':_}:
+            return m_statement(m_conditional(parse(json['guard']), parse(json['then'])))
+
+        case {'stmt':'block', 'list':_}:
+            statements = []
+            for stmt in json['list']:
+                statements.append(parse(stmt))
+            return m_block(m_statement_list(statements))
 
         case {'line':_, 'id':_}:
             # TODO handle the case where id is a struct and assigning to value within the struct
@@ -63,26 +84,20 @@ def parseDeclarations(json):
     dcls = []
     for decl in json:
         dcls.append(parse(decl))
-    # all_declarations = all(type(ele) == m_declaration for ele in dcls)
-    # if all_declarations:
-    #     print('YAY')
     return m_declarations(dcls)
 
 def parseTypes(json):
     type_declarations = []
     for type_decl in json:
         type_declarations.append(parse(type_decl))
-    # all_type_declarations = all(type(ele) == m_type_declaration for ele in type_declarations)
-    # if(all_type_declarations):
-    #     print("YAY")
     return m_types(type_declarations)
 
 def parseFunctions(json):
     funs = []
     for fun in json:
-        id = parse(fun['id'])
+        id = m_id(fun['id'])
         parameters = parseDeclarations(fun['parameters'])
-        returnType = parse(fun['return_type'])
+        returnType = m_type(fun['return_type'])
         declarations = parseDeclarations(fun['declarations'])
 
         body = []
@@ -92,14 +107,6 @@ def parseFunctions(json):
         funs.append(m_function(id, parameters, returnType, declarations, m_statement_list(body)))
     return m_functions(funs)
 
-def parseTypeDeclarations(json):
-    m_decls = []
-    for type_decl in json['fields']:
-        m_decls.append(parse(type_decl))
-    # all_m_decls = all(type(ele) == m_declaration for ele in m_decls)
-    # if(all_m_decls):
-    #     print("YAY")
-    return m_type_declaration(m_id(json['id']), m_declarations(m_decls))
 
 
 # print("")
