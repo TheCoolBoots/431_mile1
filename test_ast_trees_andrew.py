@@ -66,3 +66,7 @@ declarations5 = m_declarations([m_declaration(m_type('int'), m_id('a'))])
 mainBody5 = m_function(m_id('main'), m_declarations([]), m_type('int'), declarations5, functionBody5) 
 
 expected5 = m_prog(m_types([]), m_declarations([]), m_functions([mainBody5]))
+
+
+# derived from structs.json
+nestedDeclarations6 = m_declarations([m_declaration(m_type('int'), m_id('a')), m_declaration(m_type('int'), m_id('b'))])
