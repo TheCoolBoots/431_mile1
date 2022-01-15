@@ -47,7 +47,8 @@ def parse(json):
             return m_statement(m_print(parse(json['exp']), bool(json['endl'])))
 
         case {'line':_, 'stmt':'assign', 'source':_, 'target':_}:
-            return m_statement(m_assignment(parse(json['target']), parse(json['source'])))
+            target = m_lvalue(parse(json['target']))
+            return m_statement(m_assignment(target, parse(json['source'])))
 
         case {'line':_, 'stmt':'while', 'guard':_, 'body':_}:
             return m_statement(m_loop(parse(json['guard']), parse(json['body'])))
@@ -61,10 +62,17 @@ def parse(json):
                 statements.append(parse(stmt))
             return m_block(m_statement_list(statements))
 
+        case {'line':_, 'left':_, 'id':_}:
+            # expects parent struct recursive parse to go to this or previous case
+            parentStruct = parse(json['left'])
+            parentStruct.append(m_id(json['id']))
+            return parentStruct
+
         case {'line':_, 'id':_}:
             # TODO handle the case where id is a struct and assigning to value within the struct
             # ex: A.j = 5
-            return m_lvalue([parse(json['id'])])
+            return [m_id(json['id'])]
+
 
         case 'int':
             return m_type('int')

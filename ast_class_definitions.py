@@ -7,16 +7,16 @@ TASK 1: create python class for each format as described in overview.pdf
     NOTE maybe this isn't required? can do all semantic checks just on json?
 """
 
+def listsEqual(listA:list, listB:list):
+    if len(listA) != len(listB):
+        return False
+    for i in range(len(listA)):
+        if not (listA[i] == listB[i]):
+            return False
+    return True
+
 # placeholder classes; will be overwritten at compile time
 
-class m_block:
-    None
-class m_arguments:
-    None
-class m_lvalue:
-    None
-class m_statement_list:
-    None
 class m_binop:
     None
 
@@ -93,19 +93,19 @@ class m_declaration:
         return self.type == __o.type and self.id == __o.id
 
 
-# declarations → {declaration}∗
-class m_declarations:
-    def __init__(self, declarations:list[m_declaration]):
-      self.declarations = declarations
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.declarations) != len(__o.declarations):
-            return False
-        for i in range(len(self.declarations)):
-            if not (self.declarations[i] == __o.declarations[i]):
-                return False
-        return True
+# # declarations → {declaration}∗
+# class m_declarations:
+#     def __init__(self, declarations:list[m_declaration]):
+#       self.declarations = declarations
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.declarations) != len(__o.declarations):
+#             return False
+#         for i in range(len(self.declarations)):
+#             if not (self.declarations[i] == __o.declarations[i]):
+#                 return False
+#         return True
 
 
 # has the same parsing signature of m_declarations, just have to make sure len of declarations is >= 1
@@ -128,28 +128,28 @@ class m_declarations:
 
 # type declaration → struct id { nested decl } ;
 class m_type_declaration:
-    def __init__(self, id:m_id, nested_decl:m_declarations):
+    def __init__(self, id:m_id, nested_declarations:list[m_declaration]):
         self.id = id
-        self.nested_decl = nested_decl
+        self.nested_declarations = nested_declarations
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.id == __o.id and self.nested_decl == __o.nested_decl
+        return self.id == __o.id and listsEqual(self.nested_declarations, __o.nested_declarations)
 
 
-# types → {type declaration}∗
-class m_types:
-    def __init__(self, type_declarations:list[m_type_declaration]):
-        self.type_declarations = type_declarations
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.type_declarations) != len(__o.type_declarations):
-            return False
-        for i in range(len(self.type_declarations)):
-            if not (self.type_declarations[i] == __o.type_declarations[i]):
-                return False
-        return True
+# # types → {type declaration}∗
+# class m_types:
+#     def __init__(self, type_declarations:list[m_type_declaration]):
+#         self.type_declarations = type_declarations
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.type_declarations) != len(__o.type_declarations):
+#             return False
+#         for i in range(len(self.type_declarations)):
+#             if not (self.type_declarations[i] == __o.type_declarations[i]):
+#                 return False
+#         return True
 
 
 # is obslete; has same structure as m_nested_decl
@@ -178,7 +178,7 @@ class m_types:
 
 # function → fun id parameters return type { declarations statement list }
 class m_function:
-    def __init__(self, id:m_id, parameters:m_declarations, return_type:m_type, declarations:m_declarations, statement_list:m_statement_list):
+    def __init__(self, id:m_id, parameters:list[m_declaration], return_type:m_type, declarations:list[m_declaration], statement_list:list):
         self.id = id
         self.parameters = parameters
         self.return_type = return_type
@@ -187,46 +187,55 @@ class m_function:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        bools = [self.id == __o.id, self.parameters == __o.parameters, self.return_type == __o.return_type, self.declarations == __o.declarations, self.statement_list == __o.statement_list]
-        return all(bools)
+
+        bools = [self.id == __o.id, 
+            self.return_type == __o.return_type, 
+            listsEqual(self.statement_list, __o.statement_list),
+            listsEqual(self.declarations, __o.declarations),
+            listsEqual(self.parameters, __o.parameters)]
+
+        equal = all(bools)
+        # print(f'function equal? {equal}')
+        return equal
 
 
-# functions → {function}∗
-class m_functions:
-    def __init__(self, functions:list[m_function]):
-      self.functions = functions
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.functions) != len(__o.functions):
-            return False
-        for i in range(len(self.functions)):
-            if not (self.functions[i] == __o.functions[i]):
-                return False
-        return True
+# # functions → {function}∗
+# class m_functions:
+#     def __init__(self, functions:list[m_function]):
+#       self.functions = functions
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.functions) != len(__o.functions):
+#             return False
+#         for i in range(len(self.functions)):
+#             if not (self.functions[i] == __o.functions[i]):
+#                 return False
+#         return True
 
 
 # program → types declarations functions
 class m_prog:
-    def __init__(self, types:m_types, declarations:m_declarations, functions:m_functions):
+    def __init__(self, types:list[m_type_declaration], declarations:list[m_declaration], functions:list[m_function]):
         self.types = types
         self.declarations = declarations
         self.functions = functions
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.types == __o.types and self.declarations == __o.declarations and self.functions == __o.functions
+
+        return listsEqual(self.types, __o.types) and listsEqual(self.declarations, __o.declarations) and listsEqual(self.functions, __o.functions)
     
 
 # assignment → lvalue = { expression | read } ;
 class m_assignment:
-    def __init__(self, target:m_lvalue, assignmentExpression):
+    def __init__(self, target:list[m_id], assignmentExpression):
         self.target = target
         self.assignmentExpression = assignmentExpression
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.target == __o.target and self.assignmentExpression == __o.assignmentExpression
+        return self.assignmentExpression == __o.assignmentExpression and listsEqual(self.target, __o.target)
 
 
 # print → print expression {endl}opt;
@@ -241,28 +250,31 @@ class m_print:
 
 
 # conditional → if ( expression ) block {else block}opt
+"""
+
+"""
 class m_conditional:
-    def __init__(self, expression, ifBlock:m_block, elseBlock:m_block = None):
+    def __init__(self, expression, if_statementList:list, else_statementList:list = None):
         self.expression = expression
-        self.ifBlock = ifBlock
-        self.elseBlock = elseBlock
+        self.if_statementList = if_statementList
+        self.else_statementList = else_statementList
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        equal = self.expression == __o.expression and self.ifBlock == __o.ifBlock and self.elseBlock == __o.elseBlock
-        print(f'conditional is equal? {equal}')
+        equal = self.expression == __o.expression and listsEqual(self.if_statementList, __o.if_statementList) and listsEqual(self.else_statementList, __o.else_statementList)
+        # print(f'conditional is equal? {equal}')
         return equal
 
 
 # loop → while ( expression ) block
 class m_loop:
-    def __init__(self, expression, block:m_block):
+    def __init__(self, expression, body_statementList:list):
         self.expression = expression
-        self.block = block
+        self.body_statementList = body_statementList
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        equal = self.expression == __o.expression and self.block == __o.block
+        equal = self.expression == __o.expression and listsEqual(self.body_statementList, __o.body_statementList)
         # print(f'm_loops equal? {equal}')
         # print(type(self.block), type(__o.block))
         return equal
@@ -290,7 +302,7 @@ class m_ret:
 
 # invocation → id arguments ;
 class m_invocation:
-    def __init__(self, id:m_id, arguments:m_arguments):
+    def __init__(self, id:m_id, arguments):
         self.id = id
         self.arguments = arguments
     def __eq__(self, __o: object) -> bool:
@@ -300,71 +312,76 @@ class m_invocation:
 
 
 # statement → block | assignment | print | conditional | loop | delete | ret | invocation
-class m_statement:
-    def __init__(self, contents:m_block): #  NOTE cyclical definition statement -> block -> statement list -> statement
-        self.contents = contents
-    def __init__(self, contents:m_assignment):
-        self.contents = contents
-    def __init__(self, contents:m_print):
-        self.contents = contents
-    def __init__(self, contents:m_conditional):
-        self.contents = contents
-    def __init__(self, contents:m_loop):
-        self.contents = contents
-    def __init__(self, contents:m_delete):
-        self.contents = contents
-    def __init__(self, contents:m_ret):
-        self.contents = contents
-    def __init__(self, contents:m_invocation):
-        self.contents = contents
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        return self.contents == __o.contents
+# class m_statement:
+#     # def __init__(self, contents:m_block):
+#     #     self.contents = contents
+#     def __init__(self, contents:m_assignment):
+#         self.contents = contents
+#     def __init__(self, contents:m_print):
+#         self.contents = contents
+#     def __init__(self, contents:m_conditional):
+#         self.contents = contents
+#     def __init__(self, contents:m_loop):
+#         self.contents = contents
+#     def __init__(self, contents:m_delete):
+#         self.contents = contents
+#     def __init__(self, contents:m_ret):
+#         self.contents = contents
+#     def __init__(self, contents:m_invocation):
+#         self.contents = contents
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         equal = self.contents == __o.contents
+#         # print(f'statement equal? {equal}')
+#         return equal
 
 
-# statement list → {statement}∗
-class m_statement_list:
-    def __init__(self, statements:list[m_statement]):
-        self.statements = statements
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.statements) != len(__o.statements):
-            return False
-        for i in range(len(self.statements)):
-            if not (self.statements[i] == __o.statements[i]):
-                return False
-        return True
+# # statement list → {statement}∗
+# class m_statement_list:
+#     def __init__(self, statements:list[m_statement]):
+#         self.statements = statements
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.statements) != len(__o.statements):
+#             return False
+#         for i in range(len(self.statements)):
+#             if not (self.statements[i] == __o.statements[i]):
+#                 return False
+#         return True
     
 
 # block → { statement list }
-class m_block:
-    def __init__(self, statement_list:m_statement_list):
-        self.statement_list = statement_list
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        equal = self.statement_list == __o.statement_list
-        # print(f"m_blocks equal? {equal}")
-        return equal
+# class m_block:
+#     def __init__(self, statement_list:list[m_statement]):
+#         self.statement_list = statement_list
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.statement_list) != len(__o.statement_list):
+#             return False
+#         for i in range(len(self.statement_list)):
+#             if not (self.statement_list[i] == __o.statement_list[i]):
+#                 return False
+#         return True
 
 
-# lvalue → id {.id}∗
-class m_lvalue:
-    def __init__(self, m_ids:list[m_id]):
-        self.m_ids = m_ids  # length of m_ids should be >= 1
-        if len(self.m_ids) < 1:
-            print(f"ERROR: according to overview.pdf, a lvalue should have 1 or more ids. This condition is not met somewhere")
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.m_ids) != len(__o.m_ids):
-            return False
-        for i in range(len(self.m_ids)):
-            if not (self.m_ids[i] == __o.m_ids[i]):
-                return False
-        return True
+# # lvalue → id {.id}∗
+# class m_lvalue:
+#     def __init__(self, m_ids:list[m_id]):
+#         self.m_ids = m_ids  # length of m_ids should be >= 1
+#         if len(self.m_ids) < 1:
+#             print(f"ERROR: according to overview.pdf, a lvalue should have 1 or more ids. This condition is not met somewhere")
+#     def __eq__(self, __o: object) -> bool:
+#         if type(__o) != type(self):
+#             return False
+#         if len(self.m_ids) != len(__o.m_ids):
+#             return False
+#         for i in range(len(self.m_ids)):
+#             if not (self.m_ids[i] == __o.m_ids[i]):
+#                 return False
+#         return True
 
 
 # ( expression ) | id {arguments}opt| number | true | false | new id | null
@@ -372,7 +389,7 @@ class m_factor:
     def __init__(self, contents):
         self.expression = contents
         self.rest = None
-    def __init__(self, contents:m_id, arguments:m_arguments = None):
+    def __init__(self, contents:m_id, arguments = None):
         self.expression = contents
         self.rest = arguments
     def __init__(self, contents:int):
@@ -451,6 +468,8 @@ class m_binop:
         if type(__o) != type(self):
             return False
         return self.operator == __o.operator and self.left == __o.left and self.right == __o.right
+
+    
 
 
 # all binary operators are parsed by parser into a single type, so can scratch all that out

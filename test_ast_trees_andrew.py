@@ -70,3 +70,11 @@ expected5 = m_prog(m_types([]), m_declarations([]), m_functions([mainBody5]))
 
 # derived from structs.json
 nestedDeclarations6 = m_declarations([m_declaration(m_type('int'), m_id('a')), m_declaration(m_type('int'), m_id('b'))])
+typeDeclarations6 = m_type_declaration(m_id('A'), nestedDeclarations6)
+types6 = m_types([typeDeclarations6])
+declarations6 = m_declarations([])
+
+assignmentStatement6 = m_statement(m_assignment(m_lvalue([m_id('A'), m_id('a')]), m_num(5)))
+functionDeclarations6 = m_declarations([m_declaration(m_type('A'), m_id('temp'))])
+function6 = m_function(m_id('main'), m_declarations([]), m_type('int'), functionDeclarations6, m_statement_list([assignmentStatement6]))
+expected6 = m_prog(types6, declarations6, m_functions([function6]))
