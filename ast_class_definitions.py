@@ -147,7 +147,7 @@ class m_print:
 
 # conditional → if ( expression ) block {else block}opt
 class m_conditional:
-    def __init__(self, expression, if_statements:list, else_statements:list = None):
+    def __init__(self, expression, if_statements:list, else_statements:list = [None]):
         self.expression = expression
         self.if_statements = if_statements
         self.else_statements = else_statements
@@ -275,3 +275,4 @@ class m_unary:
             if not (self.operators[i] == __o.operators[i]):
                 return False
         return self.selector == __o.selector
+
