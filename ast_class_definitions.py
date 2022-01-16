@@ -227,7 +227,6 @@ class m_new_struct:
         return self.struct_id == __o.struct_id
 
 
-
 # not yet sure what this class is for yet
 # ( expression ) | id {arguments}opt| number | true | false | new id | null
 class m_factor:

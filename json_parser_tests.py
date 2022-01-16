@@ -55,8 +55,6 @@ class test_json_parser(unittest.TestCase):
         ast = parse(contents)
         expected = test_ast_trees_andrew.expected7
 
-        print(ast.functions[1].statements[1] == expected.functions[1].statements[1])
-
         self.assertEqual(ast, expected)
 
 if __name__ == '__main__':
