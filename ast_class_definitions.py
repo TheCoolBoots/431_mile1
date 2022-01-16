@@ -207,13 +207,14 @@ class m_binop:
 # invocation → id arguments ;
 class m_invocation:
     # not yet sure what type arguments will be
-    def __init__(self, id:m_id, arguments):
+    # but I think they will be expressions
+    def __init__(self, id:m_id, args_expressions):
         self.id = id
-        self.arguments = arguments
+        self.args_expressions = args_expressions
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.id == __o.id and self.arguments == __o.arguments 
+        return self.id == __o.id and listsEqual(self.args_expressions, __o.args_expressions)
 
 
 # not yet sure what this class is for yet

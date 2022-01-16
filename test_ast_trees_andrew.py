@@ -69,3 +69,9 @@ assignmentStatement6 = m_assignment([m_id('A'), m_id('a')], m_num(5))
 functionDeclaration6 = m_declaration(m_type('A'), m_id('temp'))
 function6 = m_function(m_id('main'), [], m_type('int'), [functionDeclaration6], [assignmentStatement6])
 expected6 = m_prog(types6, [], [function6])
+
+
+# derived from functionCall.json
+types7 = [m_type_declaration(m_id('A'), [m_declaration(m_type('int'), m_id('a'))])]
+function1_7 = m_function(m_id('foo'), [m_declaration(m_type('A'), m_id('int'))], m_type('int'), [], [m_ret(m_num(5))])
+function2_7 = m_function(m_id('main'), [], [m_declaration(m_type('int'), m_id('a'))], [m_declaration(m_type('int'), m_id('a'))], [])

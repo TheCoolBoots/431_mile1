@@ -1,0 +1,15 @@
+struct A{
+    int a;
+};
+
+fun foo(struct A tmp) int
+{
+    return 5;
+}
+
+fun main() int
+{
+    int a;
+    a = foo(new A);
+    return 0;
+}
