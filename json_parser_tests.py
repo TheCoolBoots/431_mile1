@@ -49,5 +49,15 @@ class test_json_parser(unittest.TestCase):
         expected = test_ast_trees_andrew.expected6
         self.assertEqual(ast, expected)
 
+    def test_functionCall(self):
+        with open('json_parser_tests/functionCall.json') as file:
+            contents = json.load(file)
+        ast = parse(contents)
+        expected = test_ast_trees_andrew.expected7
+
+        print(ast.functions[1].statements[1] == expected.functions[1].statements[1])
+
+        self.assertEqual(ast, expected)
+
 if __name__ == '__main__':
     unittest.main()

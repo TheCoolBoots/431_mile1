@@ -67,6 +67,9 @@ def parse(json):
         case {'stmt':'block', 'list':_}:
             return [parse(statement) for statement in json['list']]
 
+        case {'line':_, 'exp':'new', 'id':_}:
+            return m_new_struct(m_id(json['id']))
+
         case {'line':_, 'left':_, 'id':_}:
             # expects parent struct recursive parse to go to this or previous case
             parentStruct = parse(json['left'])

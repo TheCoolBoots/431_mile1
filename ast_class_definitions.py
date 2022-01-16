@@ -208,13 +208,24 @@ class m_binop:
 class m_invocation:
     # not yet sure what type arguments will be
     # but I think they will be expressions
-    def __init__(self, id:m_id, args_expressions):
+    def __init__(self, id:m_id, args_expressions:list):
         self.id = id
         self.args_expressions = args_expressions
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
         return self.id == __o.id and listsEqual(self.args_expressions, __o.args_expressions)
+
+
+# needed whenever using new [struct_id];
+class m_new_struct:
+    def __init__(self, struct_id:m_id):
+        self.struct_id = struct_id
+    def __eq__(self, __o: object) -> bool:
+        if type(__o) != type(self):
+            return False
+        return self.struct_id == __o.struct_id
+
 
 
 # not yet sure what this class is for yet

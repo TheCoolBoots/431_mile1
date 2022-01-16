@@ -73,5 +73,9 @@ expected6 = m_prog(types6, [], [function6])
 
 # derived from functionCall.json
 types7 = [m_type_declaration(m_id('A'), [m_declaration(m_type('int'), m_id('a'))])]
-function1_7 = m_function(m_id('foo'), [m_declaration(m_type('A'), m_id('int'))], m_type('int'), [], [m_ret(m_num(5))])
-function2_7 = m_function(m_id('main'), [], [m_declaration(m_type('int'), m_id('a'))], [m_declaration(m_type('int'), m_id('a'))], [])
+
+function1_7 = m_function(m_id('foo'), [m_declaration(m_type('A'), m_id('tmp'))], m_type('int'), [], [m_ret(m_num(5))])
+assignStatement7 = m_assignment([m_id('a')], m_invocation(m_id('foo'), [m_new_struct(m_id('A'))]))
+returnStatement7 = m_ret(m_num(0))
+function2_7 = m_function(m_id('main'), [], m_type('int'), [m_declaration(m_type('int'), m_id('a'))], [assignStatement7, returnStatement7])
+expected7 = m_prog(types7, [], [function1_7, function2_7])
