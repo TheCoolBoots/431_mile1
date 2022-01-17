@@ -1,3 +1,5 @@
+from ast_class_definitions import *
+
 """
 TASK 3: static semantic checks
     TASK 3a: type checking
