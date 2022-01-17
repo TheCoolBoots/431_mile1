@@ -1,0 +1,83 @@
+{
+    "types": [
+      {
+        "line": 1,
+        "id": "A",
+        "fields": [
+          {
+            "line": 3,
+            "type": "int",
+            "id": "i"
+          },
+          {
+            "line": 4,
+            "type": "A",
+            "id": "a"
+          }
+        ]
+      },
+      {
+        "line": 6,
+        "id": "B",
+        "fields": [
+          {
+            "line": 8,
+            "type": "A",
+            "id": "a"
+          }
+        ]
+      }
+    ],
+    "declarations": [],
+    "functions": [
+      {
+        "line": 10,
+        "id": "main",
+        "parameters": [],
+        "return_type": "int",
+        "declarations": [
+          {
+            "line": 12,
+            "type": "B",
+            "id": "b"
+          }
+        ],
+        "body": [
+          {
+            "line": 13,
+            "stmt": "return",
+            "exp": {
+              "line": 13,
+              "exp": "dot",
+              "left": {
+                "line": 13,
+                "exp": "dot",
+                "left": {
+                  "line": 13,
+                  "exp": "dot",
+                  "left": {
+                    "line": 13,
+                    "exp": "dot",
+                    "left": {
+                      "line": 13,
+                      "exp": "dot",
+                      "left": {
+                        "line": 13,
+                        "exp": "id",
+                        "id": "b"
+                      },
+                      "id": "a"
+                    },
+                    "id": "a"
+                  },
+                  "id": "a"
+                },
+                "id": "a"
+              },
+              "id": "i"
+            }
+          }
+        ]
+      }
+    ]
+  }

@@ -1,0 +1,14 @@
+struct A
+{
+   int i;
+   struct A a;
+};
+struct B
+{
+   struct A a;
+};
+fun main() int
+{
+    struct B b;
+    return b.a.a.a.a.i;
+}

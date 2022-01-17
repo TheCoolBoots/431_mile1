@@ -73,6 +73,15 @@ def parse(json):
         case {'line':_, 'left':_, 'id':_}:
             # expects parent struct recursive parse to go to this or previous case
             parentStruct = parse(json['left'])
+            if type(parentStruct) == m_id:
+                return [parentStruct, m_id(json['id'])]
+            else:
+                parentStruct.append(m_id(json['id']))
+                return parentStruct
+
+        case {'line':_, 'exp':'dot', 'left':_, 'id':_}:
+            # expects parent struct recursive parse to go to this or previous case
+            parentStruct = parse(json['left'])
             parentStruct.append(m_id(json['id']))
             return parentStruct
 
@@ -80,3 +89,9 @@ def parse(json):
             # TODO handle the case where id is a struct and assigning to value within the struct
             # ex: A.j = 5
             return [m_id(json['id'])]
+
+        
+        case _:
+            # TODO exp:dot
+            print(f'unrecognized structure: {json}')
+

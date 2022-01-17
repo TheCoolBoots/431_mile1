@@ -57,5 +57,27 @@ class test_json_parser(unittest.TestCase):
 
         self.assertEqual(ast, expected)
 
+    def test_dot(self):
+        with open('json_parser_tests/dot.json') as file:
+            contents = json.load(file)
+        ast = parse(contents)
+        expected = test_ast_trees_andrew.expected8
+
+        self.assertEqual(ast, expected)
+
+    def test_mini1(self):
+        with open('json_parser_tests/dot.json') as file:
+            contents = json.load(file)
+        ast = parse(contents)
+        # doesn't actually compare with ast but will print error message if 
+        # there are any unrecognized structures in the json
+
+    def test_mini2(self):
+        with open('json_parser_tests/dot.json') as file:
+            contents = json.load(file)
+        ast = parse(contents)
+        # doesn't actually compare with ast but will print error message if 
+        # there are any unrecognized structures in the json
+
 if __name__ == '__main__':
     unittest.main()
