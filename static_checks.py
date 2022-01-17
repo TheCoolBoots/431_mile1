@@ -427,6 +427,11 @@ def type_check(expression ,localTypeEnvironment: dict):
     #     return localTypeEnvironment
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+
+
+# another big question:
+    # when looking through the 3 (?) environments to type check, would we look at local->struct->global OR local->global->struct
+
     else:
         print("FAILED TO RECOGNIZE TYPE")
         return False

@@ -84,12 +84,24 @@ prog_f = m_prog(types_f, declarations_f, functions_f)
 # };
 #
 # struct A myStruct;
-# A.a = 1;
+#
+# fun main(int b) int {
+#     int i;
+#     myStruct.a = 1
+#     return 0
+# }
 # UNFINISHED
 nested_declarations_g = [m_declaration(m_type('int'), m_id('a'))]
 types_g = [m_type_declaration(m_id('A'), nested_declarations_g)] # if you have id for type, you must have nested_declarations
-declarations_g = []
-functions_g = []
+declarations_g = [m_declaration(m_type('A'), m_id('myStruct'))]
+ret_g = m_ret(m_num(0))
+params_g = [m_declaration(m_type('int'), m_id('b'))]
+fun_declaratinos_g = [m_declaration(m_type('int'), m_id('i'))]
+# FIX THIS LINE               vvvvvvvvvvvv
+body_g = [fun_declaratinos_g, m_dot( ... ), ret_g]
+# FIX THIS LINE               ^^^^^^^^^^^^        
+expected_g = m_function(m_id('main'), params_g, m_type('int'), decls_g, body_g)
+functions_g = [expected_g]
 prog_g = m_prog(types_g, declarations_g, functions_g)
 
 
