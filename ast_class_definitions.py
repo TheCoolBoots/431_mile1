@@ -122,17 +122,17 @@ class m_prog:
         self.global_declarations = global_declarations
         self.functions = functions
 
-    # returns {m_id : {m_id : m_type}}
+    # returns {str : {str : (int, m_type)}}
     def getTopTypeEnv(self):
         env = {}
         for type_declaration in self.types:
-            decls = {decl.id:decl.type for decl in type_declaration.nested_declarations}
-            env[type_declaration.id] = decls
+            decls = {decl.id.identifier:(decl.lineNum, decl.type) for decl in type_declaration.nested_declarations}
+            env[type_declaration.id.identifier] = decls
         return env
     
     # returns {m_id : m_type}
     def getTopEnv(self):
-        return {decl.id:decl.type for decl in self.global_declarations}
+        return {decl.id.identifier:(decl.lineNum, decl.type) for decl in self.global_declarations}
 
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
