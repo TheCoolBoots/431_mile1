@@ -32,6 +32,7 @@ class m_null:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
+        return 
 
 class m_num:
     def __init__(self, val:int):
@@ -67,34 +68,37 @@ class m_type:
 
 # declaration → type id list ;
 class m_declaration:
-    def __init__(self, type:m_type, id:m_id):
+    def __init__(self, lineNum:int, type:m_type, id:m_id):
         self.type = type
         self.id = id
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.type == __o.type and self.id == __o.id
+        return self.type == __o.type and self.id == __o.id and self.lineNum == __o.lineNum
 
 
 # type declaration → struct id { nested decl } ;
 class m_type_declaration:
-    def __init__(self, id:m_id, nested_declarations:list[m_declaration]):
+    def __init__(self, lineNum:int, id:m_id, nested_declarations:list[m_declaration]):
         self.id = id
         self.nested_declarations = nested_declarations
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.id == __o.id and listsEqual(self.nested_declarations, __o.nested_declarations)
+        return self.id == __o.id and listsEqual(self.nested_declarations, __o.nested_declarations) and self.lineNum == __o.lineNum
 
 
 # function → fun id parameters return type { declarations statement list }
 class m_function:
-    def __init__(self, id:m_id, param_declarations:list[m_declaration], return_type:m_type, body_declarations:list[m_declaration], statements:list):
+    def __init__(self, lineNum:int, id:m_id, param_declarations:list[m_declaration], return_type:m_type, body_declarations:list[m_declaration], statements:list):
         self.id = id
         self.param_declarations = param_declarations
         self.return_type = return_type
         self.body_declarations = body_declarations
         self.statements = statements
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
@@ -103,7 +107,8 @@ class m_function:
             self.return_type == __o.return_type, 
             listsEqual(self.statements, __o.statements),
             listsEqual(self.body_declarations, __o.body_declarations),
-            listsEqual(self.param_declarations, __o.param_declarations)]
+            listsEqual(self.param_declarations, __o.param_declarations),
+            self.lineNum == __o.lineNum]
 
         equal = all(bools)
         # print(f'function equal? {equal}')
@@ -116,6 +121,19 @@ class m_prog:
         self.types = type_declarations
         self.global_declarations = global_declarations
         self.functions = functions
+
+    # returns {m_id : {m_id : m_type}}
+    def getTopTypeEnv(self):
+        env = {}
+        for type_declaration in self.types:
+            decls = {decl.id:decl.type for decl in type_declaration.nested_declarations}
+            env[type_declaration.id] = decls
+        return env
+    
+    # returns {m_id : m_type}
+    def getTopEnv(self):
+        return {decl.id:decl.type for decl in self.global_declarations}
+
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
@@ -125,52 +143,56 @@ class m_prog:
 
 # assignment → lvalue = { expression | read } ;
 class m_assignment:
-    def __init__(self, target_ids:list[m_id], source_expression):
+    def __init__(self, lineNum:int, target_ids:list[m_id], source_expression):
         self.target_ids = target_ids
         self.source_expression = source_expression
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.source_expression == __o.source_expression and listsEqual(self.target_ids, __o.target_ids)
+        return self.source_expression == __o.source_expression and listsEqual(self.target_ids, __o.target_ids) and self.lineNum == __o.lineNum
 
 
 # print → print expression {endl}opt;
 class m_print:
-    def __init__(self, expression, endl:bool = None):
+    def __init__(self, lineNum:int, expression, endl:bool = None):
         self.expression = expression
         self.endl = endl
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.expression == __o.expression and self.endl == __o.endl
+        return self.expression == __o.expression and self.endl == __o.endl and self.lineNum == __o.lineNum
 
 
 # conditional → if ( expression ) block {else block}opt
 class m_conditional:
-    def __init__(self, guard_expression, if_statements:list, else_statements:list = [None]):
+    def __init__(self, lineNum:int, guard_expression, if_statements:list, else_statements:list = [None]):
         self.guard_expression = guard_expression
         self.if_statements = if_statements
         self.else_statements = else_statements
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
         equal = self.guard_expression == __o.guard_expression and listsEqual(self.if_statements, __o.if_statements) and listsEqual(self.else_statements, __o.else_statements)
         # print(f'conditional is equal? {equal}')
-        return equal
+        return equal and self.lineNum == __o.lineNum
 
 
 # loop → while ( expression ) block
 class m_loop:
-    def __init__(self, guard_expression, body_statements:list):
+    def __init__(self, lineNum:int, guard_expression, body_statements:list):
         self.guard_expression = guard_expression
         self.body_statements = body_statements
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
         equal = self.guard_expression == __o.guard_expression and listsEqual(self.body_statements, __o.body_statements)
         # print(f'm_loops equal? {equal}')
         # print(type(self.block), type(__o.block))
-        return equal
+        return equal and self.lineNum == __o.lineNum
 
 
 # delete → delete expression ;
@@ -185,36 +207,39 @@ class m_delete:
 
 # ret → return {expression}opt;
 class m_ret:
-    def __init__(self, expression = None):
+    def __init__(self, lineNum:int, expression = None):
         self.expression = expression
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.expression == __o.expression
+        return self.expression == __o.expression and self.lineNum == __o.lineNum
 
 
 class m_binop:
-    def __init__(self, operator:str, left_expression, right_expression):
+    def __init__(self, lineNum:int, operator:str, left_expression, right_expression):
         self.operator = operator
         self.left_expression = left_expression
         self.right_expression = right_expression
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.operator == __o.operator and self.left_expression == __o.left_expression and self.right_expression == __o.right_expression
+        return self.operator == __o.operator and self.left_expression == __o.left_expression and self.right_expression == __o.right_expression and self.lineNum == __o.lineNum
 
 
 # invocation → id arguments ;
 class m_invocation:
     # not yet sure what type arguments will be
     # but I think they will be expressions
-    def __init__(self, id:m_id, args_expressions:list):
+    def __init__(self, lineNum:int, id:m_id, args_expressions:list):
         self.id = id
         self.args_expressions = args_expressions
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.id == __o.id and listsEqual(self.args_expressions, __o.args_expressions)
+        return self.id == __o.id and listsEqual(self.args_expressions, __o.args_expressions) and self.lineNum == __o.lineNum
 
 
 # needed whenever using new [struct_id];
@@ -229,11 +254,12 @@ class m_new_struct:
 
 # unary → {! | −}∗selector
 class m_unary:
-    def __init__(self, operator:str, operand_expression):
+    def __init__(self, lineNum:int, operator:str, operand_expression):
         self.operator = operator
         self.operand_expression = operand_expression
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.operator == __o.operator and self.operand_expression == __o.operand_expression
+        return self.operator == __o.operator and self.operand_expression == __o.operand_expression and self.lineNum == __o.lineNum
 
