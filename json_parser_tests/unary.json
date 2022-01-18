@@ -1,0 +1,28 @@
+{
+"types": [],
+"declarations": [],
+"functions": [
+    {
+    "line": 1,
+    "id": "main",
+    "parameters": [],
+    "return_type": "int",
+    "declarations": [],
+    "body": [
+        {
+        "line": 3,
+        "stmt": "return",
+        "exp": {
+            "line": 3,
+            "exp": "unary",
+            "operator": "!",
+            "operand": {
+            "line": 3,
+            "exp": "true"
+            }
+        }
+        }
+    ]
+    }
+]
+}

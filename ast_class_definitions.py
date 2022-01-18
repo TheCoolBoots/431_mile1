@@ -147,27 +147,27 @@ class m_print:
 
 # conditional → if ( expression ) block {else block}opt
 class m_conditional:
-    def __init__(self, expression, if_statements:list, else_statements:list = [None]):
-        self.expression = expression
+    def __init__(self, guard_expression, if_statements:list, else_statements:list = [None]):
+        self.guard_expression = guard_expression
         self.if_statements = if_statements
         self.else_statements = else_statements
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        equal = self.expression == __o.expression and listsEqual(self.if_statements, __o.if_statements) and listsEqual(self.else_statements, __o.else_statements)
+        equal = self.guard_expression == __o.guard_expression and listsEqual(self.if_statements, __o.if_statements) and listsEqual(self.else_statements, __o.else_statements)
         # print(f'conditional is equal? {equal}')
         return equal
 
 
 # loop → while ( expression ) block
 class m_loop:
-    def __init__(self, expression, body_statements:list):
-        self.expression = expression
+    def __init__(self, guard_expression, body_statements:list):
+        self.guard_expression = guard_expression
         self.body_statements = body_statements
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        equal = self.expression == __o.expression and listsEqual(self.body_statements, __o.body_statements)
+        equal = self.guard_expression == __o.guard_expression and listsEqual(self.body_statements, __o.body_statements)
         # print(f'm_loops equal? {equal}')
         # print(type(self.block), type(__o.block))
         return equal
@@ -227,63 +227,13 @@ class m_new_struct:
         return self.struct_id == __o.struct_id
 
 
-# not yet sure what this class is for yet
-# ( expression ) | id {arguments}opt| number | true | false | new id | null
-class m_factor:
-    def __init__(self, contents):
-        self.expression = contents
-        self.rest = None
-    def __init__(self, contents:m_id, arguments = None):
-        self.expression = contents
-        self.rest = arguments
-    def __init__(self, contents:int):
-        self.expression = contents
-        self.rest = None
-    def __init__(self, contents:str):
-        self.expression = contents  # TODO contents should either be "true", "false", or "null"
-        keywords = ['true', 'false', 'null']
-        if self.expression not in keywords:
-            print(f'ERROR: invalid keyword in m_factor. Got {self.expression} but expected one of {keywords}.')
-        self.rest = None
-    def __init__(self, contents:str, id:m_id):  # for the new id case
-        self.expression = contents  # TODO contents should be "new"
-        if self.expression != "new":
-            print(f'ERROR: expected keyword "new" in m_factor but got keyword {self.expression}')
-        self.rest = id
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        return self.expression == __o.expression and self.rest == __o.rest
-    
-
-# selector → factor {.id}∗
-class m_selector:
-    def __init__(self, factor:m_factor, identifiers:list[m_id]):
-        self.factor = factor
-        self.identifiers = identifiers
-    def __eq__(self, __o: object) -> bool:
-        if type(__o) != type(self):
-            return False
-        if len(self.identifiers) != len(__o.identifiers):
-            return False
-        for i in range(len(self.identifiers)):
-            if not (self.identifiers[i] == __o.identifiers[i]):
-                return False
-        return self.factor == __o.factor
-
-
 # unary → {! | −}∗selector
 class m_unary:
-    def __init__(self, operators:list[str], selector:m_selector):
-        self.operators = operators
-        self.selector = selector
+    def __init__(self, operator:str, operand_expression):
+        self.operator = operator
+        self.operand_expression = operand_expression
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        if len(self.operators) != len(__o.operators):
-            return False
-        for i in range(len(self.operators)):
-            if not (self.operators[i] == __o.operators[i]):
-                return False
-        return self.selector == __o.selector
+        return self.operator == __o.operator and self.operand_expression == __o.operand_expression
 

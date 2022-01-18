@@ -87,3 +87,9 @@ structB8 = m_type_declaration(m_id('B'), [m_declaration(m_type('A'), m_id('a'))]
 ret8 = m_ret([m_id('b'), m_id('a'), m_id('a'), m_id('a'), m_id('a'), m_id('i')])
 function8 = m_function(m_id('main'), [], m_type('int'), [m_declaration(m_type('B'), m_id('b'))], [ret8])
 expected8 = m_prog([structA8, structB8], [], [function8])
+
+
+# derived from unary.json
+ret9 = m_ret(m_unary('!', m_bool(True)))
+function9 = m_function(m_id('main'), [], m_type('int'), [], [ret9])
+expected9 = m_prog([],[],[function9])
