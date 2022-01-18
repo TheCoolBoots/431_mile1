@@ -151,6 +151,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             found = False
             ifReturnType = m_type('void')
             for statement in if_statements:
+                # type check all the statements, but if one of them returns, take the first return statement
                 retType = typeCheck(statement, local_env, top_env, top_type_env, function_env)
                 if not found and retType != m_type('void'):
                     ifReturnType = retType
@@ -159,11 +160,13 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             found = False
             elseReturnType = m_type('void')
             for statement in else_statements:
+                # type check all the statements, but if one of them returns, take the first return statement
                 retType = typeCheck(statement, local_env, top_env, top_type_env, function_env)
                 if not found and retType != m_type('void'):
                     elseReturnType = retType
                     found = True
             
+            # if both return types are the same, if statement will always return the same
             if ifReturnType == elseReturnType:
                 return ifReturnType
             
