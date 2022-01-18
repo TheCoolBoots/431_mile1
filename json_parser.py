@@ -22,13 +22,13 @@ def parse(json):
             params = [parse(param) for param in json['parameters']]
             decls = [parse(declaration) for declaration in json['declarations']]
             body = [parse(statement) for statement in json['body']]
-            return m_function(int(json['line']), m_id(json['id']), params, m_type(json['return_type']), decls, body)
+            return m_function(int(json['line']), m_id(json['line'], json['id']), params, m_type(json['return_type']), decls, body)
 
         case {'line':_, 'exp':'binary', 'operator':_, 'lft':_, 'rht':_}:
             return m_binop(int(json['line']), json['operator'], parse(json['lft']), parse(json['rht']))
 
         case {'line':_, 'exp':'id', 'id':_}:
-            return m_id(json['id'])
+            return m_id(json['line'], json['id'])
         
         case {'line':_, 'exp':'num', 'value':_}:
             return m_num(int(json['value']))
@@ -41,19 +41,19 @@ def parse(json):
 
         case {'line':_, 'exp':'invocation', 'id':_, 'args':_}:
             args = [parse(arg) for arg in json['args']]
-            return m_invocation(int(json['line']), m_id(json['id']), args)
+            return m_invocation(int(json['line']), m_id(json['line'], json['id']), args)
 
         case {'line':_, 'exp':'dot', 'left':_, 'id':_}:
             # expects parent struct recursive parse to go to this or previous case
             parentStruct = parse(json['left'])
             if type(parentStruct) == list:
-                parentStruct.append(m_id(json['id']))
+                parentStruct.append(m_id(json['line'], json['id']))
                 return parentStruct
             else:
-                return [parentStruct, m_id(json['id'])]
+                return [parentStruct, m_id(json['line'], json['id'])]
 
         case {'line':_, 'exp':'new', 'id':_}:
-            return m_new_struct(m_id(json['id']))
+            return m_new_struct(m_id(json['line'], json['id']))
 
         case {'line':_, 'exp':'unary', 'operator':_, 'operand':_}:
             return m_unary(int(json['line']), json['operator'], parse(json['operand']))
@@ -84,26 +84,24 @@ def parse(json):
             # expects parent struct recursive parse to go to this or previous case
             parentStruct = parse(json['left'])
             if type(parentStruct) == list:
-                parentStruct.append(m_id(json['id']))
+                parentStruct.append(m_id(json['line'], json['id']))
                 return parentStruct
             else:
-                return [parentStruct, m_id(json['id'])]
+                return [parentStruct, m_id(json['line'], json['id'])]
 
         case {'line':_,'id':_,'fields':_}:
             # check if id is protected keyword?
             m_decls = [parse(type_decl) for type_decl in json['fields']]
-            return m_type_declaration(int(json['line']), m_id(json['id']), m_decls)
+            return m_type_declaration(int(json['line']), m_id(json['line'], json['id']), m_decls)
 
         case {'line':_,'type':_,'id':_}:
-            return m_declaration(int(json['line']), m_type(json['type']), m_id(json['id']))
+            return m_declaration(int(json['line']), m_type(json['type']), m_id(json['line'], json['id']))
 
         case {'line':_, 'id':_}:
             # TODO handle the case where id is a struct and assigning to value within the struct
             # ex: A.j = 5
-            return [m_id(json['id'])]
+            return [m_id(json['line'], json['id'])]
 
-        
         case _:
-            # TODO exp:dot
             print(f'unrecognized structure: {json}')
 

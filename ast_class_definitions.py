@@ -43,27 +43,23 @@ class m_num:
         return self.val == __o.val
 
 class m_id:
-    def __init__(self, identifier:str):
+    def __init__(self, lineNum:int, identifier:str):
         self.identifier = identifier
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.identifier == __o.identifier
+        return self.identifier == __o.identifier and self.lineNum == __o.lineNum
 
 
 # type → int | bool | struct id
 class m_type:
     def __init__(self, typeID:str):
-        self.type = typeID
-        typeKeywords = ['int', 'bool', 'void']
-        if self.type not in typeKeywords:
-            print(f'ERROR: invalid type. Expected {typeKeywords} but got {self.type}')
-    def __init__(self, typeID:m_id):
-        self.type = typeID
+        self.typeID = typeID
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.type == __o.type
+        return self.typeID == __o.typeID
 
 
 # declaration → type id list ;
@@ -130,7 +126,7 @@ class m_prog:
             env[type_declaration.id.identifier] = decls
         return env
     
-    # returns {m_id : m_type}
+    # returns {str : m_type}
     def getTopEnv(self):
         return {decl.id.identifier:(decl.lineNum, decl.type) for decl in self.global_declarations}
 
@@ -263,3 +259,12 @@ class m_unary:
             return False
         return self.operator == __o.operator and self.operand_expression == __o.operand_expression and self.lineNum == __o.lineNum
 
+
+class m_dot:
+    def __init__(self, lineNum:int, ids:list[m_id]):
+        self.lineNum = lineNum
+        self.ids = ids
+    def __eq__(self, __o: object) -> bool:
+        if type(__o) != type(self):
+            return False
+        return self.lineNum == __o.lineNum and listsEqual(self.ids, __o.ids)
