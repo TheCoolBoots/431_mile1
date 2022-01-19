@@ -27,7 +27,10 @@ def checkReturnTypes(program:m_prog):
     for function in program.functions:
         argTypes = [decl.type for decl in function.param_declarations]
         expected = function.return_type
+        # add current function to function environment
         function_env[function.id.identifier] = (function.lineNum, expected, argTypes)
+
+        # get return type of statements
         actual = checkFunctionReturn(function, {}, top_env, top_type_env, function_env)
         if actual != expected:
             print(f'ERROR on line {function.lineNum}: expected return type {expected.typeID} not equal to actual return type {actual.typeID}')
@@ -36,12 +39,15 @@ def checkReturnTypes(program:m_prog):
     return True
 
 def checkFunctionReturn(function:m_function, local_env, top_env, top_type_env, function_env) -> m_type:
+    
+    # check that all param types are valid
     for param in function.param_declarations:
         if param.type not in top_type_env:
             print(f'ERROR on line {param.lineNum}: unrecognized type {param.type.typeID}')
             return None
         local_env[param.id] = (param.lineNum, param.type)
 
+    # check that there aren't any redeclarations of variables
     for decl in function.body_declarations:
         if decl.id in local_env:
             print(f'ERROR on line {decl.lineNum}: local redeclaration of variable {decl.id}')
@@ -50,6 +56,7 @@ def checkFunctionReturn(function:m_function, local_env, top_env, top_type_env, f
 
     found = False
     returnType = m_type('void')
+    # get the return type of function body
     for statement in function.statements:
         retType = typeCheck(statement, local_env, top_env, top_type_env, function_env)
         if not found and retType != m_type('void'):
@@ -58,7 +65,7 @@ def checkFunctionReturn(function:m_function, local_env, top_env, top_type_env, f
     
     return returnType
 
-
+# returns None when there is an error somewhere
 def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_type:
     match statement:
         case m_bool():
@@ -74,7 +81,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             lineNum = statement.lineNum
             id = statement.identifier
 
-            # lookup the type of the given id
+            # lookup the type of the given id. Check if it was declared before it was accessed
             if id in local_env and local_env[id][0] < lineNum:
                 id_type = local_env[id][1]
             elif id in top_env:
@@ -96,9 +103,11 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
             id = target_ids[0].identifier
             # if the variable is in the local env, return the mapped type
+            # also make sure it was declared before used
             if id in local_env and local_env[id][0] < lineNum:
                 targetType = local_env[id][1]
             # if the variable is in the global env, return the mapped type
+            # also make sure it was declared before used
             elif id in top_env and top_env[id][0] < lineNum:
                 targetType = top_env[id][1]
             else:
@@ -130,8 +139,10 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             expression = statement.expression
 
             exprType = typeCheck(expression, local_env, top_env, top_type_env, function_env)
+            # assume you can't print structs; you can only print bool, int, or null
             if exprType not in [m_type('int'), m_type('bool'), m_type('null')]:
                 print(f'ERROR on line {lineNum}: cannot print type {exprType.typeID}')
+                return None
             return m_type('void')
 
         # conditional → if ( expression ) block {else block}opt
@@ -140,7 +151,6 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             guard_expression = statement.guard_expression
             if_statements = statement.if_statements
             else_statements = statement.else_statements
-
 
             guardType = typeCheck(guard_expression, local_env, top_env, top_type_env, function_env)
 
@@ -199,6 +209,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             return returnType
 
         # delete → delete expression ;
+        # this is the only case that is unfinished
+        # don't know what to do with it yet
         case m_delete():
             expression = statement.expression
 
@@ -249,9 +261,10 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             functionID = statement.id
             args_expressions = statement.args_expressions
 
-
             if functionID.identifier in function_env:
                 actualArgTypes = [typeCheck(expr, local_env, top_env, top_type_env, function_env) for expr in args_expressions]
+
+                # if all the parameter types are equal to expected arg types, return the function's return type
                 if listsEqual(function_env[functionID.identifier][2], actualArgTypes):
                     return function_env[functionID.identifier][1]
                 else:
@@ -259,6 +272,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                     return None
             else:
                 print(f'ERROR on line {lineNum}: unrecognized function {functionID.identifier}')
+                return None
 
         # needed whenever using new [struct_id];
         case m_new_struct():
@@ -266,6 +280,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
             if struct_id.identifier not in top_type_env:
                 print(f'ERROR: unrecognized struct id {struct_id.identifier}')
+                return None
             
             return m_type(struct_id.identifier)
 

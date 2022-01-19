@@ -37,6 +37,8 @@ class test_json_parser(unittest.TestCase):
         self.assertEqual(m_type('BIGCHUNGUS'), typeCheck(m_id(5, 'b'), local_env, top_env, type_env, {}))
         self.assertEqual(m_type('int'), typeCheck(m_id(5, 'a'), local_env, top_env, type_env, {}))
 
+        self.assertEqual(None, typeCheck(m_id(5, 'z'), local_env, top_env, type_env, {}))
+
     def test_assignment(self):
         assign = m_assignment(5, [m_id(5, 'b'), m_id(5, 'a')], m_bool(True))
         self.assertEqual(typeCheck(assign, local_env, top_env, type_env, {}), m_type('void'))
