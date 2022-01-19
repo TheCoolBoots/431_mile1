@@ -29,10 +29,9 @@ def type_check(expression ,localTypeEnvironment: dict):
 
     # declare my two global environments - make sure a global struct environment seperate from variables makes sense
     globalTypeEnvironment = {}
-    globalStructEnvironment = {} # CONSIDER WHAT A STRUCT DICT WILL LOOK LIKE
-    # maybe it looks something like this????
+    globalStructEnvironment = {}
+    # dictionary of string ids each mapped to a dictionary of mappings from string to string types
     # {A : {a : int, b : int}} 
-# DISCUSS THIS FOR A SEC
 
 
     # m_prog 
@@ -43,6 +42,7 @@ def type_check(expression ,localTypeEnvironment: dict):
         # step through the global declarations and add them to the global type environment
         for i in expression.global_declarations:
             # create and extend the global environment 
+            # HERE I AM ASSUMING THAT i.type is a valid type
             globalTypeEnvironment = extendEnv(globalTypeEnvironment, i.id, i.type) # does extendEnv check for duplicate variables in the env? 
             
             # if you get an illegal type, return False
@@ -53,8 +53,9 @@ def type_check(expression ,localTypeEnvironment: dict):
         # step through the global structs and add them to the global struct environment
         for j in expression.type_declarations:
             # I think I need to make the global struct environment here
-# I THINK I NEED A DIFFERENT EXTEND FUNCTION FOR THE STRUCT ENVIRONMENT?????
-            globalStructEnvironment = _____(globalStructEnvironment, j.id, j.nested_declarations) # does extendEnv check for duplicate variables in the env? 
+            # decided that extendEnv will be able to do the needed work
+            # HERE I AM ASSUMING THAT i.nested_declarations is a valid type
+            globalStructEnvironment = extendEnv(globalStructEnvironment, j.id, j.nested_declarations) # does extendEnv check for duplicate variables in the env? 
             
             # if your global struct environment has a type error, return False
             if globalStructEnvironment == False:
@@ -62,8 +63,8 @@ def type_check(expression ,localTypeEnvironment: dict):
 
 
         for k in expression.functions:
-
-# MAY NEED TO ADD THE FUNCTIONS TO SOME ENVIRONMENT HERE
+            # functions should go into the global type env
+            # I will make that happen in the m_function branch of type_check
 
             # run each function through the type checker to be sure that it is valid
             if(type_check(k, localTypeEnvironment) == False):
@@ -97,6 +98,7 @@ def type_check(expression ,localTypeEnvironment: dict):
 
         # the extendEnv function should do the check for us to see if an id already exists in the environment
         # extend the environment to have the id-type mapping
+        # HERE I AM ASSUMING THAT expression.type is a valid type
         return extendEnv(localTypeEnvironment, expression.id, expression.type) 
 
             
@@ -128,7 +130,6 @@ def type_check(expression ,localTypeEnvironment: dict):
         return localTypeEnvironment
 
 
-    # ADD SOMETHING TO THE ENVIRONMENT
     # m_function 
     elif expressionType is m_function:
         print("MATCHED")
@@ -145,19 +146,38 @@ def type_check(expression ,localTypeEnvironment: dict):
 
         # need to also get the body declarations into the environment
         for j in expression.body_declarations:
+            # DO WE WANT TO CHECK THE LINE NUMBERS HERE??? OR ON A LOWER LEVEL???
             localTypeEnvironment = type_check(j, localTypeEnvironment)
             if localTypeEnvironment == False:
                 return False
 
-        # run type-check on each statement in the statement list
-        for k in expression.statements:
-            # get the return type for each function recursively
-            actualReturnType = getType(k, localTypeEnvironment, ... ) 
+        # count how many statements are in the statements
+        numStatments = 0
+        for k1 in expression.statements:
+            numStatments += 1
 
-            # check that the return type matched the return statement type of the function
-            if actualReturnType != expression.return_type:
+        currCount = 0
+        # run type-check on each statement in the statement list
+        for k2 in expression.statements:
+            # get the return type for each function recursively
+            actualReturnType = getType(k2, localTypeEnvironment) 
+
+            # check if you are returning before the end of the block
+            if type(k2) == m_ret and currCount != (numStatments + 1):
                 return False
-        
+
+            currCount += 1
+
+        # check that the return type matched the return statement type of the function
+        if actualReturnType != expression.return_type:
+            return False
+
+        # put the function into the global type environment, here is what im thinking:
+        # {id : [lineNum, param_declarations, return_type, body_declarations, statements], id2 : [ ... ], ...}
+        globalTypeEnvironment = extendEnv(globalTypeEnvironment , expression.id , [expression.lineNum, expression.param_declarations, expression.return_type, expression.body_declarations, expression.statements])
+        if globalTypeEnvironment == False:
+            return False
+
         # return the initial environment unchanged
         return initialEnv
 
@@ -167,11 +187,11 @@ def type_check(expression ,localTypeEnvironment: dict):
         print("MATCHED")
 
         # this function will get the return type back form a source_expression - similar to the one i need for return type
-        currType = getType(expression.source_expression, localTypeEnvironment, ... )
+        currType = getType(expression.source_expression, localTypeEnvironment)
 
         # check that the output type of source_expression matches each id location in the environment
         for i in expression.target_ids:
-            if localTypeEnvironment[i] != currType: # DOUBLE CHECK THIS SYNTAX
+            if localTypeEnvironment[i] != currType:
                 return False
 
         # return the environment (shouldnt be changed)
@@ -181,7 +201,7 @@ def type_check(expression ,localTypeEnvironment: dict):
     # m_ret 
     elif expressionType is m_ret:
         print("MATCHED")
-        # dont think I really need to do anything except insure that the return statement is type valid
+        # dont think I really need to do anything except ensure that the return statement is type valid
         if type_check(expression.expression, localTypeEnvironment) == False:
             return False
 
@@ -189,7 +209,14 @@ def type_check(expression ,localTypeEnvironment: dict):
         return localTypeEnvironment
 
 
-
+    # m_print 
+    # biggest question: can we print a struct?? - no:
+    # "print requires an integer argument and outputs the integer to standard out"
+    elif expressionType is m_print:
+        print("MATCHED")
+        if getType(expression.expression) != m_int:
+            return False
+        return localTypeEnvironment
 
 
 
@@ -200,19 +227,6 @@ def type_check(expression ,localTypeEnvironment: dict):
 # FROM HERE DOWN I WANT VALIDATION WITH EACH CASE
 
 
-    # MAKE SURE THIS IS PROPER SYNTAX
-    # my thought here is that if we are given None (return type I assume) we just say that 
-    # its fine and return the environment.
-    elif expressionType is None: 
-        return localTypeEnvironment
-
-
-
-    # DO I HAVE TO DO ANYTHING FOR THIS???
-    # m_print 
-    elif expressionType is m_print:
-        print("MATCHED")
-
 
 
     # verify that i understand this correctly
@@ -221,19 +235,24 @@ def type_check(expression ,localTypeEnvironment: dict):
         print("MATCHED")
 
         # get the return type of expression
-        expressionType = getType(expression.expression, localTypeEnvironment, ...)
+        expressionType = getType(expression.guard_expression, localTypeEnvironment)
+        
         # if it isnt bool, return False
-        if expressionType != m_bool: # MAKE SURE THIS IS THE RIGHT WAY TO CHECK!!!!
+        if expressionType != m_bool: 
             return False
 
-        # NOTE: why does else_statements:list = [None] on the definitions??
-        # I think because you dont have to have an else block basically. You can have an if block and no else block
-
+        ifReturnType = m_type("void")
         # call type check on each statement - just making sure that they are type sound
-        if type_check(expression.if_statements) == False:
-            return False
-        if type_check(expression.else_statements) == False:
-            return False
+        for i in expression.if_statements:
+            if type_check(i, localTypeEnvironment) == False:
+                return False
+            if type(i) == m_ret
+
+        # if there is an else block, type check each statement
+        if expression.else_statements != None:
+            for j in expression.else_statements:
+                if type_check(j, localTypeEnvironment) == False:
+                    return False
 
         return localTypeEnvironment
  
@@ -244,7 +263,7 @@ def type_check(expression ,localTypeEnvironment: dict):
         print("MATCHED")
 
         # get the return type of expression
-        expressionType = getType(expression.expression, localTypeEnvironment, ...)
+        expressionType = getType(expression.guard_expression, localTypeEnvironment)
 
         # if it isnt bool, return False
         if expressionType != m_bool: # MAKE SURE THIS IS THE RIGHT WAY TO CHECK!!!!
@@ -258,7 +277,7 @@ def type_check(expression ,localTypeEnvironment: dict):
         return localTypeEnvironment
 
 
-
+# UNFINISHED, NOT IMPLEMENTED QUITE YET
     # THIS IS DEFINITELY WRONG IF SELECTOR ISNT IN THE LANGUAGE
     # maybe i dont have to worry about the operator and only selector?
     # m_unary 
@@ -269,7 +288,7 @@ def type_check(expression ,localTypeEnvironment: dict):
         if type_check(expression.selector, localTypeEnvironment) == False:
             return False
 
-        return localTypeEnvironment        
+        return localTypeEnvironment 
 
 
 
@@ -287,6 +306,22 @@ def type_check(expression ,localTypeEnvironment: dict):
     # m_delete 
     elif expressionType is m_delete:
         print("MATCHED")
+    # my thought is that expression MUST evaluate to an id, and that id should be removed from the environment
+        
+        # type check the expression
+        type_check(expression.expression) 
+
+        # somehow get the id from the expression
+        .....
+
+        # first gotta check which environment its in
+        ...
+
+        # then delete it
+        del localTypeEnvironment['Mani']
+
+        # probably do local -> global -> structs
+
 
 
 
@@ -294,6 +329,8 @@ def type_check(expression ,localTypeEnvironment: dict):
     # m_invocation 
     elif expressionType is m_invocation:
         print("MATCHED")
+    # this is function calls
+    # arg_expressions is the arguments to the function
 
 
 
@@ -303,10 +340,11 @@ def type_check(expression ,localTypeEnvironment: dict):
     elif expressionType is m_binop:
         print("MATCHED")
 
-        leftType = ____(expression.left_expression)
-        rightType = ____(expression.right_expression)
+        # get the type of each expression
+        leftType = getType(expression.left_expression, localTypeEnvironment)
+        rightType = getType(expression.right_expression, localTypeEnvironment)
 
-    # HOW DO STRUCTS FIT INTO THIS???? CANT YOU HAVE (struct, struct) ?????
+        # decided to implement it as possible to compare structs, just check that the structs have the same type
         # these operators are more flexible, allow for (int, int) or (bool, bool)
         if expression.operator == '!=' or '==':
         
@@ -318,10 +356,11 @@ def type_check(expression ,localTypeEnvironment: dict):
             elif leftType == m_bool and rightType == m_bool:
                 pass
             
-            # DO I NEED ANOTHER CASE DEALING WITH STRUCTS???
-            elif _____
+            # case with 2 structs (must be the same struct id)
+            elif leftType == m_id and rightType == m_id and leftType.identifier == rightType.identifier:
+                pass
 
-            else 
+            else:
                 return False
 
         # these operators are less flexible, only allow for (int, int) 
@@ -331,6 +370,7 @@ def type_check(expression ,localTypeEnvironment: dict):
                 return False
 
         return localTypeEnvironment
+
 
 
 
@@ -350,6 +390,7 @@ def type_check(expression ,localTypeEnvironment: dict):
 
 
 
+# {id : {id : type, id : type}}
     # THESE INDICATE ALL OF THE STRUCTS
     # I AM UNSURE WHAT TO DO HERE
     # m_type_declaration → struct id { nested decl } ;
@@ -360,7 +401,7 @@ def type_check(expression ,localTypeEnvironment: dict):
         for i in expression.nested_declarations:
             # need to update the struct environment as you walk through
             # DO I NEED TO MAKE A NEW FUNCTION TO TRAVERSE AND EXTEND STRUCTS INTO THE ENVIRONMENT???
-            globalStructEnvironment = ___(globalTypeEnvironment, ... )
+            globalStructEnvironment = extendEnv(globalTypeEnvironment, __id__, __type__)
             if globalStructEnvironment == False:
                 return False
 
@@ -373,23 +414,34 @@ def type_check(expression ,localTypeEnvironment: dict):
         
 
 
-    # WHAT IS THIS???
-        # m_selector 
-        elif expressionType is m_selector:
-            print("MATCHED")
+
+
+# another big question:
+    # when looking through the 3 (?) environments to type check, would we look at local->struct->global OR local->global->struct
+    # still unsure
+    else:
+        print("FAILED TO RECOGNIZE TYPE")
+        return False
 
 
 
-    # WHAT IS THIS???
-        # m_factor  _(expression)_
-        elif expressionType is m_factor:
-            print("MATCHED")
+
 
 
 
 
 
 # ARE ALL OF THESE JUST NOT IN USE ANY MORE????
+    # # FOR NOW, THIS WILL BE OUT
+    #     # m_selector 
+    #     elif expressionType is m_selector:
+    #         print("MATCHED")
+
+    # # WHAT IS THIS???
+    #     # m_factor  _(expression)_
+    #     elif expressionType is m_factor:
+    #         print("MATCHED")
+
     # # m_statement 
     # elif expressionType is m_statement:
     #     print("MATCHED") 
@@ -427,22 +479,15 @@ def type_check(expression ,localTypeEnvironment: dict):
     #         type_check(i, localTypeEnvironment)  
     
     #     return localTypeEnvironment
+
+
+    # MAKE SURE THIS IS PROPER SYNTAX
+    # my thought here is that if we are given None (return type I assume) we just say that 
+    # its fine and return the environment.
+    # elif expressionType is None: 
+    #     return localTypeEnvironment
+    # wont actually hit this, we would instead get to m_null
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-
-# another big question:
-    # when looking through the 3 (?) environments to type check, would we look at local->struct->global OR local->global->struct
-
-    else:
-        print("FAILED TO RECOGNIZE TYPE")
-        return False
-
-
-
-
-
-
 
 
 
@@ -503,16 +548,54 @@ def type_check(expression ,localTypeEnvironment: dict):
 # I MAY NEED TO CHECK IF A VARIABLE IS IN THE GLOBAL ENVIRONMENT SOMEWHERE - I think local and global environments can contain collisions between??
 # will probably want to return false if you try to extend with a duplicate variable name
 # if someone does: int i; when there is an int i; in the global scope, I dont think that would be legal.
-def extendEnv(typeEnvironment: dict, currId: m_id, currType: m_type):
-    # add the new id key to the environment wth the value m_type
-    
-    # figure out what type m_type is and add it to the typeEnvironment with the correlated id
+def extendEnv(typeEnvironment: dict, currId: m_id, currType):
+    # verify that the Id isnt already in the environment
+    if currId in dict.keys():
+        return False
+
+    # if it is a struct, you need to check if all of the subtypes exist (either bool, int, void, or struct in the environment)
+    if type(currType) == dict:
+        for i in currType.keys():
+            # check if it is int, bool, void
+            if currType[i] == "int" or "bool" or "void":
+                pass
+ 
+            # check if it is an id in the struct environment
+            elif currType[i] in globalStructEnvironment:
+                pass
+            
+            # otherwise the type doesnt exist
+            else:
+                return False
+
+    # add the new id key to the environment wth the type
+    typeEnvironment[currId] = currType # in the case of a struct environment you would have a dict for currType
 
     # return this extended typeEnvironment
+    return typeEnvironment
+
 
 
 # returns the type from an expression (?) 
 # I will call this within the type_check() function to implement return type checking among other things
-def getType( ... ):
+def getType(statements, localTypeEnvironment):
     # recursively walk through the expression and then return the type when you get to the end
+    for i in statements:
+        pass
         # consider returning False if you find and error or something
+
+    # once you reach the end, you need to look at the type of the last statment
+    else:
+        # NEED TO THINK ABOUT WHAT WE DO HERE
+
+    
+    #return the type 
+    return ...
+
+
+
+
+
+
+# CAN A GLOBAL OVERWRITE A STRUCT (vice versa)
+# DO WE TRAVERSE GLOBAL OR STRUCT FIRST WHEN LOOKING UP
