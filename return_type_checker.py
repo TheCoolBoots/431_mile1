@@ -127,7 +127,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             
             sourceType = typeCheck(source_expression, local_env, top_env, top_type_env, function_env)
             if sourceType != targetType:
-                print(f'ERROR on line {lineNum}: type mismatch - cannot assign {sourceType.typeID} to {targetType.typeID}')
+            # MADE A CHANGE ON THIS LINE - RILEY (I couldnt print out sourceType.typeID)
+                print(f'ERROR on line {lineNum}: type mismatch - cannot assign {sourceType} to {targetType.typeID}')
                 return None  
 
             return m_type('void') 
@@ -140,8 +141,9 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
             exprType = typeCheck(expression, local_env, top_env, top_type_env, function_env)
             # assume you can't print structs; you can only print bool, int, or null
-            if exprType not in [m_type('int'), m_type('bool'), m_type('null')]:
-                print(f'ERROR on line {lineNum}: cannot print type {exprType.typeID}')
+            # MADE A CHANGE ON THIS LINE - RILEY (you can only print int. Also, the printed type is ugly now)
+            if exprType != m_type('int'):
+                print(f'ERROR on line {lineNum}: cannot print type {exprType}')
                 return None
             return m_type('void')
 
@@ -290,8 +292,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             operator = statement.operator
             operand_expression = statement.operand_expression
 
-
-            operandType = typeCheck(operand_expression)
+            # MADE A CHANGE ON THIS LINE - RILEY (previously you just had: typeCheck(operand_expression) )
+            operandType = typeCheck(operand_expression, local_env, top_env, top_type_env, function_env)
             match operator:
                 case '!':
                     if operandType != m_type('bool'):
