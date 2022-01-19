@@ -157,6 +157,9 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                     ifReturnType = retType
                     found = True
 
+            if else_statements[0] == None:
+                return ifReturnType
+
             found = False
             elseReturnType = m_type('void')
             for statement in else_statements:
@@ -248,7 +251,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
 
             if functionID.identifier in function_env:
-                actualArgTypes = [typeCheck(expr) for expr in args_expressions]
+                actualArgTypes = [typeCheck(expr, local_env, top_env, top_type_env, function_env) for expr in args_expressions]
                 if listsEqual(function_env[functionID.identifier][2], actualArgTypes):
                     return function_env[functionID.identifier][1]
                 else:
@@ -310,11 +313,11 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
             for nestedID in ids[1:]:
                 # if the nested id exists in the type environment
-                if nestedID in top_type_env[targetType.identifier]:
+                if nestedID.identifier in top_type_env[targetType.typeID]:
                     # reassign target type to the mapped type and continue
-                    targetType = top_type_env[targetType.identifier][nestedID]
+                    targetType = top_type_env[targetType.typeID][nestedID.identifier]
                 else:
-                    print(f'ERROR on line {lineNum}: {targetType.identifier}.{nestedID} does not exist')
+                    print(f'ERROR on line {lineNum}: {targetType.typeID}.{nestedID.identifier} does not exist')
                     return None
 
             return targetType

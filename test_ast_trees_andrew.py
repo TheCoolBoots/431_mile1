@@ -93,3 +93,9 @@ expected8 = m_prog([structA8, structB8], [], [function8])
 ret9 = m_ret(3, m_unary(3, '!', m_bool(True)))
 function9 = m_function(1, m_id(1, 'main'), [], m_type('int'), [], [ret9])
 expected9 = m_prog([],[],[function9])
+
+thenStatement2 = m_ret(5, m_bool(True))
+ifStatementElse = m_conditional(5, guardClause5, thenBlock5, thenBlock5)
+ifStatementElse2 = m_conditional(5, guardClause5, [thenStatement2], [thenStatement2])
+
+fancyLoop = m_loop(7, guardClause5, [ifStatementElse2])
