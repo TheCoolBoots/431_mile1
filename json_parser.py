@@ -44,7 +44,6 @@ def parse(json):
             return m_invocation(int(json['line']), m_id(json['line'], json['id']), args)
 
         case {'line':_, 'exp':'dot', 'left':_, 'id':_}:
-            # expects parent struct recursive parse to go to this or previous case
             parentStruct = parse(json['left'])
             if type(parentStruct) == list:
                 parentStruct.append(m_id(json['line'], json['id']))
@@ -81,7 +80,6 @@ def parse(json):
             return [parse(statement) for statement in json['list']]
 
         case {'line':_, 'left':_, 'id':_}:
-            # expects parent struct recursive parse to go to this or previous case
             parentStruct = parse(json['left'])
             if type(parentStruct) == list:
                 parentStruct.append(m_id(json['line'], json['id']))
