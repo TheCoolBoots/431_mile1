@@ -1,7 +1,7 @@
 from re import T
 from ast_class_definitions import *
 
-def checkReturnTypes(program:m_prog):
+def typeCheckProgram(program:m_prog):
     encounteredTypes = {'int':True, 'bool':True}
     for typeDecl in program.types:
         encounteredTypes[typeDecl.id.identifier] = True

@@ -7,6 +7,9 @@ TASK 1: create python class for each format as described in overview.pdf
     NOTE maybe this isn't required? can do all semantic checks just on json?
 """
 
+from typing import Tuple
+
+
 def listsEqual(listA:list, listB:list):
     if len(listA) != len(listB):
         return False
@@ -73,6 +76,18 @@ class m_declaration:
             return False
         return self.type == __o.type and self.id == __o.id and self.lineNum == __o.lineNum
 
+    # NOTE: type_env structure = {str : {str : (int, m_type)}}
+    def getLLVM(self):
+        match self.type.typeID:
+            case 'int':
+                return f'%{self.id}=alloca i64'
+            case 'bool':
+                return f'%{self.id}=alloca i64'     # TODO check if can use i8 instead
+            case structID:
+                return f'%{self.id}=alloca %{structID}'
+
+
+
 
 # type declaration → struct id { nested decl } ;
 class m_type_declaration:
@@ -84,6 +99,17 @@ class m_type_declaration:
         if type(__o) != type(self):
             return False
         return self.id == __o.id and listsEqual(self.nested_declarations, __o.nested_declarations) and self.lineNum == __o.lineNum
+    def getLLVM(self):
+            # %struct.foo = type {i64, i64, %struct.simple*}
+            # %struct.simple = type {i64}
+            types = []
+            for decl in self.nested_declarations:
+                if decl.type == m_type('int') or decl.type == m_type('bool'):
+                    types.append('i64')
+                else:
+                    types.append(f'%struct.{decl.type.typeID}*')
+            types = '{' + (', '.join(types)) + '}'
+            return f'%struct.{self.id.identifier} = type {types}'
 
 
 # function → fun id parameters return type { declarations statement list }
@@ -211,7 +237,7 @@ class m_ret:
             return False
         return self.expression == __o.expression and self.lineNum == __o.lineNum
 
-
+# == != <= < > >= - + * / || &&
 class m_binop:
     def __init__(self, lineNum:int, operator:str, left_expression, right_expression):
         self.operator = operator
@@ -222,8 +248,7 @@ class m_binop:
         if type(__o) != type(self):
             return False
         return self.operator == __o.operator and self.left_expression == __o.left_expression and self.right_expression == __o.right_expression and self.lineNum == __o.lineNum
-
-
+            
 # invocation → id arguments ;
 class m_invocation:
     # not yet sure what type arguments will be
@@ -268,3 +293,4 @@ class m_dot:
         if type(__o) != type(self):
             return False
         return self.lineNum == __o.lineNum and listsEqual(self.ids, __o.ids)
+

@@ -1,9 +1,7 @@
-from threading import local
 import unittest
-import json
 from ast_class_definitions import *
-from return_type_checker import *
-import test_ast_trees_andrew
+from type_checker import *
+import test_ast_trees
 
 top_env = {'a': (3, m_type('int'))}
 type_env = {'BIGCHUNGUS':{'a': m_type('bool')}, 'int':m_type('int'), 'bool':m_type('bool')}
@@ -15,7 +13,7 @@ local_env = {'b': (4, m_type('BIGCHUNGUS'))}
 
 # {str : (int, m_type, list[m_type])}       map function id to (lineNum, retType, argTypes)
 
-class test_json_parser(unittest.TestCase):
+class test_type_checker(unittest.TestCase):
 
     def test_dot(self):
         dot = m_dot(6, [m_id(5, 'b'), m_id(5, 'a')])
@@ -97,9 +95,9 @@ class test_json_parser(unittest.TestCase):
 
     # also handles m_ret base case
     def test_cond(self):
-        self.assertEqual(m_type('void'), typeCheck(test_ast_trees_andrew.ifStatement5, local_env, top_env, type_env, {}))
-        self.assertEqual(m_type('void'), typeCheck(test_ast_trees_andrew.ifStatementElse, local_env, top_env, type_env, {}))
-        self.assertEqual(m_type('bool'), typeCheck(test_ast_trees_andrew.ifStatementElse2, local_env, top_env, type_env, {}))
+        self.assertEqual(m_type('void'), typeCheck(test_ast_trees.ifStatement5, local_env, top_env, type_env, {}))
+        self.assertEqual(m_type('void'), typeCheck(test_ast_trees.ifStatementElse, local_env, top_env, type_env, {}))
+        self.assertEqual(m_type('bool'), typeCheck(test_ast_trees.ifStatementElse2, local_env, top_env, type_env, {}))
 
         # 158 - condition is an int
         # if( 1 ) {
@@ -119,8 +117,8 @@ class test_json_parser(unittest.TestCase):
         self.assertEqual(None, typeCheck(currIfStatement, local_env, top_env, type_env, {}))
    
     def test_loop(self):
-        self.assertEqual(m_type('void'), typeCheck(test_ast_trees_andrew.whileStatement4, local_env, top_env, type_env, {}))
-        self.assertEqual(m_type('bool'), typeCheck(test_ast_trees_andrew.fancyLoop, local_env, top_env, type_env, {}))
+        self.assertEqual(m_type('void'), typeCheck(test_ast_trees.whileStatement4, local_env, top_env, type_env, {}))
+        self.assertEqual(m_type('bool'), typeCheck(test_ast_trees.fancyLoop, local_env, top_env, type_env, {}))
 
         # 198 - while condition is an int
         # while (1) {
