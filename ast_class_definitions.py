@@ -63,6 +63,8 @@ class m_type:
         if type(__o) != type(self):
             return False
         return self.typeID == __o.typeID
+    def __str__(self):
+        return self.typeID
 
 
 # declaration → type id list ;

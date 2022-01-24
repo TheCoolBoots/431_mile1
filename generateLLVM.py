@@ -10,6 +10,7 @@ def expressionToLLVM(lastRegUsed:int, expression, function_env) -> Tuple[int, li
         case m_num() | m_bool():
             return lastRegUsed, expression.val
         case m_new_struct():
+            instructions = [f'%{lastRegUsed + 1}=alloca %struct.{expression.struct_id.identifier}', None ]
             pass
         case m_null():
             pass
