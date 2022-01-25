@@ -41,6 +41,14 @@ class test_json_parser(unittest.TestCase):
 
         self.assertEqual(ast, test_ast_trees.expected5)
 
+    def test_if2(self):
+        with open('json_parser_tests/if2.json') as file:
+            contents = json.load(file)
+        ast = parse(contents)
+
+        expected = test_ast_trees.expected52
+        self.assertEqual(ast, test_ast_trees.expected52)
+
     def test_structs(self):
         with open('json_parser_tests/structs.json') as file:
             contents = json.load(file)

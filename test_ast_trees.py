@@ -59,6 +59,19 @@ mainBody5 = m_function(1, m_id(1, 'main'), [], m_type('int'), declarations5, fun
 
 expected5 = m_prog([], [], [mainBody5])
 
+# derived from if2.json
+thenBlock52 = [m_print(7, m_num(7), False)]
+elseBlock52 = [m_print(11, m_num(8), False)]
+guardClause52 = m_binop(5, '==', m_id(5,'a'), m_num(3))
+ifStatement52 = m_conditional(5, guardClause52, thenBlock52, elseBlock52)
+assignStatement52 = m_assignment(4, [m_id(4, 'a')], m_num(3))
+
+functionBody52 = [assignStatement52, ifStatement52]
+declarations52 = [m_declaration(3, m_type('int'), m_id(3, 'a'))]
+mainBody52 = m_function(1, m_id(1, 'main'), [], m_type('int'), declarations52, functionBody52) 
+
+expected52 = m_prog([], [], [mainBody52])
+
 
 # derived from structs.json
 nestedDeclarations6 = [m_declaration(2, m_type('int'), m_id(2, 'a')), m_declaration(3, m_type('int'), m_id(3, 'b'))]

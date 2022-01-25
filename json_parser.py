@@ -73,6 +73,9 @@ def parse(json):
         case {'line':_, 'stmt':'while', 'guard':_, 'body':_}:
             return m_loop(int(json['line']), parse(json['guard']), parse(json['body']))    
 
+        case {'line':_, 'stmt':'if', 'guard':_, 'then':_, 'else':_}:
+            return m_conditional(int(json['line']), parse(json['guard']), parse(json['then']), parse(json['else']))
+        
         case {'line':_, 'stmt':'if', 'guard':_, 'then':_}:
             return m_conditional(int(json['line']), parse(json['guard']), parse(json['then']))
 

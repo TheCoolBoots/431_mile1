@@ -10,6 +10,13 @@ TASK 1: create python class for each format as described in overview.pdf
 from typing import Tuple
 
 
+param = [1,3,4,5]
+
+def foo(a, b, c, d):
+    pass
+
+foo(*param)
+
 def listsEqual(listA:list, listB:list):
     if len(listA) != len(listB):
         return False

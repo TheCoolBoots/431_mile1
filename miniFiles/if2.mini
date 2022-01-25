@@ -1,0 +1,13 @@
+fun main() int
+{
+    int a;
+    a = 3;
+    if (a == 3)
+    {
+        print 7;
+    }
+    else
+    {
+        print 8;
+    }
+}
