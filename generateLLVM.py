@@ -2,41 +2,83 @@ from ast_class_definitions import *
 
 # binop, number, bool, new id, null, invocation, unary, dot, id
 # returns (resultRegNum, llvm code)
-# function_env structure: {str: (m_type, list[m_type])}     maps funID -> return type
-def expressionToLLVM(lastRegUsed:int, expression, function_env) -> Tuple[int, list[str]]:
+# env structure : {str: m_type}
+# f_env structure: {str: (m_type, list[m_type])}     maps funID -> return type
+# t_env structure: {str: list[m_declaration]}
+def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[int, list[str]]:
     match expression:
         case m_binop():
-            return binaryToLLVM(lastRegUsed, expression, function_env)
+            return binaryToLLVM(lastRegUsed, expression, env, f_env, t_env)
         case m_num() | m_bool():
             return lastRegUsed, expression.val
         case m_new_struct():
-            pass
+            return lastRegUsed+1, [f'%{lastRegUsed + 1}=alloca %struct.{expression.struct_id.identifier}']
         case m_null():
-            pass
+            raise NotImplementedError()
         case m_invocation():
-            return invocationToLLVM(lastRegUsed, expression, function_env)
+            return invocationToLLVM(lastRegUsed, expression, env, f_env, t_env)
         case m_unary():
-            return unaryToLLVM(lastRegUsed, expression, function_env) 
+            return unaryToLLVM(lastRegUsed, expression, env, f_env, t_env) 
         case m_dot():
-            pass
+            return dotToLLVM(lastRegUsed, expression, env, f_env, t_env)
         case m_id():
-            return lastRegUsed+1, [f'%tmp{lastRegUsed+1} = load i64* %{expression.identifier}']
+            return lastRegUsed+1, [f'%{lastRegUsed+1} = load i64* %{expression.identifier}']
 
+def dotToLLVM(lastRegUsed:int, expression:m_dot, env, f_env, t_env):
+    rootType = env[expression.ids[0].identifier].typeID
+    
+    formatString = '%%%s = getelementptr %s, %s %%%s, i32 0, i32 %s'
+    sourceID = expression.ids[0].identifier
 
-def invocationToLLVM(lastRegUsed:int, exp:m_invocation, function_env: dict) -> Tuple[int, list[str]]:
+    code = []
+
+    # first id will map to an instance of a struct
+    # other ids may or may not map to struct
+    for id in expression.ids[1:]:
+
+        # t_env[rootType] will return a list of m_declarations
+        # getNestedDeclaration will check if the id exists within the root type
+        # struct A {
+        #   int a
+        # };
+        # struct A instance
+        # int tmp = instance.a      need to know what the type of a is so load works correctly
+        structIndex, outputTypeID = getNestedDeclaration(id, t_env[rootType])
+        targetRegister = lastRegUsed + 1
+        sourceType = f'%struct.{rootType}'
+
+        code.append(formatString%(targetRegister, sourceType, f'{sourceType}*', sourceID, structIndex))
+        
+        lastRegUsed += 1
+        sourceID = targetRegister
+        rootType = outputTypeID
+
+    if outputTypeID == 'int' or outputTypeID == 'bool':
+        code.append(f'%{lastRegUsed + 1} = load i64, i64* %{targetRegister}')
+    else:
+        code.append(f'%{lastRegUsed + 1} = load {outputTypeID}*, {outputTypeID}* %{targetRegister}')
+
+    return (lastRegUsed + 1, code)
+
+def getNestedDeclaration(id:str, declarations: list[m_declaration]):
+    for i, decl in enumerate(declarations):
+        if decl.id == id:
+            return (i, decl.type.typeID)
+
+def invocationToLLVM(lastRegUsed:int, exp:m_invocation, env, f_env, t_env) -> Tuple[int, list[str]]:
 
     params = []
     for i in range(len(exp.args_expressions)):
-        params.append(expressionToLLVM(lastRegUsed, exp.args_expressions[i], function_env))
+        params.append(expressionToLLVM(lastRegUsed, exp.args_expressions[i], env, f_env, t_env))
         lastRegUsed = params[-1][0]
 
     targetReg = params[-1][0] + 1
     returnTypeFunID = None
     parameters = []
 
-    formatString = '%%tmp%s = call %s(%s)'
+    formatString = '%%%s = call %s(%s)'
 
-    match function_env[exp.id.identifier][0].typeID:
+    match f_env[exp.id.identifier][0].typeID:
         case 'int' | 'bool':
             returnTypeFunID = f'i64 @{exp.id.identifier}'
         case typeID:
@@ -51,8 +93,8 @@ def invocationToLLVM(lastRegUsed:int, exp:m_invocation, function_env: dict) -> T
             case int():
                 parameters.append(f'i64 {paramCode}')
             case other:
-                paramType = function_env[exp.id.identifier][1][i].typeID
-                parameters.append(f'%struct.{paramType} %tmp{paramReg}')
+                paramType = f_env[exp.id.identifier][1][i].typeID
+                parameters.append(f'%struct.{paramType} %{paramReg}')
     
     parameters = ', '.join(parameters)
 
@@ -66,14 +108,14 @@ def invocationToLLVM(lastRegUsed:int, exp:m_invocation, function_env: dict) -> T
 
 
 # ! -
-def unaryToLLVM(lastRegUsed:int, exp:m_unary, function_env) -> Tuple[int, list[str]]:
-    operandReg, operandCode = expressionToLLVM(lastRegUsed, exp.operand_expression, function_env)
+def unaryToLLVM(lastRegUsed:int, exp:m_unary, env, f_env, t_env) -> Tuple[int, list[str]]:
+    operandReg, operandCode = expressionToLLVM(lastRegUsed, exp.operand_expression, env, f_env, t_env)
 
     s1 = operandReg + 1
     s2 = None
     s3 = None
 
-    formatString = '%%tmp%s = %s, %s'
+    formatString = '%%%s = %s, %s'
 
     match operandCode:
         case True | False:
@@ -81,7 +123,7 @@ def unaryToLLVM(lastRegUsed:int, exp:m_unary, function_env) -> Tuple[int, list[s
         case int():
             s3 = operandCode
         case other:
-            s3 = f'%tmp{operandReg}'
+            s3 = f'%{operandReg}'
 
     match exp.operator:
         case '!':
@@ -97,16 +139,16 @@ def unaryToLLVM(lastRegUsed:int, exp:m_unary, function_env) -> Tuple[int, list[s
 
 
 # == != <= < > >= - + * / || &&
-def binaryToLLVM(lastRegUsed:int, exp:m_binop, function_env):
-    leftOpReg, leftOpCode = expressionToLLVM(lastRegUsed, exp.left_expression, function_env)
-    rightOpReg, rightOpCode = expressionToLLVM(leftOpReg, exp.right_expression, function_env)
+def binaryToLLVM(lastRegUsed:int, exp:m_binop, env, f_env, t_env):
+    leftOpReg, leftOpCode = expressionToLLVM(lastRegUsed, exp.left_expression, env, f_env, t_env)
+    rightOpReg, rightOpCode = expressionToLLVM(leftOpReg, exp.right_expression, env, f_env, t_env)
 
     targetReg = rightOpReg + 1
     instrAndDatatype = None
     leftOperand = None
     rightOperand = None
 
-    formatString = '%%tmp%s = %s %s, %s'
+    formatString = '%%%s = %s %s, %s'
 
     match leftOpCode:
         case True | False:
@@ -114,7 +156,7 @@ def binaryToLLVM(lastRegUsed:int, exp:m_binop, function_env):
         case int():
             leftOperand = leftOpCode
         case other:
-            leftOperand = f'%tmp{leftOpReg}'
+            leftOperand = f'%{leftOpReg}'
 
     match rightOpCode:
         case True | False:
@@ -122,7 +164,7 @@ def binaryToLLVM(lastRegUsed:int, exp:m_binop, function_env):
         case int():
             rightOperand = rightOpCode
         case other:
-            rightOperand = f'%tmp{rightOpReg}'
+            rightOperand = f'%{rightOpReg}'
 
     # == != <= < > >= - + * / || &&
     match exp.operator:

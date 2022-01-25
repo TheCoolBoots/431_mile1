@@ -63,6 +63,8 @@ class m_type:
         if type(__o) != type(self):
             return False
         return self.typeID == __o.typeID
+    def __str__(self):
+        return self.typeID
 
 
 # declaration → type id list ;
@@ -151,6 +153,11 @@ class m_prog:
             decls = {decl.id.identifier:(decl.lineNum, decl.type) for decl in type_declaration.nested_declarations}
             env[type_declaration.id.identifier] = decls
         return env
+
+    # for use in generateLLVM
+    # maps struct IDs to a list of nested m_declarations
+    def getTypes(self):
+        return {typeDecl.id:typeDecl.nestedDeclarations for typeDecl in self.type_declarations}
     
     # returns {str : m_type}
     def getTopEnv(self):
