@@ -23,7 +23,7 @@ def printCFG(head):
     queue.append( (head, nodeLevel) )
 
     while queue != []:
-        currTuple = queue.pop()
+        currTuple = queue.pop(0)
         currNode = currTuple[0]
 
         if nodeLevel <= currTuple[1]:
@@ -52,6 +52,10 @@ def printCFG(head):
         for node in currNode.nextBlocks:
             print("nextNode id: " + str(node.id))
 
+        # WAS IN
+        # for node in currNode.previousBlocks:
+        #     print("prevNode id: " + str(node.id))
+
         print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.id)]) + "\nblock Id: " + str(currNode.id) + "\n\n\n")
         # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.code)]) + "\n\n\n")
         # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) +       "\n\n\n")# + "\nnumReferences: " + str(nodeReferences[nodeNum]) + "\n\n\n")
@@ -68,6 +72,7 @@ def main():
     # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected7)
     # printCFG(testCFG.firstNode)
 
+
     # # if case
     # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected5)
     # printCFG(testCFG.firstNode)
@@ -82,14 +87,42 @@ def main():
     # testCFG = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG.firstNode)
 
-    with open('json_parser_tests/loop_if.json') as file2:
-        contents = json.load(file2)
+
+    # with open('json_parser_tests/loop_if.json') as file2:
+    #     contents = json.load(file2)
+    # ast = parse(contents)
+    # # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
+    # # dont consider the else case on line 77 of json_parse.py
+    # # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
+    # # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
+
+
+
+    # with open('json_parser_tests/if_loop.json') as file3:
+    #     contents = json.load(file3)
+    # ast = parse(contents)
+    # # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
+    # # dont consider the else case on line 77 of json_parse.py
+    # # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
+    # # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
+
+
+    # invocation case 2
+    with open('json_parser_tests/myFunctionCall.json') as file4:
+        contents = json.load(file4)
     ast = parse(contents)
     # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
     # dont consider the else case on line 77 of json_parse.py
-    print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
+    # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
+    # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
     testCFG = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG.firstNode)
+    printCFG(testCFG.firstNode)
+
+    # print(str(functionBlocks["foo"].firstNode.code))
 
 
 if __name__ == "__main__":
