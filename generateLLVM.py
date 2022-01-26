@@ -19,14 +19,19 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, lis
         case m_delete():
             pass
         case m_ret():
-            retToLLVM(lastRegUsed, stmt, env, t_env, f_env)
+            return retToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_invocation():
-            pass
+            return invocationToLLVM(lastRegUsed, stmt, env, f_env, t_env)
 
 
-def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env):
-    returnReg, returnCode = expressionToLLVM(lastRegUsed, ret.expression, env, t_env, f_env)
-    pass
+def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env) -> Tuple[int, str, list[str]]:
+    returnReg, retType, returnCode = expressionToLLVM(lastRegUsed, ret.expression, env, t_env, f_env)
+
+    if type(returnCode) == list:
+        returnCode.append(f'ret {retType} %{returnReg}')
+        return (returnReg, retType, returnCode)
+    else:
+        return (returnReg, retType, [f'ret {retType} {returnCode}'])
 
 def getLLVMType(typeID:str) -> str:
     if typeID == 'bool' or typeID == 'int':
