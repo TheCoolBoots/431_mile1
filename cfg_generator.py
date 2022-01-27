@@ -274,7 +274,7 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int): # WAS 
 
         # might be a weird edge case on the last statement
         # check if we need a new node (if or while)
-        if(currTuple[1] > 1):
+        if(currTuple[1] > 1 and currTuple[1] < 4):
             
             # if you currently have a node that is not empty ...
             if currNodeCount > 0:  
@@ -394,6 +394,63 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int): # WAS 
             # break from the function, no need to go further (shouldnt really be any more in reality)
             break
 
+        # invocation Case
+        elif(currTuple[1] == 4):
+            print("GOT TO THE 4 CASE")
+            # print("AHHHHHHH" + str(currNode))
+            # should this go at the end? or is this good?
+            if initialFlag == 0:
+                initialFlag = 1
+                initialNode = currTuple[0]
+
+            # get the tuple => (node, patchNode, patchNode, ..., patchNode)
+            nodeList = currTuple[0]
+
+            # grab the first node for return later
+            firstNode = nodeList[0]
+
+
+
+            # patch together the first with the next until there is only 1
+            while len(nodeList) > 1:
+            # step through the nodes of the first block
+                tempNode = nodeList[0]
+                while tempNode.nextBlocks != []:
+                    tempNode = tempNode.nextBlocks[0]
+
+                # next block of first shou
+                tempNode.nextBlocks.append(nodeList[1])
+                tempNode = nodeList[1]
+
+                # remove the first node from nodeList
+                nodeList.pop(0)
+
+            # # patch together first (node) with second (function node)
+            # while tempNode.nextBlocks != []:
+            #     tempNode = tempNode.nextBlocks[0]
+
+            # # next node form function node
+            # nextNode = nodeList[1].firstNode
+
+            # # next block of first shou
+            # tempNode.nextBlocks.append(nextNode)
+
+            # tempNode = nextNode
+
+            # # get to the end of the next blocks list
+            # while tempNode.nextBlocks != []:
+            #     tempNode = tempNode.nextBlocks[0]
+
+            print("CURRENT NODE BEFORE: " + str(currNode))
+
+            # set the currNode
+            currNode = tempNode
+
+            print("CURRENT NODE AFTER: " + str(currNode))
+            
+
+
+
         else:
             currNodeCount += 1
     
@@ -425,9 +482,9 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int): # WAS 
 # returns a tuple that is (node, int) - 
     # return 0 if you can just continue
     # 1 if it is a return statement
-    # 2 if it is an invocation
-    # 3 if it is a while statement 
-    # 4 if it is an if/if else statement
+    # 4 if it is an invocation
+    # 2 if it is a while statement 
+    # 3 if it is an if/if else statement
 # add to the current node, when you get 
 def generate_CFG_Nodes(expression, currNode):
     global blockId
@@ -537,6 +594,7 @@ def generate_CFG_Nodes(expression, currNode):
         # ret → return {expression}opt;
         case m_ret():
             print("return case")
+            print("REAAAAD" + str(currNode))
             # set the return type of the current node
             # STILL NEED TO DO THIS ???? 
             # currNode.returnType =  ... # MIGHT NEED SOME SORT OF FUNCTION TO GET THE TYPE FROM me_ret.expression
@@ -560,42 +618,66 @@ def generate_CFG_Nodes(expression, currNode):
         # THINK MORE ABOUT HOW YOU WILL RETURN FROM THIS CASE
         # invocation → id arguments ;
         case m_invocation():
-            print("invocation case")
-            # function not in environment case
-            if(expression.id.identifier not in functionBlocks):
-                return (currNode, -1)
-
+            print("AHHHHHHH" + str(currNode))
             # add the invocation code
             currNode.code.append(expression)
-            
-            # DO I NEED TO RECURSIVELY CALL THIS FUNCTION ON THE ARGUMENT EXPRESSIONS????
-            for exp in expression.args_expressions:
-                currTuple = generate_CFG_Nodes(exp, currNode)
-                currNode = currTuple[0]
 
-            # patch the node from the dictionary on the current head
-
-
+# its also very possible that I dont even need to worry about the code in the arguments
+# ANOTHER THOUGHT, what if i just pass back ((currNode, nodeToAppend1, nodeToAppend2, ..., nodeToAppendn), returnVal)
+            # I really dont wanna do this, it might work if i call the function one level higher??
+            # recursively call the expression (?)
+            # for exp in expression.args_expressions:
+            print("LOOOOOOOOK" + str(expression.args_expressions))
+            newNode = generate_CFG_Function_Handler(expression.args_expressions, 1) # DOUBLE CHECK THIS
+            print("GOT THRU THAT SHIT")
+            print(str(newNode))
             # get a copy of the node that is in the function block dictionary
             newFunctionNode = functionBlocks[expression.id.identifier]
+
+            return ([currNode, newNode, newFunctionNode.firstNode], 4) # DOUBLE CHECK THIS
+
+
+
+        # START WAS HERE
+            # print("invocation case")
+            # # function not in environment case
+            # if(expression.id.identifier not in functionBlocks):
+            #     return (currNode, -1)
+
+            # # add the invocation code
+            # currNode.code.append(expression)
+            
+            # # DO I NEED TO RECURSIVELY CALL THIS FUNCTION ON THE ARGUMENT EXPRESSIONS????
+            # for exp in expression.args_expressions:
+            #     currTuple = generate_CFG_Nodes(exp, currNode)
+            #     currNode = currTuple[0]
+
+            # # patch the node from the dictionary on the current head
+
+
+            # # get a copy of the node that is in the function block dictionary
+            # newFunctionNode = functionBlocks[expression.id.identifier]
+
+            # print("\n\n\nNEW CHECK\n")
+            # print(str(newFunctionNode.firstNode))
             
 
-            # patch in the next nodes to the current block (first in the function node)
-            currNode.nextBlocks = [newFunctionNode.firstNode]
+            # # patch in the next nodes to the current block (first in the function node)
+            # currNode.nextBlocks = [newFunctionNode.firstNode]
 
 
-            # have to create a newNode so that I can set the nextNode of all of the final nodes in the functionNode
-            # NOTE: We dont have to create a new node in the upper level function because we do it here
-            newNode = CFG_Node([], [], [], blockId)
-            blockId += 1
+            # # have to create a newNode so that I can set the nextNode of all of the final nodes in the functionNode
+            # # NOTE: We dont have to create a new node in the upper level function because we do it here
+            # newNode = CFG_Node([], [], [], blockId)
+            # blockId += 1
 
 
-            # step through each last node in the function and set the next nodes for each to the new node
-            for currFinalNode in newFunctionNode.lastNodes:
-                currFinalNode.nextBlocks = [newNode]
-                # WAS IN
-                # newNode.previousBlocks.append(currFinalNode)
-
+            # # step through each last node in the function and set the next nodes for each to the new node
+            # for currFinalNode in newFunctionNode.lastNodes:
+            #     currFinalNode.nextBlocks = [newNode]
+            #     # WAS IN
+            #     # newNode.previousBlocks.append(currFinalNode)
+        # END WAS HERE
 
 
 # # DO I NEED TO RECURSIVELY CALL THIS FUNCTION ON THE ARGUMENT EXPRESSIONS????
@@ -605,7 +687,12 @@ def generate_CFG_Nodes(expression, currNode):
 
             # I DONT THINK I NEED TO DO ANYTHING SPECIAL AFTER RETURN 
             # my thought here is that since we dont need to make a new node in the above level function, we can just return the newNode
-            return (newNode, 0) # WAS 2 HERE NOW IS 0
+            # return (newNode, 0) # WAS 2 HERE NOW IS 0
+
+
+
+
+
 
 
         # which other things potentially have expressions hidden in them?
