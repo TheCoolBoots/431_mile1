@@ -77,9 +77,11 @@ def main():
     # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected5)
     # printCFG(testCFG.firstNode)
     
-    # # while case 
+
+    # while case 
     # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected4)
     # printCFG(testCFG.firstNode)
+
 
     # with open('json_parser_tests/ifelse.json') as file1:
     #     contents = json.load(file1)
@@ -88,6 +90,7 @@ def main():
     # printCFG(testCFG.firstNode)
 
 
+    # while and then if-else case
     # with open('json_parser_tests/loop_if.json') as file2:
     #     contents = json.load(file2)
     # ast = parse(contents)
@@ -115,15 +118,24 @@ def main():
     with open('json_parser_tests/myFunctionCall.json') as file4:
         contents = json.load(file4)
     ast = parse(contents)
-    # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
-    # dont consider the else case on line 77 of json_parse.py
-    # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
-    # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
     testCFG = generate_CFG_Prog_Handler(ast)
     printCFG(testCFG.firstNode)
 
-    # print(str(functionBlocks["foo"].firstNode.code))
+
+    # # invocation case 3
+    # with open('json_parser_tests/harderFunctionCall.json') as file5:
+    #     contents = json.load(file5)
+    # ast = parse(contents)
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
 
 
-# if __name__ == "__main__":
-#     main()
+    # # invocation case 4
+    # with open('json_parser_tests/hardestFunctionCall.json') as file6:
+    #     contents = json.load(file6)
+    # ast = parse(contents)
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
+
+if __name__ == "__main__":
+    main()

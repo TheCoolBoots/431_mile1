@@ -116,6 +116,7 @@ def generate_CFG_Prog_Handler(program:m_prog):
         i = 0
         # print("length: " + str(len(currNode.nextBlocks)))
         while i < len(currNode.nextBlocks):
+            # print(currNode.nextBlocks)
             if currNode.nextBlocks[i].code == []:
                 print("2 removing node number: " + str(currNode.nextBlocks[i].id))
                 print("removed node nextBlocks: " + str(currNode.nextBlocks[i].nextBlocks))
@@ -403,27 +404,36 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int): # WAS 
                 initialFlag = 1
                 initialNode = currTuple[0]
 
-            # get the tuple => (node, patchNode, patchNode, ..., patchNode)
-            nodeList = currTuple[0]
+            # # get the tuple => (node, patchNode, patchNode, ..., patchNode)
+            # nodeList = currTuple[0]
 
-            # grab the first node for return later
-            firstNode = nodeList[0]
+            # # grab the first node for return later
+            # firstNode = nodeList[0]
+
+            # temp = currTuple[0]
+
+            while currNode.nextBlocks != []:
+                currNode = currNode.nextBlocks[0]
 
 
 
-            # patch together the first with the next until there is only 1
-            while len(nodeList) > 1:
-            # step through the nodes of the first block
-                tempNode = nodeList[0]
-                while tempNode.nextBlocks != []:
-                    tempNode = tempNode.nextBlocks[0]
+            # # patch together the first with the next until there is only 1
+            # while len(nodeList) > 1:
+            # # step through the nodes of the first block
+            #     tempNode = nodeList[0]
+            #     while tempNode.nextBlocks != []:
+            #         tempNode = tempNode.nextBlocks[0]
 
-                # next block of first shou
-                tempNode.nextBlocks.append(nodeList[1])
-                tempNode = nodeList[1]
+            #     # next block of first shou
+            #     tempNode.nextBlocks.append(nodeList[1])
+            #     tempNode = nodeList[1]
 
-                # remove the first node from nodeList
-                nodeList.pop(0)
+            #     # remove the first node from nodeList
+            #     nodeList.pop(0)
+
+
+
+
 
             # # patch together first (node) with second (function node)
             # while tempNode.nextBlocks != []:
@@ -442,9 +452,15 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int): # WAS 
             #     tempNode = tempNode.nextBlocks[0]
 
             print("CURRENT NODE BEFORE: " + str(currNode))
+            newNode = CFG_Node([],[],[], blockId)
+            blockId += 1
+
+            currNode.nextBlocks.append(newNode)
+            print("UMMMMMM" + str(currNode.code))
 
             # set the currNode
-            currNode = tempNode
+            # print("MAUTYFGUUVCYTVGIUHDOBAKUDFYEBGAYIUGDOAIYGDIWABCIOYAECA")
+            currNode = newNode
 
             print("CURRENT NODE AFTER: " + str(currNode))
             
@@ -452,6 +468,12 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int): # WAS 
 
 
         else:
+            if initialFlag == 0:
+                initialFlag = 1
+                initialNode = currNode
+
+            while currNode.nextBlocks != []:
+                currNode = currNode.nextBlocks[0]
             currNodeCount += 1
     
 
@@ -579,6 +601,8 @@ def generate_CFG_Nodes(expression, currNode):
             if whileNode == None:
                 return None
             
+            print("WHILE NODE NEXT BLOCKS: " + str(whileNode.nextBlocks))
+
             # add the while statements
             # whileNode.code.append(expression.body_statements) # This should already be done
 
@@ -618,23 +642,68 @@ def generate_CFG_Nodes(expression, currNode):
         # THINK MORE ABOUT HOW YOU WILL RETURN FROM THIS CASE
         # invocation → id arguments ;
         case m_invocation():
-            print("AHHHHHHH" + str(currNode))
+            print("INVOCATION CASE")
+            print("CURR NODE: " + str(currNode))
             # add the invocation code
-            currNode.code.append(expression)
+            initial = currNode
+            print(str(expression))
+            # currNode.code.append(expression)
 
-# its also very possible that I dont even need to worry about the code in the arguments
 # ANOTHER THOUGHT, what if i just pass back ((currNode, nodeToAppend1, nodeToAppend2, ..., nodeToAppendn), returnVal)
             # I really dont wanna do this, it might work if i call the function one level higher??
             # recursively call the expression (?)
             # for exp in expression.args_expressions:
-            print("LOOOOOOOOK" + str(expression.args_expressions))
-            newNode = generate_CFG_Function_Handler(expression.args_expressions, 1) # DOUBLE CHECK THIS
-            print("GOT THRU THAT SHIT")
-            print(str(newNode))
+
+# CONSIDER WRITING A NEW FUNCTION THAT PRETTY MUCH DOES NOTHING UNLESS THE EXPRESSION IS AN INVOCATION
+
+
+            # print("LOOOOOOOOK" + str(expression.args_expressions))
+            # newNode = generate_CFG_Function_Handler(expression.args_expressions, 1) # DOUBLE CHECK THIS
+            # print("GOT THRU THAT SHIT")
+            # print(str(newNode))
             # get a copy of the node that is in the function block dictionary
             newFunctionNode = functionBlocks[expression.id.identifier]
 
-            return ([currNode, newNode, newFunctionNode.firstNode], 4) # DOUBLE CHECK THIS
+            print(newFunctionNode.firstNode)
+
+            # return ([currNode, newNode, newFunctionNode.firstNode], 4) # DOUBLE CHECK THIS
+
+                    # newNode = generate_CFG_Function_Handler(expression.args_expressions, 1) # DOUBLE CHECK THIS
+
+            print("LOOOOOOOOK" + str(expression.args_expressions))
+            for exp in expression.args_expressions:
+                # step through the expressions and check if they have an invocation
+                temp = checkForInvocation(exp) # this give us (Node/None, 0/1) - 0 means no invocation, 1 means invocation
+
+                # if there was an invocation, add the node to your current node
+                if temp[1] == 1:
+                    print("ENTERED ARG INVOCATION BLOCK")
+                    newNode = temp[0]
+                    print("found a new invocation: " + str(newNode))
+
+                    # make sure you find the end of currNode before continuing
+                    while currNode.nextBlocks != []:
+                        currNode = currNode.nextBlocks[0]
+                    
+                    # now patch in the new invocation node
+                    currNode.nextBlocks.append(newNode)
+                    # make the current node the new one
+                    currNode = newNode
+
+
+            currNode.nextBlocks.append(newFunctionNode.firstNode)
+
+            currNode = newFunctionNode.firstNode
+
+            print("GOT THRU THAT SHIT")
+
+            # # get a copy of the node that is in the function block dictionary
+            # newFunctionNode = functionBlocks[expression.id.identifier]
+
+
+            return (initial, 4)
+
+            # return ([currNode, newNode, newFunctionNode.firstNode], 4) # DOUBLE CHECK THIS
 
 
 
@@ -702,22 +771,50 @@ def generate_CFG_Nodes(expression, currNode):
 
 
         case m_assignment():
+            print("ASSIGNMENT CASE")
 # DO I NEED TO RECURSIVELY CALL THIS FUNCTION ON THE EXPRESSION
-            
-            currTuple = generate_CFG_Nodes(expression.source_expression, currNode) 
-            currNode = currTuple[0]
+            currNode.code.append(expression)
+            # currTuple = generate_CFG_Nodes(expression.source_expression, currNode) 
+            # currNode = currTuple[0]
+        
+        # NOT SURE IF THIS IS CORRECT
+            # def checkForInvocation(expression):
+            newTuple = checkForInvocation(expression.source_expression)
+            # temp = generate_CFG_Function_Handler([expression.source_expression], 1)
 
+            if(newTuple[1] == 1):  
+
+# generate_CFG_Function_Handler(expression.source_expression. , 1)
+
+                # SOMEWHERE IN HERE I NEED TO SOMEHOW LOOK AT THE ARG EXPRESSIONS
+                tempNode = newTuple[0]
+                currNode.nextBlocks.append(tempNode)
+
+                newNode = CFG_Node([],[],[],blockId)
+                blockId += 1
             
+                # attatch newNode to the end of the current link
+                newTemp = tempNode
+                while newTemp.nextBlocks != []:
+                    newTemp = newTemp.nextBlocks[0]
+                newTemp.nextBlocks.append(newNode)
+
+            print("currNode code: " + str(currNode.code))
+
+            print("EXITING ASSIGNMENT CASE")
             return (currNode, 0)
 
 
         case m_binop():
 # DO I NEED TO RECURSIVELY CALL THIS FUNCTION ON THE LEFT AND RIGHT EXPRESSION
 
-            currTuple = generate_CFG_Nodes(expression.left_expression, currNode)
-            currNode = currTuple[0]
-            currTuple = generate_CFG_Nodes(expression.right_expression, currNode)
-            currNode = currTuple[0]
+            # currTuple = generate_CFG_Nodes(expression.left_expression, currNode)
+            # currNode = currTuple[0]
+            # currTuple = generate_CFG_Nodes(expression.right_expression, currNode)
+            # currNode = currTuple[0]
+        
+        # NOT SURE IF THIS IS CORRECT
+            currNode = generate_CFG_Function_Handler([expression.left_expression, expression.right_expression], 1)
 
             return (currNode, 0)
 
@@ -725,9 +822,11 @@ def generate_CFG_Nodes(expression, currNode):
         case m_unary():
 # DO I NEED TO RECURSIVELY CALL THIS FUNCTION ON THE EXPRESSION
 
-            currTuple = generate_CFG_Nodes(expression.operand_expression, currNode)
-            currNode = currTuple[0]
-
+            # currTuple = generate_CFG_Nodes(expression.operand_expression, currNode)
+            # currNode = currTuple[0]
+        
+        # NOT SURE IF THIS IS CORRECT
+            currNode = generate_CFG_Function_Handler([expression.operand_expression], 1)
 
             return (currNode, 0)
 
@@ -741,6 +840,105 @@ def generate_CFG_Nodes(expression, currNode):
             return (currNode, 0)
 
 
+
+
+# this function is used to check if an expression is an invocation and create a node for it. Also recursively travels the branches of the expression
+def checkForInvocation(expression):
+    global blockId
+    match expression:
+        case m_binop():
+            leftFlag = 0
+            rightFlag = 0
+
+            temp = checkForInvocation(expression.left_expression)
+            if temp[1] == 1:
+                leftFlag = 1
+                # create a leftNode
+                leftNode = CFG_Node([], [], [], blockId)
+                # leftNode.code.append(expression.left_expression)
+                blockId += 1
+
+
+
+
+
+            temp = checkForInvocation(expression.right_expression)
+            if temp[1] == 1:
+                rightFlag = 1
+                # create a rightNode
+                rightNode = CFG_Node([], [], [], blockId)
+                # rightNode.code.append(expression.right_expression)
+                blockId += 1
+
+
+
+            if leftFlag == 1:
+                if rightFlag == 1:
+                    # both sides had an invocation, merge them and return the merged node (left -> right)
+                    leftNode.nextBlocks.append(rightNode)
+                    return (leftNode, 1) # double check this is what we want
+
+
+                # only the left one had an invocation, return the leftNode
+                return (leftNode, 1)
+
+
+
+
+            elif rightFlag == 1:
+                # only the right one had an invocation, return the rightNode
+                return (rightNode, 1)
+
+
+            
+            # neither side had an invocation, return (None, 0)
+            return (None, 0)
+
+
+
+
+        case m_unary():
+            temp = checkForInvocation(expression.operand_expression)
+            if temp[1] == 1:
+                # create a unaryNode
+                unaryNode = CFG_Node([], [], [], blockId)
+                # unaryNode.code.append(expression.operand_expression)
+                blockId += 1
+                return (unaryNode, 1)
+
+
+            return (None, 0)
+
+
+        case m_invocation():
+            # get the node from the dict, change Id
+            invocationNode = functionBlocks[expression.id.identifier].firstNode
+            invocationNode.Id = blockId
+            blockId += 1
+            
+            tempNode = invocationNode
+            for exp in expression.args_expressions:
+                print("DID IN FACT ENTER THE LOOP")
+                print(str(exp))
+                currTuple = checkForInvocation(exp)
+                if currTuple[1] == 1:
+                    print("ENTERED THE INNER IF: " + str(currTuple[0].code))
+                    newTemp = currTuple[0]
+                    newTemp.nextBlocks.append(tempNode)
+                    # tempNode.nextBlocks.append(currTuple[0])
+                    tempNode = newTemp
+
+            return (tempNode, 1)
+
+
+        case m_num() | m_bool() | m_new_struct() | m_null() | m_dot() | m_id():
+            return (None, 0)
+
+
+        # in case I missed any cases
+        case _:
+            print("WHY DID YOU GET HERE? Expression: " + str(expression))
+            return (None, 0)
 
 
 # # step through each node and print the head
