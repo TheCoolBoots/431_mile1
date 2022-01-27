@@ -1,7 +1,11 @@
+struct A{
+    int b;
+};
 int main(void) {
-    int a;
-    a = 3;
-    return a;
+    struct A* aInst;
+    struct A* bInst;
+    aInst = bInst;
 }
 
 // clang -c -emit-llvm tmp.c
+// llvm-dis tmp.bc
