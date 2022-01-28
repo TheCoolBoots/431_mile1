@@ -78,7 +78,7 @@ def main():
     # printCFG(testCFG.firstNode)
     
 
-    # while case 
+    # # while case 
     # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected4)
     # printCFG(testCFG.firstNode)
 
@@ -91,35 +91,27 @@ def main():
 
 
     # while and then if-else case
-    # with open('json_parser_tests/loop_if.json') as file2:
-    #     contents = json.load(file2)
-    # ast = parse(contents)
-    # # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
-    # # dont consider the else case on line 77 of json_parse.py
-    # # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
-    # # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
-    # testCFG = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG.firstNode)
+    with open('json_parser_tests/loop_if.json') as file2:
+        contents = json.load(file2)
+    ast = parse(contents)
+    testCFG = generate_CFG_Prog_Handler(ast)
+    printCFG(testCFG.firstNode)
 
 
 
     # with open('json_parser_tests/if_loop.json') as file3:
     #     contents = json.load(file3)
     # ast = parse(contents)
-    # # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
-    # # dont consider the else case on line 77 of json_parse.py
-    # # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
-    # # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
     # testCFG = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG.firstNode)
 
 
-    # invocation case 2
-    with open('json_parser_tests/myFunctionCall.json') as file4:
-        contents = json.load(file4)
-    ast = parse(contents)
-    testCFG = generate_CFG_Prog_Handler(ast)
-    printCFG(testCFG.firstNode)
+    # # invocation case 2
+    # with open('json_parser_tests/myFunctionCall.json') as file4:
+    #     contents = json.load(file4)
+    # ast = parse(contents)
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
 
 
     # # invocation case 3
@@ -133,6 +125,42 @@ def main():
     # # invocation case 4
     # with open('json_parser_tests/hardestFunctionCall.json') as file6:
     #     contents = json.load(file6)
+    # ast = parse(contents)
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
+
+
+
+# NEED TO TEST EVERYTHING BELOW THIS
+
+
+    # # simple unary case 
+    # with open('json_parser_tests/simpleUnary.json') as file7:
+    #     contents = json.load(file7)
+    # ast = parse(contents)
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
+
+
+    # # invocation unary case 
+    # with open('json_parser_tests/invoca=tionUnary.json') as file8:
+    #     contents = json.load(file8)
+    # ast = parse(contents)
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
+
+
+    # # simple unary case 
+    # with open('json_parser_tests/simpleBinop.json') as file9:
+    #     contents = json.load(file9)
+    # ast = parse(contents)
+    # testCFG = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG.firstNode)
+
+
+    # # invocation unary case 
+    # with open('json_parser_tests/invocationBinop.json') as file10:
+    #     contents = json.load(file10)
     # ast = parse(contents)
     # testCFG = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG.firstNode)
