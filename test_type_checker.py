@@ -15,10 +15,21 @@ local_env = {'b': (4, m_type('BIGCHUNGUS'))}
 
 class test_type_checker(unittest.TestCase):
 
+    def test_delete(self):
+        delete = m_delete(5, m_bool(True))
+        self.assertEqual(-1, typeCheck(delete, local_env, top_env, type_env, {}))
+
+        delete = m_delete(5, m_id(5, 'b'))
+        self.assertEqual(None, typeCheck(delete, local_env, top_env, type_env, {}))
+
     def test_dot(self):
         dot = m_dot(6, [m_id(5, 'b'), m_id(5, 'a')])
         actual = typeCheck(dot, local_env, top_env, type_env, {})
         self.assertEqual(m_type('bool'), actual)
+
+        dot = m_dot(6, [m_id(5, 'a')])
+        actual = typeCheck(dot, local_env, top_env, type_env, {})
+        self.assertEqual(m_type('int'), actual)
 
         # 324 - struct id doesnt exist
         dot = m_dot(6, [m_id(5, 'd'), m_id(5, 'c')])
@@ -154,6 +165,9 @@ class test_type_checker(unittest.TestCase):
         currStruct = m_new_struct(m_id(20, 'fakeStructName'))
         self.assertEqual(-1, typeCheck(currStruct, local_env, top_env, type_env, {}))
 
+        currStruct = m_new_struct(m_id(20, 'BIGCHUNGUS'))
+        self.assertEqual(m_type('BIGCHUNGUS'), typeCheck(currStruct, local_env, top_env, type_env, {}))
+
 
 
     def test_unary(self):
@@ -166,6 +180,12 @@ class test_type_checker(unittest.TestCase):
         # -True
         currUnary = m_unary(1, '-', m_bool(True))
         self.assertEqual(-1, typeCheck(currUnary, local_env, top_env, type_env, {}))
+
+        currUnary = m_unary(1, '!', m_bool(True))
+        self.assertEqual(m_type('bool'), typeCheck(currUnary, local_env, top_env, type_env, {}))
+
+        currUnary = m_unary(1, '-', m_num(5))
+        self.assertEqual(m_type('int'), typeCheck(currUnary, local_env, top_env, type_env, {}))
 
         # 307 - smiley on int
         # :-)100

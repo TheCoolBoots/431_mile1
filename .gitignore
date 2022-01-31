@@ -1,3 +1,5 @@
 /given_parser
 instructionsCompleted
 /__pycache__
+/htmlcov
+.coverage

@@ -3,7 +3,7 @@ from re import T
 from ast_class_definitions import *
 
 # env structure : {str: m_type}
-# f_env structure: {str: (m_type, list[m_type])}     maps funID -> return type
+# f_env structure: {str: (m_type, list[m_type])}     maps funID -> return type, param types
 # t_env structure: {str: list[m_declaration]}
 
 # statements = assignment | print | conditional | loop | delete | ret | invocation
@@ -13,13 +13,20 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str
         case m_assignment():
             return assignToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_print():
+            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, t_env, f_env)
+            if type(exprCode) == list:
+                instruction = f'%{exprReg + 1} = call i64 @printf("%l", %{exprReg})'
+                exprCode.append(instruction)
+                return exprReg + 1, 'i64', exprCode
+            else:
+                instruction = f'%{exprReg + 1} = call i64 @printf("%l", {exprCode})'
+                return exprReg + 1, 'i64', [instruction]
+        case m_delete():
             pass
         case m_conditional():
             return condToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_loop():
             return loopToLLVM(lastRegUsed, stmt, env, t_env, f_env)
-        case m_delete():
-            pass
         case m_ret():
             return retToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_invocation():
@@ -30,8 +37,8 @@ def loopToLLVM(lastRegUsed:int, loop:m_loop, env, t_env, f_env) -> Tuple[int, st
     guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, loop.guard_expression, env, t_env, f_env)
 
     if type(guardCode) == list:
-        guardCode.insert(0, f'{guardReg+1}:')
-        guardCode.insert(0, f'br i64 %{guardReg}, label %{guardReg+2}, label %{guardReg+3}')
+        guardCode.append(f'{guardReg+1}:')
+        guardCode.append(f'br i64 %{guardReg}, label %{guardReg+2}, label %{guardReg+3}')
     else:
         guardCode = [f'{guardReg+1}:',f'br i64 {guardCode}, label %{guardReg+2}, label %{guardReg+3}']
 
@@ -135,6 +142,8 @@ def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env) -> Tuple[int, str, list
     if type(returnCode) == list:
         returnCode.append(f'ret {retType} %{returnReg}')
         return (returnReg, retType, returnCode)
+    elif returnCode == 'void':
+        return (returnReg, retType, [f'ret {retType}'])
     else:
         return (returnReg, retType, [f'ret {retType} {returnCode}'])
 
@@ -148,18 +157,23 @@ def getLLVMType(typeID:str) -> str:
 # returns (return register, llvm return type, llvm instruction list)
 def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[int, str, list[str]]:
     match expression:
+        case None:
+            return lastRegUsed, 'void', 'void'
         case m_binop():
             return binaryToLLVM(lastRegUsed, expression, env, t_env, f_env)
         case m_num() | m_bool():
             return lastRegUsed, 'i64', int(expression.val)
         case m_new_struct():
-            return lastRegUsed+1, f'%struct.{expression.struct_id.identifier}*', [f'%{lastRegUsed + 1}=alloca %struct.{expression.struct_id.identifier}']
+            return lastRegUsed+1, f'%struct.{expression.struct_id.identifier}*', [f'%{lastRegUsed + 1} = alloca %struct.{expression.struct_id.identifier}']
         case m_null():
-            raise NotImplementedError()
+            # raise NotImplementedError()
+            # need to ask how to handle null values
+            # keeping it like this ensures functionality for rest of compiler
+            return lastRegUsed, 'i64', 0
         case m_invocation():
             return invocationToLLVM(lastRegUsed, expression, env, t_env, f_env)
         case m_read():
-            pass
+            return lastRegUsed+1, 'i64', [f'%{lastRegUsed+1} = call i64 @scanf("%l")']
         case m_unary():
             return unaryToLLVM(lastRegUsed, expression, env, t_env, f_env) 
         case m_dot():

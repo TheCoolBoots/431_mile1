@@ -191,7 +191,7 @@ class m_assignment:
 
 # print → print expression {endl}opt;
 class m_print:
-    def __init__(self, lineNum:int, expression, endl:bool = None):
+    def __init__(self, lineNum:int, expression, endl:bool = False):
         self.expression = expression
         self.endl = endl
         self.lineNum = lineNum

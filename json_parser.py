@@ -64,7 +64,7 @@ def parse(json):
             return m_ret(int(json['line']), parse(json['exp']))
 
         case {'line':_, 'stmt':'return'}:
-            return m_ret(int(json['line']), m_null())
+            return m_ret(int(json['line']), None)
 
         case {'line':_, 'stmt':'delete', 'exp':expression}:
             return m_delete(parse(expression))

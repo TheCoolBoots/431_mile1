@@ -149,6 +149,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             exprType = typeCheck(statement.expression, local_env, top_env, top_type_env, function_env)
             if exprType.typeID == 'int' or exprType.typeID == 'bool' or exprType.typeID == 'null':
                 print(f'ERROR on line {statement.lineNum}: cannot delete a non-dynamically-allocated type {exprType.typeID}')
+                return -1
             return None
 
 
@@ -232,12 +233,13 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             return returnType
 
         # delete → delete expression ;
-        # this is the only case that is unfinished
-        # don't know what to do with it yet
         case m_delete():
             expression = statement.expression
-
-            return typeCheck(expression)
+            exprType = typeCheck(expression)
+            if exprType not in top_type_env:
+                print(f'ERROR on line {expression.lineNum}: given type {exprType} is not a struct')
+                return -1
+            return None
 
         # ret → return {expression}opt;
         case m_ret():
