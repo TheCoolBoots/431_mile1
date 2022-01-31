@@ -1,4 +1,5 @@
 from cmath import exp
+from re import T
 from ast_class_definitions import *
 
 # env structure : {str: m_type}
@@ -7,7 +8,7 @@ from ast_class_definitions import *
 
 # statements = assignment | print | conditional | loop | delete | ret | invocation
 # returns (last register used, llvm instruction list)
-def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, list[str]]:
+def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str, list[str]]:
     match stmt:
         case m_assignment():
             return assignToLLVM(lastRegUsed, stmt, env, t_env, f_env)
@@ -16,7 +17,7 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, lis
         case m_conditional():
             return condToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_loop():
-            pass
+            return loopToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_delete():
             pass
         case m_ret():
@@ -25,16 +26,62 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, lis
             return invocationToLLVM(lastRegUsed, stmt, env, t_env, f_env)
 
 
-def condToLLVM(lastRegUsed:int, stmt:m_conditional, env, t_env, f_env):
+def loopToLLVM(lastRegUsed:int, loop:m_loop, env, t_env, f_env) -> Tuple[int, str, list[str]]:
+    guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, loop.guard_expression, env, t_env, f_env)
+
+    if type(guardCode) == list:
+        guardCode.insert(0, f'{guardReg+1}:')
+        guardCode.insert(0, f'br i64 %{guardReg}, label %{guardReg+2}, label %{guardReg+3}')
+    else:
+        guardCode = [f'{guardReg+1}:',f'br i64 {guardCode}, label %{guardReg+2}, label %{guardReg+3}']
+
+    lastRegUsed = guardReg+3
+
+    whileBlockCode = [f'{guardReg + 2}:']
+    for statement in loop.body_statements:
+        t1, t2, t3 = statementToLLVM(lastRegUsed, statement, env, t_env, f_env)
+        whileBlockCode.extend(t3)
+        lastRegUsed = t1
+    whileBlockCode.append(f'br label %{guardReg + 1}')
+    whileBlockCode.append(f'{guardReg+3}:')
+    guardCode.extend(whileBlockCode)
+    return (lastRegUsed, t2, guardCode)
+
+
+
+def condToLLVM(lastRegUsed:int, stmt:m_conditional, env, t_env, f_env) -> Tuple[int, str, list[str]]:
     guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, stmt.guard_expression, env, t_env, f_env)
 
-    guardCode.append(f'br i1 %{guardReg}, label %{guardReg+1}, label {guardReg+2}')
-    ifBlock = f''
-    thenBlock = f''
-    finalBlock = f''
+    if type(guardCode) == list:
+        guardCode.append(f'br i64 %{guardReg}, label %{guardReg+1}, label %{guardReg+2}')
+    else:
+        guardCode = [f'br i64 {guardCode}, label %{guardReg+1}, label %{guardReg+2}']
+
+    lastRegUsed = guardReg + 3
+
+    ifCode = [f'{guardReg + 1}:']
+    for statement in stmt.if_statements:
+        t1, t2, t3 = statementToLLVM(lastRegUsed, statement, env, t_env, f_env)
+        ifCode.extend(t3)
+        lastRegUsed = t1
+    ifCode.append(f'br label %{guardReg+3}')
+    thenCode = []
+
+    if stmt.else_statements[0] != None:
+        thenCode = [f'{guardReg + 2}:']
+        for statement in stmt.else_statements:
+            t1, t2, t3 = statementToLLVM(lastRegUsed, statement, env, t_env, f_env)
+            thenCode.extend(t3)
+            lastRegUsed = t1
+        thenCode.append(f'br label %{guardReg+3}')
+        
+    guardCode.extend(ifCode)
+    guardCode.extend(thenCode)
+    guardCode.append(f'{guardReg+3}:')
+    return (lastRegUsed, t2, guardCode)
 
 
-def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env):
+def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env) -> Tuple[int, str, list[str]]:
 
     exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, assign.source_expression, env, t_env, f_env)
     lastRegUsed = exprReg
@@ -59,7 +106,6 @@ def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env):
         currentID = lastRegUsed + 1
         currentIDTypeID = accessedTypeID
         lastRegUsed += 1
-    
 
 
     if immediateVal:

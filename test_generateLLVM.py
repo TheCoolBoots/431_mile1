@@ -7,8 +7,34 @@ class test_LLVM_generation(unittest.TestCase):
 
     def test_conditional(self):
         ast = m_conditional(1, m_bool(True), [m_ret(1, m_num(3))], [m_ret(1, m_num(5))])
+        expected = ['br i64 1, label %1, label %2',
+                    '1:',
+                    'ret i64 3',
+                    'br label %3',
+                    '2:',
+                    'ret i64 5',
+                    'br label %3',
+                    '3:']
+        actual = statementToLLVM(0, ast, {}, {}, {})
 
-        
+        self.assertTrue(listsEqual(expected, actual[2]))
+        self.assertEqual(actual[1], 'i64')
+        self.assertEqual(actual[0], 3)
+
+    def test_loop(self):
+        ast = m_loop(1, m_bool(True), [m_ret(1, m_num(3))])
+        expected = ['1:',
+                    'br i64 1, label %2, label %3',
+                    '2:',
+                    'ret i64 3',
+                    'br label %1',
+                    '3:']
+
+        actual = statementToLLVM(0, ast, {}, {}, {})
+        self.assertTrue(listsEqual(expected, actual[2]))
+        self.assertEqual(actual[1], 'i64')
+        self.assertEqual(actual[0], 3)
+
 
     def test_assignment(self):
         t_env = {'s1': [m_declaration(1, m_type('int'), m_id(1, 'a')), m_declaration(1, m_type('int'), m_id(1, 'b'))],
