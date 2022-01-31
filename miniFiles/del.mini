@@ -1,0 +1,5 @@
+fun main() int
+{
+    struct B b;
+    delete b;
+}

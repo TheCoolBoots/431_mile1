@@ -39,6 +39,9 @@ def parse(json):
         case {'line':_, 'exp':'null'}:
             return m_null()
 
+        case {'line':lineNum, 'exp':'read'}:
+            return m_read(lineNum)
+
         case {'line':_, 'exp':'invocation', 'id':_, 'args':_}:
             args = [parse(arg) for arg in json['args']]
             return m_invocation(int(json['line']), m_id(json['line'], json['id']), args)
@@ -62,6 +65,9 @@ def parse(json):
 
         case {'line':_, 'stmt':'return'}:
             return m_ret(int(json['line']), m_null())
+
+        case {'line':_, 'stmt':'delete', 'exp':expression}:
+            return m_delete(parse(expression))
 
         case {'line':_, 'stmt':'print', 'exp':_, 'endl':_}:
             return m_print(int(json['line']), parse(json['exp']), bool(json['endl']))
@@ -101,7 +107,9 @@ def parse(json):
         case {'line':_, 'id':_}:
             # TODO handle the case where id is a struct and assigning to value within the struct
             # ex: A.j = 5
+            
             return [m_id(json['line'], json['id'])]
+
 
         case _:
             print(f'unrecognized structure: {json}')

@@ -158,6 +158,8 @@ def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[in
             raise NotImplementedError()
         case m_invocation():
             return invocationToLLVM(lastRegUsed, expression, env, t_env, f_env)
+        case m_read():
+            pass
         case m_unary():
             return unaryToLLVM(lastRegUsed, expression, env, t_env, f_env) 
         case m_dot():

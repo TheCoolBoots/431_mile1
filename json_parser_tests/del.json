@@ -1,0 +1,30 @@
+{
+    "types": [],
+    "declarations": [],
+    "functions": [
+      {
+        "line": 1,
+        "id": "main",
+        "parameters": [],
+        "return_type": "int",
+        "declarations": [
+          {
+            "line": 3,
+            "type": "B",
+            "id": "b"
+          }
+        ],
+        "body": [
+          {
+            "line": 4,
+            "stmt": "delete",
+            "exp": {
+              "line": 4,
+              "exp": "id",
+              "id": "b"
+            }
+          }
+        ]
+      }
+    ]
+  }

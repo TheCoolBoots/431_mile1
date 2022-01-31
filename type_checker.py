@@ -85,7 +85,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
         case m_null():
             return m_type('null')
 
-        case m_num():
+        case m_num() | m_read():
             return m_type('int')
 
         case m_id():
@@ -137,11 +137,18 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                     return -1
             
             sourceType = typeCheck(source_expression, local_env, top_env, top_type_env, function_env)
-            if sourceType != targetType:
+            if sourceType != targetType and targetType != m_type('null'):
             # MADE A CHANGE ON THIS LINE - RILEY (I couldnt print out sourceType.typeID)
                 print(f'ERROR on line {lineNum}: type mismatch - cannot assign {sourceType} to {targetType.typeID}')
                 return -1  
 
+            return None
+
+
+        case m_delete():
+            exprType = typeCheck(statement.expression, local_env, top_env, top_type_env, function_env)
+            if exprType.typeID == 'int' or exprType.typeID == 'bool' or exprType.typeID == 'null':
+                print(f'ERROR on line {statement.lineNum}: cannot delete a non-dynamically-allocated type {exprType.typeID}')
             return None
 
 

@@ -6,6 +6,43 @@ import test_ast_trees
 import json
 
 
+# step through the node tree and print a formatted dot file
+def dotToCFG(head, name):
+    # print out the header of the file
+    print("digraph \"" + name + "\" {" )
+
+    # initialize dict for nodes
+    nodeReferences = {}
+
+    # initialize queue with head node
+    queue = []
+    queue.append(head)
+
+    # loop through the nodes and print a line for each connection
+    while queue != []:
+        currNode = queue.pop(0)
+
+        # only print and add the new nodes to the queue if the node hasnt been traversed
+        if currNode in nodeReferences:
+            continue
+        # log each node/connection so that you dont traverse twice
+        else:
+            nodeReferences[currNode] = True
+
+        # print each path from the current node
+        for node in currNode.nextBlocks:
+            print("  " + str(currNode.id) + " -> " + str(node.id) + ";") # DOUBLE CHECK
+            queue.append(node)
+    
+    # print out the footer of the file
+    print("}")
+
+    # return empty
+    return
+
+
+
+
 
 # step through each node and print the head
 def printCFG(head):
@@ -64,78 +101,123 @@ def printCFG(head):
 
 
 def main():
+    # # NOT INCLUDING THE binop BLOCKS HERE
     # # simple case
-    # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected3)
-    # printCFG(testCFG.firstNode)
+    # testCFGa = generate_CFG_Prog_Handler(test_ast_trees.expected3)
+    # printCFG(testCFGa.firstNode)
+    # dotToCFG(testCFGa.firstNode, "trivial case")
+
 
     # # invocation case
-    # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected7)
-    # printCFG(testCFG.firstNode)
+    # testCFGb = generate_CFG_Prog_Handler(test_ast_trees.expected7)
+    # printCFG(testCFGb.firstNode)
+    # dotToCFG(testCFGb.firstNode, "simple invocation case")
 
 
-    # # if case
-    # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected5)
-    # printCFG(testCFG.firstNode)
+# STOPPED TESTING HERE
+
+    # if case
+    testCFGc = generate_CFG_Prog_Handler(test_ast_trees.expected5)
+    printCFG(testCFGc.firstNode)
+    dotToCFG(testCFGc.firstNode, "simple if case")
     
 
-    # while case 
-    # testCFG = generate_CFG_Prog_Handler(test_ast_trees.expected4)
-    # printCFG(testCFG.firstNode)
+    # # while case 
+    # testCFG0 = generate_CFG_Prog_Handler(test_ast_trees.expected4)
+    # printCFG(testCFG0.firstNode)
+    # dotToCFG(testCFG0.firstNode, "_____ case")
 
 
     # with open('json_parser_tests/ifelse.json') as file1:
     #     contents = json.load(file1)
     # ast = parse(contents)
-    # testCFG = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG.firstNode)
+    # testCFG1 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG1.firstNode)
+    # dotToCFG(testCFG1.firstNode, "_____ case")
 
 
-    # while and then if-else case
+    # # while and then if-else case
     # with open('json_parser_tests/loop_if.json') as file2:
     #     contents = json.load(file2)
     # ast = parse(contents)
-    # # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
-    # # dont consider the else case on line 77 of json_parse.py
-    # # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
-    # # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
-    # testCFG = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG.firstNode)
-
+    # testCFG2 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG2.firstNode)
+    # dotToCFG(testCFG2.firstNode, "_____ case")
 
 
     # with open('json_parser_tests/if_loop.json') as file3:
     #     contents = json.load(file3)
     # ast = parse(contents)
-    # # THIS SHOULDNT BE ELSE, IT SEEMS THAT THE ELSE STATEMENTS ARENT BEING PARSED
-    # # dont consider the else case on line 77 of json_parse.py
-    # # print("\n\n\n\n" + str(ast.functions[0].statements[1].else_statements) + "\n\n\n\n")
-    # # print("\n\n\ln\nHERE" + str(ast.functions[0].statements[2].else_statements) + "HERE\n\n\n\n")
-    # testCFG = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG.firstNode)
+    # testCFG3 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG3.firstNode)
+    # dotToCFG(testCFG3.firstNode, "_____ case")
 
 
-    # invocation case 2
-    with open('json_parser_tests/myFunctionCall.json') as file4:
-        contents = json.load(file4)
-    ast = parse(contents)
-    testCFG = generate_CFG_Prog_Handler(ast)
-    printCFG(testCFG.firstNode)
+    # # invocation case 2
+    # with open('json_parser_tests/myFunctionCall.json') as file4:
+    #     contents = json.load(file4)
+    # ast = parse(contents)
+    # testCFG4 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG4.firstNode)
+    # dotToCFG(testCFG4.firstNode, "_____ case")
 
 
     # # invocation case 3
     # with open('json_parser_tests/harderFunctionCall.json') as file5:
     #     contents = json.load(file5)
     # ast = parse(contents)
-    # testCFG = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG.firstNode)
+    # testCFG5 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG5.firstNode)
+    # dotToCFG(testCFG5.firstNode, "_____ case")
 
 
     # # invocation case 4
     # with open('json_parser_tests/hardestFunctionCall.json') as file6:
     #     contents = json.load(file6)
     # ast = parse(contents)
-    # testCFG = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG.firstNode)
+    # testCFG6 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG6.firstNode)
+    # dotToCFG(testCFG6.firstNode, "_____ case")
+
+
+# NEED TO TEST EVERYTHING BELOW THIS
+
+
+    # # simple unary case 
+    # with open('json_parser_tests/simpleUnary.json') as file7:
+    #     contents = json.load(file7)
+    # ast = parse(contents)
+    # testCFG7 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG7.firstNode)
+    # dotToCFG(testCFG7.firstNode, "_____ case")
+
+
+    # # invocation unary case 
+    # with open('json_parser_tests/invoca=tionUnary.json') as file8:
+    #     contents = json.load(file8)
+    # ast = parse(contents)
+    # testCFG8 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG8.firstNode)
+    # dotToCFG(testCFG8.firstNode, "_____ case")
+
+
+    # # simple unary case 
+    # with open('json_parser_tests/simpleBinop.json') as file9:
+    #     contents = json.load(file9)
+    # ast = parse(contents)
+    # testCFG9 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG9.firstNode)
+    # dotToCFG(testCFG9.firstNode, "_____ case")
+
+
+    # # invocation unary case 
+    # with open('json_parser_tests/invocationBinop.json') as file10:
+    #     contents = json.load(file10)
+    # ast = parse(contents)
+    # testCFG10 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG10.firstNode)
+    # dotToCFG(testCFG10.firstNode, "unary case")
+
 
 if __name__ == "__main__":
     main()
