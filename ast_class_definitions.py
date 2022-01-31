@@ -233,12 +233,23 @@ class m_loop:
 
 # delete → delete expression ;
 class m_delete:
-    def __init__(self, expression):
+    def __init__(self, lineNum:int, expression):
         self.expression = expression
+        self.lineNum = lineNum
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.expression == __o.expression
+        return self.expression == __o.expression and self.lineNum == __o.lineNum
+
+
+class m_read:
+    def __init__(self, lineNum):
+        self.lineNum = lineNum
+    def __eq__(self, __o):
+        if type(__o) != type(self):
+            return False
+        return self.lineNum == __o.lineNum    
+
 
 
 # ret → return {expression}opt;

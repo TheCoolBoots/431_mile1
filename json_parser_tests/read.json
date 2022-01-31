@@ -1,0 +1,33 @@
+{
+    "types": [],
+    "declarations": [],
+    "functions": [
+      {
+        "line": 1,
+        "id": "main",
+        "parameters": [],
+        "return_type": "int",
+        "declarations": [
+          {
+            "line": 3,
+            "type": "int",
+            "id": "b"
+          }
+        ],
+        "body": [
+          {
+            "line": 4,
+            "stmt": "assign",
+            "source": {
+              "line": 4,
+              "exp": "read"
+            },
+            "target": {
+              "line": 4,
+              "id": "b"
+            }
+          }
+        ]
+      }
+    ]
+  }
