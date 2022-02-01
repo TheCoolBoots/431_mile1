@@ -4,7 +4,7 @@ from type_checker import *
 import test_ast_trees
 
 top_env = {'a': (3, m_type('int'))}
-type_env = {'BIGCHUNGUS':{'a': m_type('bool')}, 'int':m_type('int'), 'bool':m_type('bool')}
+type_env = {'BIGCHUNGUS':{'a': (1, m_type('bool'))}, 'int':m_type('int'), 'bool':m_type('bool')}
 local_env = {'b': (4, m_type('BIGCHUNGUS'))}
 
 # {str : (int, m_type)}                     map id to type

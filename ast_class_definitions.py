@@ -59,7 +59,7 @@ class m_id:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.identifier == __o.identifier and self.lineNum == __o.lineNum
+        return self.identifier == __o.identifier
 
 
 # type → int | bool | struct id
@@ -89,11 +89,11 @@ class m_declaration:
     def getLLVM(self):
         match self.type.typeID:
             case 'int':
-                return f'%{self.id}=alloca i64'
+                return f'%{self.id.identifier}=alloca i64'
             case 'bool':
-                return f'%{self.id}=alloca i64'     # TODO check if can use i8 instead
+                return f'%{self.id.identifier}=alloca i64'     # TODO check if can use i8 instead
             case structID:
-                return f'%{self.id}=alloca %{structID}'
+                return f'%{self.id.identifier}=alloca %{structID}'
 
 
 
@@ -163,12 +163,18 @@ class m_prog:
 
     # for use in generateLLVM
     # maps struct IDs to a list of nested m_declarations
+    # returns {str: list[m_declaration]}
     def getTypes(self):
-        return {typeDecl.id:typeDecl.nestedDeclarations for typeDecl in self.type_declarations}
+        return {typeDecl.id.identifier:typeDecl.nested_declarations for typeDecl in self.types}
     
+
+
     # returns {str : m_type}
-    def getTopEnv(self):
-        return {decl.id.identifier:(decl.lineNum, decl.type) for decl in self.global_declarations}
+    def getTopEnv(self, includeLineNum = True):
+        if includeLineNum:
+            return {decl.id.identifier:(decl.lineNum, decl.type) for decl in self.global_declarations}
+        else:
+            return {decl.id.identifier:decl.type for decl in self.global_declarations}
 
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
