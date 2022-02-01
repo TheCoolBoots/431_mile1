@@ -6,7 +6,7 @@ def typeCheckProgram(program:m_prog):
     for typeDecl in program.types:
         encounteredTypes[typeDecl.id.identifier] = True
         for nestedDecl in typeDecl.nested_declarations:
-            if nestedDecl.type not in encounteredTypes:
+            if nestedDecl.type.typeID not in encounteredTypes:
                 print(f'ERROR on line {nestedDecl.lineNum}: unrecognized type')
                 return -1
 
@@ -32,6 +32,8 @@ def typeCheckProgram(program:m_prog):
 
         # get return type of statements
         actual = checkFunctionReturn(function, {}, top_env, top_type_env, function_env)
+        if actual == -1:
+            return -1
         if actual != expected:
             print(f'ERROR on line {function.lineNum}: expected return type {expected.typeID} not equal to actual return type {actual.typeID}')
             return -1
@@ -49,15 +51,18 @@ def checkFunctionReturn(function:m_function, local_env, top_env, top_type_env, f
 
     # check that there aren't any redeclarations of variables
     for decl in function.body_declarations:
-        if decl.id in local_env:
+        if decl.id.identifier in local_env:
             print(f'ERROR on line {decl.lineNum}: local redeclaration of variable {decl.id}')
             return -1
-        local_env[decl.id] = (decl.lineNum, decl.id)
+        local_env[decl.id.identifier] = (decl.lineNum, decl.type)
+
 
     returnType = None
     # get the return type of function body
     for statement in function.statements:
         retType = typeCheck(statement, local_env, top_env, top_type_env, function_env)
+        if retType == -1:
+            return -1
 
         # to catch the first statement return type
         if returnType == None:
@@ -131,13 +136,15 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                 # if the nested id exists in the type environment
                 if nestedID.identifier in top_type_env[targetType.typeID]:
                     # reassign target type to the mapped type and continue
-                    targetType = top_type_env[targetType.typeID][nestedID.identifier]
+                    targetType = top_type_env[targetType.typeID][nestedID.identifier][1]
                 else:
                     print(f'ERROR on line {lineNum}: {targetType.typeID}.{nestedID.identifier} does not exist')
                     return -1
             
             sourceType = typeCheck(source_expression, local_env, top_env, top_type_env, function_env)
-            if sourceType != targetType and targetType != m_type('null'):
+            if sourceType == -1:
+                return -1
+            elif sourceType != targetType and targetType != m_type('null'):
             # MADE A CHANGE ON THIS LINE - RILEY (I couldnt print out sourceType.typeID)
                 print(f'ERROR on line {lineNum}: type mismatch - cannot assign {sourceType} to {targetType.typeID}')
                 return -1  
@@ -147,7 +154,10 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
         case m_delete():
             exprType = typeCheck(statement.expression, local_env, top_env, top_type_env, function_env)
-            if exprType.typeID == 'int' or exprType.typeID == 'bool' or exprType.typeID == 'null':
+
+            if exprType == -1:
+                return -1
+            elif exprType.typeID == 'int' or exprType.typeID == 'bool' or exprType.typeID == 'null':
                 print(f'ERROR on line {statement.lineNum}: cannot delete a non-dynamically-allocated type {exprType.typeID}')
                 return -1
             return None
@@ -161,7 +171,9 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             exprType = typeCheck(expression, local_env, top_env, top_type_env, function_env)
             # assume you can't print structs; you can only print bool, int, or null
             # MADE A CHANGE ON THIS LINE - RILEY (you can only print int. Also, the printed type is ugly now)
-            if exprType != m_type('int'):
+            if exprType == -1:
+                return -1
+            elif exprType != m_type('int'):
                 print(f'ERROR on line {lineNum}: cannot print type {exprType}')
                 return -1
             return None
@@ -174,6 +186,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             else_statements = statement.else_statements
 
             guardType = typeCheck(guard_expression, local_env, top_env, top_type_env, function_env)
+            if guardType == -1:
+                return -1
 
             if guardType != m_type('bool'):
                 print(f'ERROR on line {lineNum}: guard statement evaluated to {guardType} not bool')
@@ -183,6 +197,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             for statement in if_statements:
                 # type check all the statements, but if one of them returns, take the first return statement
                 retType = typeCheck(statement, local_env, top_env, top_type_env, function_env)
+                if retType == -1:
+                    return -1
                 if ifReturnType == None:
                     ifReturnType = retType
                 elif retType != None and retType != ifReturnType:
@@ -196,7 +212,9 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             for statement in else_statements:
                 # type check all the statements, but if one of them returns, take the first return statement
                 retType = typeCheck(statement, local_env, top_env, top_type_env, function_env)
-                if elseReturnType == None:
+                if retType == -1:
+                    return -1
+                elif elseReturnType == None:
                     elseReturnType = retType
                 elif retType != None and retType != elseReturnType:
                     print(f'ERROR in conditional {lineNum}: body has more than 1 possible return type')
@@ -216,6 +234,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             body_statements = statement.body_statements
 
             guardType = typeCheck(guard_expression, local_env, top_env, top_type_env, function_env)
+            if guardType == -1:
+                return -1
 
             if guardType != m_type('bool'):
                 print(f'ERROR on line {lineNum}: guard statement evaluated to {guardType} not bool')
@@ -224,7 +244,9 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             returnType = None
             for statement in body_statements:
                 retType = typeCheck(statement, local_env, top_env, top_type_env, function_env)
-                if returnType == None:
+                if retType == -1:
+                    return -1
+                elif returnType == None:
                     returnType = retType
                 elif retType != None and retType != returnType:
                     print(f'ERROR in while loop {lineNum}: body has more than 1 possible return type')
@@ -236,6 +258,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
         case m_delete():
             expression = statement.expression
             exprType = typeCheck(expression)
+            if exprType == -1:
+                return -1
             if exprType not in top_type_env:
                 print(f'ERROR on line {expression.lineNum}: given type {exprType} is not a struct')
                 return -1
@@ -264,16 +288,22 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                 case '<=' | '<' | '>=' | '>':
                     leftType = typeCheck(left, local_env, top_env, top_type_env, function_env)
                     rightType = typeCheck(right, local_env, top_env, top_type_env, function_env)
+                    if leftType == -1 or rightType == -1:
+                        return -1
                     if leftType == rightType and leftType == m_type('int'):
                         return m_type('bool')
                 case '-' | '+' | '*' | '/':
                     leftType = typeCheck(left, local_env, top_env, top_type_env, function_env)
                     rightType = typeCheck(right, local_env, top_env, top_type_env, function_env)
+                    if leftType == -1 or rightType == -1:
+                        return -1
                     if leftType == rightType and leftType == m_type('int'):
                         return m_type('int')
                 case '||' | '&&':
                     leftType = typeCheck(left, local_env, top_env, top_type_env, function_env)
                     rightType = typeCheck(right, local_env, top_env, top_type_env, function_env)
+                    if leftType == -1 or rightType == -1:
+                        return -1
                     if leftType == rightType and leftType == m_type('bool'):
                         return m_type('bool')                    
                 case _:
@@ -288,6 +318,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
             if functionID.identifier in function_env:
                 actualArgTypes = [typeCheck(expr, local_env, top_env, top_type_env, function_env) for expr in args_expressions]
+                if -1 in actualArgTypes:
+                    return -1
 
                 # if all the parameter types are equal to expected arg types, return the function's return type
                 if listsEqual(function_env[functionID.identifier][2], actualArgTypes):
@@ -317,6 +349,8 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
             # MADE A CHANGE ON THIS LINE - RILEY (previously you just had: typeCheck(operand_expression) )
             operandType = typeCheck(operand_expression, local_env, top_env, top_type_env, function_env)
+            if operandType == -1:
+                return -1
             match operator:
                 case '!':
                     if operandType != m_type('bool'):
@@ -355,7 +389,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                 # if the nested id exists in the type environment
                 if nestedID.identifier in top_type_env[targetType.typeID]:
                     # reassign target type to the mapped type and continue
-                    targetType = top_type_env[targetType.typeID][nestedID.identifier]
+                    targetType = top_type_env[targetType.typeID][nestedID.identifier][1]
                 else:
                     print(f'ERROR on line {lineNum}: {targetType.typeID}.{nestedID.identifier} does not exist')
                     return -1

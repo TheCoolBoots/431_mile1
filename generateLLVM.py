@@ -6,6 +6,65 @@ from ast_class_definitions import *
 # f_env structure: {str: (m_type, list[m_type])}     maps funID -> return type, param types
 # t_env structure: {str: list[m_declaration]}
 
+def toLLVM(ast:m_prog):
+    output = []
+
+    # add the llvm code to define struct types
+    for typeDecl in ast.types:
+        output.append(typeDecl.getLLVM())
+    # add llvm code to define global variables
+    for varDecl in ast.global_declarations:
+        output.append(varDecl.getLLVM())
+
+    top_env = ast.getTopEnv()
+    type_env = ast.getTypes()
+    
+    fun_env = {}
+    lastRegUsed = 0
+    for function in ast.functions:
+        lastRegUsed, fun_env, funCode = functionToLLVM(lastRegUsed, function, top_env, type_env, fun_env)
+        output.extend(funCode)
+
+    return '\n'.join(output)
+
+def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env):
+    code = []
+
+    for declaration in func.body_declarations:
+        top_env[declaration.id.identifier] = declaration.type
+        code.append(declaration.getLLVM())
+    
+    params = []
+    paramTypes = []
+    for param in func.param_declarations:
+        paramTypes.append(param.type)
+        params.append(getLLVMType(param.type.typeID), f'%{param.id.identifier}')
+    params = ', '.join(params)
+    
+    code.append(f'define {getLLVMType(func.return_type.typeID)} @{func.id.identifier}({params})' + ' {')
+    code.append('entry:')
+
+    lastRegUsed = 0
+    for statement in func.statements:
+        stmtReg, stmtType, stmtCode = statementToLLVM(lastRegUsed, statement, top_env, type_env, fun_env)
+        lastRegUsed = stmtReg
+        code.extend(stmtCode)
+
+    code.append('}')
+
+    fun_env[func.id.identifier] = (func.return_type, paramTypes)
+
+    return lastRegUsed, fun_env, code
+
+
+
+# define i32 @mul_add(i32 %x, i32 %y, i32 %z) {
+# entry:
+#   %tmp = mul i32 %x, %y
+#   %tmp2 = add i32 %tmp, %z
+#   ret i32 %tmp2
+# }
+
 # statements = assignment | print | conditional | loop | delete | ret | invocation
 # returns (last register used, llvm instruction list)
 def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str, list[str]]:
@@ -148,7 +207,7 @@ def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env) -> Tuple[int, str, list
         return (returnReg, retType, [f'ret {retType} {returnCode}'])
 
 def getLLVMType(typeID:str) -> str:
-    if typeID == 'bool' or typeID == 'int':
+    if typeID == 'bool' or typeID == 'int' or typeID == 'void':
         return 'i64'
     else:
         return f'%struct.{typeID}*'
@@ -209,7 +268,7 @@ def dotToLLVM(lastRegUsed:int, expression:m_dot, env, t_env, f_env) -> Tuple[int
 
 
 # returns (struct member num, member typeID)
-def getNestedDeclaration(id:str, declarations: list[m_declaration]) -> Tuple[int, str]:
+def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[int, str]:
     for i, decl in enumerate(declarations):
         if decl.id == id:
             return (i, decl.type.typeID)
