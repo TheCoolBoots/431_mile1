@@ -409,7 +409,7 @@ def generate_CFG_Nodes(expression, currNode):
             # currNode.returnType =  ... # MIGHT NEED SOME SORT OF FUNCTION TO GET THE TYPE FROM me_ret.expression
             currNode.code.append(expression)
 
-            currNode.code.append(expression.expression)
+            # currNode.code.append(expression.expression) # REMOVED THIS
 
             temp = checkForInvocation(expression.expression, currNode)
             currNode = temp[2]
@@ -434,9 +434,9 @@ def generate_CFG_Nodes(expression, currNode):
         case m_print():
             
             currNode.code.append(expression)
-            currNode.code.append(expression.expression)
+            # currNode.code.append(expression.expression) # REMOVED THIS
 
-            temp = checkForInvocation(expression.expression, currNode)
+            temp = checkForInvocation(expression.expression, currNode) 
             currNode = temp[2]
 
             # if there was an invocation, add the node to your current node
@@ -456,49 +456,51 @@ def generate_CFG_Nodes(expression, currNode):
 
             return (currNode, 0)
 
-        case m_invocation():
-            # print("INVOCATION CASE")
-            # print("CURR NODE: " + str(currNode))
-            initial = currNode
-            # print(str(expression))
-            # print("LOOOOOOOOK" + str(expression.args_expressions))
-            # print("GOT THRU THAT SHIT")
-            # print(str(newNode))
-            newFunctionNode = functionBlocks[expression.id.identifier]
-            # print(newFunctionNode.firstNode)
-            # print("LOOOOOOOOK" + str(expression.args_expressions))
-            # step through the expressions and check if they have an invocation
-            for exp in expression.args_expressions:
-                # # this adds the code from each argument into the initial node
-                initial.code.append(expression)
+        # case m_invocation():
+        #     # print("INVOCATION CASE")
+        #     # print("CURR NODE: " + str(currNode))
+        #     initial = currNode
+        #     # print(str(expression))
+        #     # print("LOOOOOOOOK" + str(expression.args_expressions))
+        #     # print("GOT THRU THAT SHIT")
+        #     # print(str(newNode))
+        #     newFunctionNode = functionBlocks[expression.id.identifier]
+        #     # print(newFunctionNode.firstNode)
+        #     # print("LOOOOOOOOK" + str(expression.args_expressions))
+        #     # step through the expressions and check if they have an invocation
+        #     for exp in expression.args_expressions:
+        #         # # this adds the code from each argument into the initial node
 
-                # this give us (Node/None, 0/1) - 0 means no invocation, 1 means invocation
-                temp = checkForInvocation(exp, initial) 
-                initial = temp[2]
-        # IF I WANTED TO ADD NESTED CODE (example: binop sub expressions) FROM THE INVOCATION CHECK, I WOULD NEED TO DO IT HERE.
-        # THE EASIEST WAY WOULD BE TO USE A DIFFERENT RETURN VALUE SO THAT I KNOW I NEED TO ADD CODE.
-        # I COULD ALSO PASS IN INITIAL NODE AND THE ONLY CHANGE I WOULD MAKE IS ADDING CODE TO THE NODE.
+        #         # initial.code.append(expression) # THIS WAS INCORRECT
+        #         # initial.code.append(exp) # REMOVED THIS, HIS IS WHAT I WANTED, BUT THIS WOULD BE ADDING A STATEMENT POTENTIALLY
 
-                # if there was an invocation, add the node to your current node
-                if temp[1] == 1:
-                    # print("ENTERED ARG INVOCATION BLOCK")
-                    newNode = temp[0]
-                    # print("found a new invocation: " + str(newNode))
+        #         # this give us (Node/None, 0/1) - 0 means no invocation, 1 means invocation
+        #         temp = checkForInvocation(exp, initial) 
+        #         initial = temp[2]
+        # # IF I WANTED TO ADD NESTED CODE (example: binop sub expressions) FROM THE INVOCATION CHECK, I WOULD NEED TO DO IT HERE.
+        # # THE EASIEST WAY WOULD BE TO USE A DIFFERENT RETURN VALUE SO THAT I KNOW I NEED TO ADD CODE.
+        # # I COULD ALSO PASS IN INITIAL NODE AND THE ONLY CHANGE I WOULD MAKE IS ADDING CODE TO THE NODE.
 
-                    # make sure you find the end of currNode before continuing
-                    while currNode.nextBlocks != []:
-                        currNode = currNode.nextBlocks[0]
+        #         # if there was an invocation, add the node to your current node
+        #         if temp[1] == 1:
+        #             # print("ENTERED ARG INVOCATION BLOCK")
+        #             newNode = temp[0]
+        #             # print("found a new invocation: " + str(newNode))
+
+        #             # make sure you find the end of currNode before continuing
+        #             while currNode.nextBlocks != []:
+        #                 currNode = currNode.nextBlocks[0]
                     
-                    # now patch in the new invocation node
-                    currNode.nextBlocks.append(newNode)
-                    # make the current node the new one
-                    currNode = newNode
+        #             # now patch in the new invocation node
+        #             currNode.nextBlocks.append(newNode)
+        #             # make the current node the new one
+        #             currNode = newNode
 
 
-            currNode.nextBlocks.append(newFunctionNode.firstNode)
-            currNode = newFunctionNode.firstNode
-            # print("GOT THRU THAT SHIT")
-            return (initial, 4)
+        #     currNode.nextBlocks.append(newFunctionNode.firstNode)
+        #     currNode = newFunctionNode.firstNode
+        #     # print("GOT THRU THAT SHIT")
+        #     return (initial, 4)
 
         case m_assignment():
             # print("ASSIGNMENT CASE")
@@ -506,7 +508,7 @@ def generate_CFG_Nodes(expression, currNode):
             currNode.code.append(expression)
 
             # # add the assignments nested code to the node
-            currNode.code.append(expression.source_expression)
+            # currNode.code.append(expression.source_expression) # REMOVED THIS
         
             # check for invocation inside the sub expression
             newTuple = checkForInvocation(expression.source_expression, currNode)
@@ -515,17 +517,17 @@ def generate_CFG_Nodes(expression, currNode):
 
         # SIMILAR ISSUE SHOWS UP HERE, NOT ADDING NESTED CODE TO THE NODE
 
-            if(newTuple[1] == 1):  
-                tempNode = newTuple[0]
-                currNode.nextBlocks.append(tempNode)
-                newNode = CFG_Node([],[],[],blockId)
-                blockId += 1
+            # if(newTuple[1] == 1):  
+            #     tempNode = newTuple[0]
+            #     currNode.nextBlocks.append(tempNode)
+            #     newNode = CFG_Node([],[],[],blockId)
+            #     blockId += 1
             
-                # attach newNode to the end of the current link
-                newTemp = tempNode
-                while newTemp.nextBlocks != []:
-                    newTemp = newTemp.nextBlocks[0]
-                newTemp.nextBlocks.append(newNode)
+            #     # attach newNode to the end of the current link
+            #     newTemp = tempNode
+            #     while newTemp.nextBlocks != []:
+            #         newTemp = newTemp.nextBlocks[0]
+            #     newTemp.nextBlocks.append(newNode)
 
             # print("currNode code: " + str(currNode.code))
             # print("EXITING ASSIGNMENT CASE")
@@ -563,10 +565,9 @@ def checkForInvocation(expression, currNode):
             leftFlag = 0
             rightFlag = 0
 
-
     # HERE IS WHERE I WOULD ADD CODE TO THE CURRENT NODE
-            currNode.code.append(expression.left_expression)
-            currNode.code.append(expression.right_expression)
+            # currNode.code.append(expression.left_expression) # REMOVED THIS
+            # currNode.code.append(expression.right_expression) # REMOVED THIS
 
             # search the left expression for invocation
             temp = checkForInvocation(expression.left_expression, currNode)
@@ -616,7 +617,7 @@ def checkForInvocation(expression, currNode):
 
 
     # HERE IS WHERE I WOULD ADD CODE TO THE CURRENT NODE
-            currNode.code.append(expression.operand_expression)
+            # currNode.code.append(expression.operand_expression) # REMOVED THIS
 
             temp = checkForInvocation(expression.operand_expression)
             currNode = temp[2]
@@ -633,31 +634,33 @@ def checkForInvocation(expression, currNode):
 
 
         case m_invocation():
+            currNode.code.append(expression)
             # get the node from the dict, change Id
-            invocationNode = functionBlocks[expression.id.identifier].firstNode
-            invocationNode.Id = blockId
-            blockId += 1
+    #         invocationNode = functionBlocks[expression.id.identifier].firstNode
+    #         invocationNode.Id = blockId
+    #         blockId += 1
             
-            tempNode = invocationNode
+    #         tempNode = invocationNode
             for exp in expression.args_expressions:
-                # print("DID IN FACT ENTER THE LOOP")
-                # print(str(exp))
+    #             # print("DID IN FACT ENTER THE LOOP")
+    #             # print(str(exp))
 
 
-    # HERE IS WHERE I WOULD ADD CODE TO THE CURRENT NODE
-                currNode.code.append(exp)
+    # # HERE IS WHERE I WOULD ADD CODE TO THE CURRENT NODE
+    #             # currNode.code.append(exp) # REMOVED THIS
+    #             currNode.code.append(expression)
 
                 currTuple = checkForInvocation(exp, currNode)
                 currNode = currTuple[2]
 
                 
-                if currTuple[1] == 1:
-                    # print("ENTERED THE INNER IF: " + str(currTuple[0].code))
-                    newTemp = currTuple[0]
-                    newTemp.nextBlocks.append(tempNode)
-                    tempNode = newTemp
+    #             if currTuple[1] == 1:
+    #                 # print("ENTERED THE INNER IF: " + str(currTuple[0].code))
+    #                 newTemp = currTuple[0]
+    #                 newTemp.nextBlocks.append(tempNode)
+    #                 tempNode = newTemp
 
-            return (tempNode, 1, currNode)
+            return (None, 1, currNode)
 
         case m_num() | m_bool() | m_new_struct() | m_null() | m_dot() | m_id():
             # currNode.code.append(expression)

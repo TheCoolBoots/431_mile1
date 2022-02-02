@@ -2,8 +2,10 @@ import unittest
 from ast_class_definitions import *
 from cfg_generator import *
 from json_parser import *
+from generateLLVM import *
 import test_ast_trees
 import json
+import os
 
 
 # step through the node tree and print a formatted dot file
@@ -11,6 +13,46 @@ def dotToCFG(head, name):
     # nodeId = 0 # consider implementing this, the issue came when trying to check the id of the next node
     # a potential solution is to walk thru the nodes and update the id number of each and then run thru again
     # and print out all of the connections.
+
+
+    # # initialize dict for nodes
+    # nodeReferences = {}
+
+    # # initialize queue with head node
+    # queue = []
+    # queue.append(head)
+
+    # # SOMEWHERE I NEED TO GET THE ENVIRONMENTS SO THAT I CAN USE statementToLLVM()
+    # # LOOK AT WHAT toLLVM does with environments, and consider doing that same thing
+
+    # while queue != []:
+    #     currNode = queue.pop(0)
+
+    #     currRegister = 0
+    #     currLLVM = str(currNode.id) + " note(label = "
+    #     for statement in currNode.code:
+    #         match expression:
+    #             case m_invocation:
+    #                 # update the llvm string with current code and then add a new line
+    #                 currLLVM = currLLVM + CURRENTCODE + "\l"
+    #             case _:
+                    
+    #         # currTuple = statementToLLVM(currRegister, ___, ___, ___, ___)
+    #         # currRegister = currTuple[0]
+
+    #         # # print the LLVM code for each node
+    #         # # a note(label = ___ ___ ___) # HOW SHOULD THIS LABELS BE SEPERATED??? COMMAS???? 
+    #         # for item in currTuple[2]:
+    #         #     currLLVM = currLLVM + item + " "
+             
+
+
+    #     # expression always returns a value
+    #     # statement is anything that must run
+    #         # statement recursively calls expressionToLLVM, so I dont need to add unary, binop, num, bool, ...
+
+        
+
 
     # print out the header of the file
     print("digraph \"" + name + "\" {" )
@@ -109,26 +151,26 @@ def printCFG(head):
 def main():
     # # simple function case
     # testCFGa = generate_CFG_Prog_Handler(test_ast_trees.expected3)
-    # printCFG(testCFGa.firstNode)
+    # # printCFG(testCFGa.firstNode)
     # dotToCFG(testCFGa.firstNode, "trivial case")
 
 
     # # invocation case
     # testCFGb = generate_CFG_Prog_Handler(test_ast_trees.expected7)
-    # printCFG(testCFGb.firstNode)
+    # # printCFG(testCFGb.firstNode)
     # dotToCFG(testCFGb.firstNode, "simple invocation case")
 
 
     # # if case => if.mini
     # testCFGc = generate_CFG_Prog_Handler(test_ast_trees.expected5)
-    # printCFG(testCFGc.firstNode)
+    # # printCFG(testCFGc.firstNode)
     # dotToCFG(testCFGc.firstNode, "simple if case")
     
 
     # good for now, may think more about functions that have no return statement later on
     # # while case => loop.mini
     # testCFG0 = generate_CFG_Prog_Handler(test_ast_trees.expected4)
-    # printCFG(testCFG0.firstNode)
+    # # printCFG(testCFG0.firstNode)
     # dotToCFG(testCFG0.firstNode, "simple while case")
 
 
@@ -137,7 +179,7 @@ def main():
     #     contents = json.load(file1)
     # ast = parse(contents)
     # testCFG1 = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG1.firstNode)
+    # # printCFG(testCFG1.firstNode)
     # dotToCFG(testCFG1.firstNode, "simple if else case")
 
     # # lgtm
@@ -146,7 +188,7 @@ def main():
     #     contents = json.load(file2)
     # ast = parse(contents)
     # testCFG2 = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG2.firstNode)
+    # # printCFG(testCFG2.firstNode)
     # dotToCFG(testCFG2.firstNode, "while and then if-else case")
 
 
@@ -157,7 +199,7 @@ def main():
     # ast = parse(contents)
     # testCFG3 = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG3.firstNode)
-    # dotToCFG(testCFG3.firstNode, "if and then while loop case")
+    # # dotToCFG(testCFG3.firstNode, "if and then while loop case")
 
 
     # # looks good
@@ -167,7 +209,7 @@ def main():
     # ast = parse(contents)
     # testCFG4 = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG4.firstNode)
-    # dotToCFG(testCFG4.firstNode, "simple invocation case")
+    # # dotToCFG(testCFG4.firstNode, "simple invocation case")
 
 
     # # looks good
@@ -177,17 +219,17 @@ def main():
     # ast = parse(contents)
     # testCFG5 = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG5.firstNode)
-    # dotToCFG(testCFG5.firstNode, "two invocation case")
+    # # dotToCFG(testCFG5.firstNode, "two invocation case")
 
 
-    # # lgtm
-    # # invocation case 4
-    # with open('json_parser_tests/hardestFunctionCall.json') as file6:
-    #     contents = json.load(file6)
-    # ast = parse(contents)
-    # testCFG6 = generate_CFG_Prog_Handler(ast)
+    # lgtm
+    # invocation case 4
+    with open('json_parser_tests/hardestFunctionCall.json') as file6:
+        contents = json.load(file6)
+    ast = parse(contents)
+    testCFG6 = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG6.firstNode)
-    # dotToCFG(testCFG6.firstNode, "nested invocation case")
+    dotToCFG(testCFG6.firstNode, "nested invocation case")
 
 
 # UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
@@ -196,7 +238,7 @@ def main():
     #     contents = json.load(file7)
     # ast = parse(contents)
     # testCFG7 = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG7.firstNode)
+    # # printCFG(testCFG7.firstNode)
     # dotToCFG(testCFG7.firstNode, "simple unary case")
 
 
@@ -206,7 +248,7 @@ def main():
     #     contents = json.load(file8)
     # ast = parse(contents)
     # testCFG8 = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG8.firstNode)
+    # # printCFG(testCFG8.firstNode)
     # dotToCFG(testCFG8.firstNode, "invocation unary case")
 
 # same as above ^ - UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
@@ -215,17 +257,17 @@ def main():
     #     contents = json.load(file9)
     # ast = parse(contents)
     # testCFG9 = generate_CFG_Prog_Handler(ast)
-    # printCFG(testCFG9.firstNode)
+    # # printCFG(testCFG9.firstNode)
     # dotToCFG(testCFG9.firstNode, "simple binop case")
 
 
-    # invocation binop case 
-    with open('json_parser_tests/invocationBinop.json') as file10:
-        contents = json.load(file10)
-    ast = parse(contents)
-    testCFG10 = generate_CFG_Prog_Handler(ast)
-    printCFG(testCFG10.firstNode)
-    dotToCFG(testCFG10.firstNode, "invocation binop case")
+    # # invocation binop case 
+    # with open('json_parser_tests/invocationBinop.json') as file10:
+    #     contents = json.load(file10)
+    # ast = parse(contents)
+    # testCFG10 = generate_CFG_Prog_Handler(ast)
+    # # printCFG(testCFG10.firstNode)
+    # dotToCFG(testCFG10.firstNode, "invocation binop case")
 
 
 if __name__ == "__main__":
