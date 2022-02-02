@@ -19,31 +19,37 @@ def toLLVM(ast:m_prog):
     # add llvm code to define global variables
     for varDecl in ast.global_declarations:
         output.extend(varDecl.getLLVM(lastRegUsed, type_sizes))
-        lastRegUsed += 1
+        # if declaration is a struct, will use one register in its declaration
+        if varDecl.type.typeID != 'int' and varDecl.type.typeID != 'bool' and varDecl.type.typeID != 'null':
+            lastRegUsed += 1
 
     top_env = ast.getTopEnv()
     type_env = ast.getTypes()
     
     fun_env = {}
     for function in ast.functions:
-        lastRegUsed, fun_env, funCode = functionToLLVM(lastRegUsed, function, top_env, type_env, fun_env)
+        lastRegUsed, fun_env, funCode = functionToLLVM(lastRegUsed, function, top_env, type_env, fun_env, type_sizes)
         output.extend(funCode)
 
     return '\n'.join(output)
 
 
-def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env):
+def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env, type_sizes):
     code = []
 
     for declaration in func.body_declarations:
         top_env[declaration.id.identifier] = declaration.type
-        code.append(declaration.getLLVM())
+        code.extend(declaration.getLLVM(lastRegUsed, type_sizes))
+        # if declaration is a struct, will use one register in its declaration
+        if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
+            lastRegUsed += 1
     
     params = []
     paramTypes = []
     for param in func.param_declarations:
         paramTypes.append(param.type)
-        params.append(getLLVMType(param.type.typeID), f'%{param.id.identifier}')
+        params.append(f'{getLLVMType(param.type.typeID)} %{param.id.identifier}')
+        top_env[param.id.identifier] = param.type
     params = ', '.join(params)
     
     code.append(f'define {getLLVMType(func.return_type.typeID)} @{func.id.identifier}({params})' + ' {')
@@ -88,15 +94,9 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str
                 return exprReg + 1, 'i32', [instruction]
         case m_delete():
             exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, t_env, f_env)
-
-            # declare void @free(i8*)
-
-            # %r1 = call i8* @malloc(24)
-            # %r2 = bitcast i8* %r1 to {i64, i64, i64}*    # look at the manual for this
-
-            exprCode.extend([f'%{exprReg + 1} = bitcast {exprType}* %{exprReg} to i8*'
-                            f'%{exprReg + 2} = call void @free(%{exprReg + 1})'])
-            return exprReg, 'void', exprCode
+            exprCode.extend([f'%{exprReg + 1} = bitcast {exprType} %{exprReg} to i8*',
+                            f'call void @free(%{exprReg + 1})'])
+            return exprReg + 1, 'void', exprCode
         case m_conditional():
             return condToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_loop():
@@ -177,7 +177,9 @@ def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env) -> Tup
     currentID = assign.target_ids[0].identifier
     currentIDTypeID = env[currentID].typeID
     
+    nested = False
     for accessedm_id in assign.target_ids[1:]:
+        nested = True
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, t_env[currentIDTypeID])
 
         instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
@@ -188,20 +190,22 @@ def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env) -> Tup
         lastRegUsed += 1
 
 
-    if immediateVal:
-        instruction = f'store i32 {exprCode}, i32* %{currentID}'
-        outputCode.append(instruction)
-        return (lastRegUsed, 'i32*', outputCode)
-    else:
-        if currentIDTypeID == 'int' or currentIDTypeID == 'bool':
-            currentIDTypeID = getLLVMType(currentIDTypeID)
-            instruction = f'store {exprType} %{exprReg}, {currentIDTypeID}* %{lastRegUsed}'
-            outputCode.append(instruction)
-            return (lastRegUsed, f'{currentIDTypeID}*', outputCode)
+    if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
+        if immediateVal:
+            outputCode.append(f'store i32 {exprCode}, i32* %{currentID}')
+            return lastRegUsed, 'i32', outputCode
         else:
-            instruction = f'store {exprType} %{exprReg}, %struct.{currentIDTypeID}** %{currentID}'
-            outputCode.append(instruction)
-            return (lastRegUsed, f'%struct.{currentIDTypeID}*', outputCode)
+            outputCode.append(f'store i32 %{exprReg}, i32* %{currentID}')
+            return lastRegUsed, 'i32', outputCode
+    #(f'store %struct.s1* %1, %struct.s1** %2')
+    else:
+        if nested:
+            llvmType = getLLVMType(currentIDTypeID)
+            outputCode.append(f'store {llvmType} %{exprReg}, {llvmType}* %{currentID}')
+            return lastRegUsed, llvmType, outputCode
+        else:
+            outputCode.append(f'%{currentID} = %{exprReg}')
+            return lastRegUsed, getLLVMType(currentIDTypeID), outputCode
 
     
     # elif exprType != 'i32':
@@ -240,10 +244,10 @@ def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[in
         case m_num() | m_bool():
             return lastRegUsed, 'i32', int(expression.val)
         case m_new_struct():
-            return lastRegUsed+1, f'%struct.{expression.struct_id.identifier}*', [f'%{lastRegUsed + 1} = alloca %struct.{expression.struct_id.identifier}']
+            code = [f'%{lastRegUsed + 1} = call i8* @malloc({len(t_env[expression.struct_id.identifier]) * 4})',
+                 f'%{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{expression.struct_id.identifier}*']
+            return lastRegUsed+1, f'%struct.{expression.struct_id.identifier}*', code
         case m_null():
-            # raise NotImplementedError()
-            # need to ask how to handle null values
             # keeping it like this ensures functionality for rest of compiler
             return lastRegUsed, 'i32', 0
         case m_invocation():
@@ -259,7 +263,8 @@ def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[in
             if idType == m_type('bool') or idType == m_type('int'):
                 return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = load i32, i32* %{expression.identifier}']
             else:
-                return lastRegUsed+1, f'%struct.{idType.typeID}*', [f'%{lastRegUsed+1} = load %struct.{idType.typeID}*, %struct.{idType.typeID}** %{expression.identifier}']
+                llvmType = getLLVMType(idType.typeID)
+                return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = %{expression.identifier}']
 
 
 def dotToLLVM(lastRegUsed:int, expression:m_dot, env, t_env, f_env) -> Tuple[int, str, list[str]]:

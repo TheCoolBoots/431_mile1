@@ -4,7 +4,7 @@ struct A{
 
 fun foo(struct A tmp) int
 {
-    return 5;
+    return tmp.a;
 }
 
 fun main() int

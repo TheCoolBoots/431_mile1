@@ -46,13 +46,13 @@ def parse(json):
             args = [parse(arg) for arg in json['args']]
             return m_invocation(int(json['line']), m_id(json['line'], json['id']), args)
 
-        case {'line':_, 'exp':'dot', 'left':_, 'id':_}:
-            parentStruct = parse(json['left'])
-            if type(parentStruct) == list:
-                parentStruct.append(m_id(json['line'], json['id']))
-                return parentStruct
+        case {'line':ln, 'exp':'dot', 'left':json, 'id':id}:
+            idList = parseDot(json)
+            if idList is None:
+                idList = [m_id(ln, id)]
             else:
-                return [parentStruct, m_id(json['line'], json['id'])]
+                idList.append(m_id(ln, id))
+            return m_dot(ln, idList)
 
         case {'line':_, 'exp':'new', 'id':_}:
             return m_new_struct(m_id(json['line'], json['id']))
@@ -66,8 +66,8 @@ def parse(json):
         case {'line':_, 'stmt':'return'}:
             return m_ret(int(json['line']), None)
 
-        case {'line':_, 'stmt':'delete', 'exp':expression}:
-            return m_delete(parse(expression))
+        case {'line':lineNum, 'stmt':'delete', 'exp':expression}:
+            return m_delete(lineNum, parse(expression))
 
         case {'line':_, 'stmt':'print', 'exp':_, 'endl':_}:
             return m_print(int(json['line']), parse(json['exp']), bool(json['endl']))
@@ -113,4 +113,13 @@ def parse(json):
 
         case _:
             print(f'unrecognized structure: {json}')
+
+def parseDot(json) -> list:
+    match json:
+        case {'line':ln, 'exp':'id', 'id':id}:
+            return [m_id(ln, id)]
+        case {'line':ln, 'exp':'dot', 'left':json, 'id':id}:
+            lst = parseDot(json)
+            lst.append(m_id(ln, id))
+            return lst
 

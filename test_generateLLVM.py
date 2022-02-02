@@ -90,6 +90,11 @@ class test_LLVM_generation(unittest.TestCase):
                 's2': [m_declaration(1, m_type('int'), m_id(1, 'c')), m_declaration(1, m_type('s1'), m_id(1, 'struct1'))]}
         env = {'struct2_inst': m_type('s2'), 'z': m_type('int')}
         ast = m_assignment(1, [m_id(1,'struct2_inst'), m_id(1, 'struct1'), m_id(1, 'a')], m_id(1, 'z'))
+        """
+        struct s2 struct2_inst;
+        int z;
+        struct2_inst.struct1.a = z
+        """
 
         expected = []
         expected.append(f'%1 = load i32, i32* %z')
@@ -99,26 +104,56 @@ class test_LLVM_generation(unittest.TestCase):
 
         actual = statementToLLVM(0, ast, env, t_env, {})
 
-        self.assertTrue(listsEqual(expected, actual[2]) and actual[1] == 'i32*' and actual[0]==3)
+        self.assertEqual(expected, actual[2])
 
 
     def test_assignment_2(self):
         env = {'a':m_type('int')}
         ast = m_assignment(1, [m_id(1, 'a')], m_num(5))
+        """
+        int a;
+        a = 5;
+        """
         expected = [f'store i32 5, i32* %a']
         actual = statementToLLVM(0, ast, env, {}, {})
-        self.assertTrue(actual[0] == 0 and actual[1] == 'i32*' and listsEqual(actual[2], expected))
+        self.assertEqual(actual[2], expected)
 
 
     def test_assignment_3(self):
         t_env = {'bar': [m_declaration(1, m_type('int'), m_id(0,'bean'))]}
         env = {'z':m_type('bar'), 'a':m_type('bar')}
-        ast = m_assignment(1, [m_id(1, 'z')], m_id(1, 'a')) # z = a
+        ast = m_assignment(1, [m_id(1, 'z')], m_id(1, 'a')) 
+        """
+        struct bar z;
+        struct bar a;
+        z = a;
+        """
 
-        expected = [f'%1 = load %struct.bar*, %struct.bar** %a', f'store %struct.bar* %1, %struct.bar** %z']
+        expected = [f'%1 = %a', '%z = %1']
         actual = statementToLLVM(0, ast, env, t_env, {})
 
-        self.assertTrue(actual[0] == 1 and actual[1] == f'%struct.bar*' and listsEqual(actual[2], expected))
+        self.assertEqual(actual[2], expected)
+
+    def test_assignment4(self):
+        t_env = {'s1': [m_declaration(1, m_type('int'), m_id(1, 'a')), m_declaration(1, m_type('int'), m_id(1, 'b'))],
+                's2': [m_declaration(1, m_type('int'), m_id(1, 'c')), m_declaration(1, m_type('s1'), m_id(1, 'struct1'))]}
+        env = {'struct2_inst': m_type('s2'), 'struct1_inst': m_type('s1')}
+        ast = m_assignment(1, [m_id(1,'struct2_inst'), m_id(1, 'struct1')], m_id(1, 'struct1_inst'))
+        """
+        struct s2 struct2_inst;
+        struct s1 struct1_inst;
+        struct2_inst.struct1 = struct1_inst
+        """
+
+        expected = []
+        # expected.append(f'%1 = %struct.s1* %struct1_inst')
+        expected.append(f'%1 = %struct1_inst')
+        expected.append(f'%2 = getelementptr %struct.s2, %struct.s2* %struct2_inst, i32 0, i32 1')
+        expected.append(f'store %struct.s1* %1, %struct.s1** %2')
+
+        actual = statementToLLVM(0, ast, env, t_env, {})
+
+        self.assertEqual(expected, actual[2])
 
 
     def test_type_declaration(self):
@@ -209,7 +244,7 @@ class test_LLVM_generation(unittest.TestCase):
         self.assertEqual(expected2, actual2[2])
 
         ret3 = m_ret(9001, m_new_struct(m_id(3, 'BIGCHUNGUS')))
-        expected3 = [f'%1 = alloca %struct.BIGCHUNGUS', f'ret %struct.BIGCHUNGUS* %1']
+        expected3 = ['%1 = call i8* @malloc(4)', '%1 = bitcast i8* %1 to %struct.BIGCHUNGUS*', f'ret %struct.BIGCHUNGUS* %1']
         actual3 = statementToLLVM(0, ret3, top_env, type_env, fun_env)
         self.assertEqual(expected3, actual3[2])
 

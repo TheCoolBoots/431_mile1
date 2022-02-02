@@ -18,9 +18,10 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll'):
 
     retType = typeCheckProgram(ast)
 
-    code = toLLVM(ast)
+    if retType != -1:
+        code = toLLVM(ast)
 
-    print(code)
+        print(code)
     
 
 
@@ -30,4 +31,4 @@ if __name__ == "__main__":
 
     # print(*sys.argv[1:])
     top_compile(*sys.argv[1:])
-    # top_compile('miniFiles/structs.mini')
+    # top_compile('miniFiles/dot.mini')

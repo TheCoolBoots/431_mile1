@@ -97,7 +97,7 @@ expected7 = m_prog(types7, [], [function1_7, function2_7])
 # derived from dot.json
 structA8 = m_type_declaration(1, m_id(1, 'A'), [m_declaration(3, m_type('int'), m_id(3, 'i')), m_declaration(4, m_type('A'), m_id(4, 'a'))])
 structB8 = m_type_declaration(6, m_id(6, 'B'), [m_declaration(8, m_type('A'), m_id(8, 'a'))])
-ret8 = m_ret(13, [m_id(13, 'b'), m_id(13, 'a'), m_id(13, 'a'), m_id(13, 'a'), m_id(13, 'a'), m_id(13, 'i')])
+ret8 = m_ret(13, m_dot(13, [m_id(13, 'b'), m_id(13, 'a'), m_id(13, 'a'), m_id(13, 'a'), m_id(13, 'a'), m_id(13, 'i')]))
 function8 = m_function(10, m_id(10, 'main'), [], m_type('int'), [m_declaration(12, m_type('B'), m_id(12, 'b'))], [ret8])
 expected8 = m_prog([structA8, structB8], [], [function8])
 

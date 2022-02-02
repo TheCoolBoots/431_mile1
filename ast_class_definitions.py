@@ -85,7 +85,7 @@ class m_declaration:
                 return [f'%{self.id.identifier} = alloca i32']    # TODO check if can use i8 instead
             case structID:
                 return [f'%{lastRegUsed + 1} = call i8* @malloc({type_sizes[structID]})',
-                f'%{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{structID}*']
+                f'%{self.id.identifier} = bitcast i8* %{lastRegUsed + 1} to %struct.{structID}*']
 
 
 # type declaration → struct id { nested decl } ;
