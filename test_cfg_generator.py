@@ -2,6 +2,7 @@ import unittest
 from ast_class_definitions import *
 from cfg_generator import *
 from json_parser import *
+from generateLLVM import *
 import test_ast_trees
 import json
 import os
@@ -12,6 +13,46 @@ def dotToCFG(head, name):
     # nodeId = 0 # consider implementing this, the issue came when trying to check the id of the next node
     # a potential solution is to walk thru the nodes and update the id number of each and then run thru again
     # and print out all of the connections.
+
+
+    # # initialize dict for nodes
+    # nodeReferences = {}
+
+    # # initialize queue with head node
+    # queue = []
+    # queue.append(head)
+
+    # # SOMEWHERE I NEED TO GET THE ENVIRONMENTS SO THAT I CAN USE statementToLLVM()
+    # # LOOK AT WHAT toLLVM does with environments, and consider doing that same thing
+
+    # while queue != []:
+    #     currNode = queue.pop(0)
+
+    #     currRegister = 0
+    #     currLLVM = str(currNode.id) + " note(label = "
+    #     for statement in currNode.code:
+    #         match expression:
+    #             case m_invocation:
+    #                 # update the llvm string with current code and then add a new line
+    #                 currLLVM = currLLVM + CURRENTCODE + "\l"
+    #             case _:
+                    
+    #         # currTuple = statementToLLVM(currRegister, ___, ___, ___, ___)
+    #         # currRegister = currTuple[0]
+
+    #         # # print the LLVM code for each node
+    #         # # a note(label = ___ ___ ___) # HOW SHOULD THIS LABELS BE SEPERATED??? COMMAS???? 
+    #         # for item in currTuple[2]:
+    #         #     currLLVM = currLLVM + item + " "
+             
+
+
+    #     # expression always returns a value
+    #     # statement is anything that must run
+    #         # statement recursively calls expressionToLLVM, so I dont need to add unary, binop, num, bool, ...
+
+        
+
 
     # print out the header of the file
     print("digraph \"" + name + "\" {" )
@@ -151,14 +192,14 @@ def main():
     # dotToCFG(testCFG2.firstNode, "while and then if-else case")
 
 
-    # lgtm
-    # if and then while loop case
-    with open('json_parser_tests/if_loop.json') as file3:
-        contents = json.load(file3)
-    ast = parse(contents)
-    testCFG3 = generate_CFG_Prog_Handler(ast)
+    # # lgtm
+    # # if and then while loop case
+    # with open('json_parser_tests/if_loop.json') as file3:
+    #     contents = json.load(file3)
+    # ast = parse(contents)
+    # testCFG3 = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG3.firstNode)
-    dotToCFG(testCFG3.firstNode, "if and then while loop case")
+    # # dotToCFG(testCFG3.firstNode, "if and then while loop case")
 
 
     # # looks good
@@ -167,8 +208,8 @@ def main():
     #     contents = json.load(file4)
     # ast = parse(contents)
     # testCFG4 = generate_CFG_Prog_Handler(ast)
-    # # printCFG(testCFG4.firstNode)
-    # dotToCFG(testCFG4.firstNode, "simple invocation case")
+    # printCFG(testCFG4.firstNode)
+    # # dotToCFG(testCFG4.firstNode, "simple invocation case")
 
 
     # # looks good
@@ -177,18 +218,18 @@ def main():
     #     contents = json.load(file5)
     # ast = parse(contents)
     # testCFG5 = generate_CFG_Prog_Handler(ast)
-    # # printCFG(testCFG5.firstNode)
-    # dotToCFG(testCFG5.firstNode, "two invocation case")
+    # printCFG(testCFG5.firstNode)
+    # # dotToCFG(testCFG5.firstNode, "two invocation case")
 
 
-    # # lgtm
-    # # invocation case 4
-    # with open('json_parser_tests/hardestFunctionCall.json') as file6:
-    #     contents = json.load(file6)
-    # ast = parse(contents)
-    # testCFG6 = generate_CFG_Prog_Handler(ast)
-    # # printCFG(testCFG6.firstNode)
-    # dotToCFG(testCFG6.firstNode, "nested invocation case")
+    # lgtm
+    # invocation case 4
+    with open('json_parser_tests/hardestFunctionCall.json') as file6:
+        contents = json.load(file6)
+    ast = parse(contents)
+    testCFG6 = generate_CFG_Prog_Handler(ast)
+    # printCFG(testCFG6.firstNode)
+    dotToCFG(testCFG6.firstNode, "nested invocation case")
 
 
 # UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
