@@ -42,7 +42,8 @@ def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env):
     params = ', '.join(params)
     
     code.append(f'define {getLLVMType(func.return_type.typeID)} @{func.id.identifier}({params})' + ' {')
-    code.append('entry:')
+    if func.id.identifier == 'main':
+        code.append('entry:')
 
     lastRegUsed = 0
     for statement in func.statements:
