@@ -30,7 +30,15 @@ def statementToSSA(lastRegUsed:int, stmt, types:dict, functions:dict, currentNod
         case m_assignment():
             return assignToSSA(lastRegUsed, stmt, types, functions, currentNode)
         case m_print():
-            pass
+            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, types, functions, currentNode)
+            if type(exprCode) == list:
+                instruction = f'%{exprReg + 1} = call i32 @printf("%d", %{exprReg})'
+                exprCode.append(instruction)
+                return exprReg + 1, 'i32', exprCode
+            else:
+                instruction = f'%{exprReg + 1} = call i32 @printf("%d", {exprCode})'
+                return exprReg + 1, 'i32', [instruction]
+
         case m_delete():
             pass
         case m_ret():
@@ -64,7 +72,7 @@ def expressionToLLVM(lastRegUsed:int, expr, types:dict, functions:dict, currentN
         case m_read():
             pass
         case m_unary():
-            pass
+            return unaryToLLVM(lastRegUsed, expr, types, functions, currentNode)
         case m_dot():
             pass
         case m_id():
@@ -139,19 +147,18 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, types:dict, functions:dict, cur
 
 # ! -
 def unaryToLLVM(lastRegUsed:int, unary:m_unary, types:dict, functions:dict, currentNode:CFG_Node):
-    opReg, opLLVMType, mappings, opCode = expressionToLLVM(lastRegUsed, unary.operand_expression, types, functions, currentNode)
+    opReg, opLLVMType, opCode = expressionToLLVM(lastRegUsed, unary.operand_expression, types, functions, currentNode)
 
-    # == != <= < > >= - + * / || &&
+    # ! =
     match unary.operator:
         case '!':
-            op = f'xor i32 1' # ANYTHING TO CHANGE ??
+            op = f'xor i32 1'
         case '-':
-            op = f'mul i32 -1'  # ANYTHING TO CHANGE ??
+            op = f'mul i32 -1'
 
     instructions = []
-    targetReg = rightOpReg + 1          # this correct ????
-    instructions.extend(leftOpCode)
-    instructions.extend(rightOpCode)
-    instructions.append(f'%r{targetReg} = {op} %r{leftOpReg}, %r{rightOpReg}')
+    targetReg = opReg + 1
+    instructions.extend(opCode)
+    instructions.append(f'%r{targetReg} = {op} %r{opReg}')
 
-    return (targetReg, 'i32', mappings, instructions)
+    return (targetReg, 'i32', instructions)
