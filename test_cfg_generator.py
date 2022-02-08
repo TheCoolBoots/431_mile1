@@ -7,6 +7,7 @@ import test_ast_trees
 import json
 import os
 
+# NOTE: YOU WILL WANT TO HAVE A NODE AT THE START OF THE CFG FOR INITIALIZATION PURPOSES LATER
 
 # step through the node tree and print a formatted dot file
 def dotToCFG(head, name):
@@ -22,8 +23,12 @@ def dotToCFG(head, name):
     # queue = []
     # queue.append(head)
 
-    # # SOMEWHERE I NEED TO GET THE ENVIRONMENTS SO THAT I CAN USE statementToLLVM()
-    # # LOOK AT WHAT toLLVM does with environments, and consider doing that same thing
+
+
+
+
+# # SOMEWHERE I NEED TO GET THE ENVIRONMENTS SO THAT I CAN USE statementToLLVM()
+# # LOOK AT WHAT toLLVM does with environments, and consider doing that same thing
 
     # while queue != []:
     #     currNode = queue.pop(0)
@@ -46,12 +51,14 @@ def dotToCFG(head, name):
     #         #     currLLVM = currLLVM + item + " "
              
 
-
     #     # expression always returns a value
     #     # statement is anything that must run
     #         # statement recursively calls expressionToLLVM, so I dont need to add unary, binop, num, bool, ...
 
         
+
+
+
 
 
     # print out the header of the file
@@ -167,7 +174,7 @@ def main():
     # dotToCFG(testCFGc.firstNode, "simple if case")
     
 
-    # good for now, may think more about functions that have no return statement later on
+    # # good for now, may think more about functions that have no return statement later on
     # # while case => loop.mini
     # testCFG0 = generate_CFG_Prog_Handler(test_ast_trees.expected4)
     # # printCFG(testCFG0.firstNode)
@@ -222,14 +229,14 @@ def main():
     # # dotToCFG(testCFG5.firstNode, "two invocation case")
 
 
-    # lgtm
-    # invocation case 4
-    with open('json_parser_tests/hardestFunctionCall.json') as file6:
-        contents = json.load(file6)
-    ast = parse(contents)
-    testCFG6 = generate_CFG_Prog_Handler(ast)
+    # # lgtm
+    # # invocation case 4
+    # with open('json_parser_tests/hardestFunctionCall.json') as file6:
+    #     contents = json.load(file6)
+    # ast = parse(contents)
+    # testCFG6 = generate_CFG_Prog_Handler(ast)
     # printCFG(testCFG6.firstNode)
-    dotToCFG(testCFG6.firstNode, "nested invocation case")
+    # # dotToCFG(testCFG6.firstNode, "nested invocation case")
 
 
 # UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
@@ -268,6 +275,73 @@ def main():
     # testCFG10 = generate_CFG_Prog_Handler(ast)
     # # printCFG(testCFG10.firstNode)
     # dotToCFG(testCFG10.firstNode, "invocation binop case")
+
+    # # lgtm
+    # # nested if case
+    # with open('json_parser_tests/nested_if.json') as file11:
+    #     contents = json.load(file11)
+    # ast = parse(contents)
+    # testCFG11 = generate_CFG_Prog_Handler(ast)
+    # # printCFG(testCFG11.firstNode)
+    # dotToCFG(testCFG11.firstNode, "nested if case")
+
+    # # lgtm
+    # # nested else case
+    # with open('json_parser_tests/nested_else.json') as file12:
+    #     contents = json.load(file12)
+    # ast = parse(contents)
+    # testCFG12 = generate_CFG_Prog_Handler(ast)
+    # # printCFG(testCFG12.firstNode)
+    # dotToCFG(testCFG12.firstNode, "nested else case")
+
+    # # lgtm
+    # # nested while case
+    # with open('json_parser_tests/nested_while.json') as file13:
+    #     contents = json.load(file13)
+    # ast = parse(contents)
+    # testCFG13 = generate_CFG_Prog_Handler(ast)
+    # # printCFG(testCFG13.firstNode)
+    # dotToCFG(testCFG13.firstNode, "nested while case")
+
+
+    # # lgtm
+    # # if while nested case
+    # with open('json_parser_tests/if_while_nested.json') as file14:
+    #     contents = json.load(file14)
+    # ast = parse(contents)
+    # testCFG14 = generate_CFG_Prog_Handler(ast)
+    # # printCFG(testCFG14.firstNode)
+    # dotToCFG(testCFG14.firstNode, "if while nested case")
+
+
+    # # not good
+    # # while if nested case
+    # with open('json_parser_tests/while_if_nested.json') as file15:
+    #     contents = json.load(file15)
+    # ast = parse(contents)
+    # testCFG15 = generate_CFG_Prog_Handler(ast)
+    # # printCFG(testCFG15.firstNode)
+    # dotToCFG(testCFG15.firstNode, "while if nested case")
+
+
+    # # lgtm
+    # # triple nested if case
+    # with open('json_parser_tests/if_triple_nest.json') as file16:
+    #     contents = json.load(file16)
+    # ast = parse(contents)
+    # testCFG16 = generate_CFG_Prog_Handler(ast)
+    # # printCFG(testCFG16.firstNode)
+    # dotToCFG(testCFG16.firstNode, "triple nested if case")
+
+
+    # not good
+    # triple nested while case
+    with open('json_parser_tests/while_triple_nest.json') as file17:
+        contents = json.load(file17)
+    ast = parse(contents)
+    testCFG17 = generate_CFG_Prog_Handler(ast)
+    printCFG(testCFG17.firstNode)
+    # dotToCFG(testCFG17.firstNode, "nested while case")
 
 
 if __name__ == "__main__":
