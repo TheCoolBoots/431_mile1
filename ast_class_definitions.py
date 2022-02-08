@@ -18,11 +18,6 @@ def listsEqual(listA:list, listB:list):
             return False
     return True
 
-# placeholder classes; will be overwritten at compile time
-
-class m_binop:
-    None
-
 class m_bool:
     def __init__(self, val:bool):
         self.val = val
@@ -53,6 +48,8 @@ class m_id:
         if type(__o) != type(self):
             return False
         return self.identifier == __o.identifier
+    def __str__(self):
+        return self.identifier
 
 
 # type → int | bool | struct id

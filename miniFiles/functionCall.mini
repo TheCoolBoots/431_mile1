@@ -2,6 +2,8 @@ struct A{
     int a;
 };
 
+int tmp;
+
 fun foo(struct A tmp) int
 {
     return tmp.a;

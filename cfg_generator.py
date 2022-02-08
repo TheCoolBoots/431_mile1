@@ -6,15 +6,19 @@ import test_ast_trees
 functionBlocks = {} 
 blockId = 0
 
+class CFG_Node:
+    None
 
 class CFG_Node:
-    # def __init__(self, nextBlocks:list, code:list, id:int, returnType = None): 
-    def __init__(self, previousBlocks:list, nextBlocks:list, code:list, id:int, returnType = None): 
-        # self.previousBlocks = previousBlocks # can be multiple
+    # def __init__(self, nextBlocks:list, code:list[m_statement], id:int, returnType = None): 
+    def __init__(self, previousBlocks:list[CFG_Node], nextBlocks:list[CFG_Node], code:list, id:int, returnType = None): 
+        self.previousBlocks = previousBlocks # can be multiple
         self.nextBlocks = nextBlocks # could be multiple
-        self.code = code
+        self.code = code    # is a list of statements
         self.id = id
         self.returnType = returnType # default is currently None, might wanna do m_type("void") instead, also should probably add a type
+        self.mappings = {}
+        self.sealed = False
 
 
 class Function_Nodes:

@@ -4,17 +4,11 @@ import subprocess
 from json_parser import parse
 from type_checker import typeCheckProgram
 from generateLLVM import toLLVM
+from ast_class_definitions import m_prog
 
 def top_compile(miniFile, outputFile = 'compilerOutput.ll'):
 
-    with open('tmp', 'w+') as outputHolder:
-        subprocess.call(['java', '-jar', 'miniFiles/MiniCompiler.jar', miniFile], stdout=outputHolder)
-
-    jsonAST = ''
-    with open('tmp', 'r') as outputHolder:
-        jsonAST = json.load(outputHolder)
-
-    ast = parse(jsonAST)
+    ast = importMiniFile(miniFile)
 
     retType = typeCheckProgram(ast)
 
@@ -23,7 +17,15 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll'):
 
         print(code)
     
+def importMiniFile(filepath) -> m_prog:
+    with open('tmp', 'w+') as outputHolder:
+        subprocess.call(['java', '-jar', 'miniFiles/MiniCompiler.jar', filepath], stdout=outputHolder)
 
+    jsonAST = ''
+    with open('tmp', 'r') as outputHolder:
+        jsonAST = json.load(outputHolder)
+
+    return parse(jsonAST)
 
 if __name__ == "__main__":
     if len(sys.argv) > 3:
