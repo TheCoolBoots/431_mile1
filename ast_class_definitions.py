@@ -10,13 +10,6 @@ TASK 1: create python class for each format as described in overview.pdf
 from typing import Tuple
 
 
-param = [1,3,4,5]
-
-def foo(a, b, c, d):
-    pass
-
-foo(*param)
-
 def listsEqual(listA:list, listB:list):
     if len(listA) != len(listB):
         return False
@@ -86,16 +79,13 @@ class m_declaration:
         return self.type == __o.type and self.id == __o.id and self.lineNum == __o.lineNum
 
     # NOTE: type_env structure = {str : {str : (int, m_type)}}
-    def getLLVM(self):
+    def getLLVM(self, lastRegUsed:int, type_sizes:dict):
         match self.type.typeID:
-            case 'int':
-                return f'%{self.id.identifier}=alloca i64'
-            case 'bool':
-                return f'%{self.id.identifier}=alloca i64'     # TODO check if can use i8 instead
+            case 'int'|'bool':
+                return [f'%{self.id.identifier} = alloca i32']    # TODO check if can use i8 instead
             case structID:
-                return f'%{self.id.identifier}=alloca %{structID}'
-
-
+                return [f'%{lastRegUsed + 1} = call i8* @malloc({type_sizes[structID]})',
+                f'%{self.id.identifier} = bitcast i8* %{lastRegUsed + 1} to %struct.{structID}*']
 
 
 # type declaration → struct id { nested decl } ;
@@ -109,12 +99,12 @@ class m_type_declaration:
             return False
         return self.id == __o.id and listsEqual(self.nested_declarations, __o.nested_declarations) and self.lineNum == __o.lineNum
     def getLLVM(self):
-            # %struct.foo = type {i64, i64, %struct.simple*}
-            # %struct.simple = type {i64}
+            # %struct.foo = type {i32, i32, %struct.simple*}
+            # %struct.simple = type {i32}
             types = []
             for decl in self.nested_declarations:
                 if decl.type == m_type('int') or decl.type == m_type('bool'):
-                    types.append('i64')
+                    types.append('i32')
                 else:
                     types.append(f'%struct.{decl.type.typeID}*')
             types = '{' + (', '.join(types)) + '}'
@@ -166,8 +156,9 @@ class m_prog:
     # returns {str: list[m_declaration]}
     def getTypes(self):
         return {typeDecl.id.identifier:typeDecl.nested_declarations for typeDecl in self.types}
-    
 
+    def getTypeSizes(self):
+        return {typeDecl.id.identifier:len(typeDecl.nested_declarations) * 4 for typeDecl in self.types}
 
     # returns {str : m_type}
     def getTopEnv(self, includeLineNum = True):

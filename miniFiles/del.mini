@@ -1,5 +1,11 @@
+struct B{
+   int z;
+   int m;
+};
+
 fun main() int
 {
     struct B b;
     delete b;
+    return 1;
 }

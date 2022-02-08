@@ -44,10 +44,10 @@ def checkFunctionReturn(function:m_function, local_env, top_env, top_type_env, f
     
     # check that all param types are valid
     for param in function.param_declarations:
-        if param.type not in top_type_env:
+        if param.type.typeID not in top_type_env:
             print(f'ERROR on line {param.lineNum}: unrecognized type {param.type.typeID}')
             return -1
-        local_env[param.id] = (param.lineNum, param.type)
+        local_env[param.id.identifier] = (param.lineNum, param.type)
 
     # check that there aren't any redeclarations of variables
     for decl in function.body_declarations:
@@ -108,6 +108,9 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
 
             if id_type.typeID in top_type_env:
                 return id_type
+            else:
+                print(f'ERROR: unrecognized type {id_type.typeID}')
+                return -1
 
         case m_assignment():
             lineNum = statement.lineNum
@@ -371,27 +374,34 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             ids = statement.ids
 
 
-            targetType = None
+            currentType = None
             id = ids[0].identifier
             # if the variable is in the local env, return the mapped type
             if id in local_env and local_env[id][0] < lineNum:
-                targetType = local_env[id][1]
+                currentType = local_env[id][1]
             # if the variable is in the global env, return the mapped type
             elif id in top_env and top_env[id][0] < lineNum:
-                targetType = top_env[id][1]
+                currentType = top_env[id][1]
             else:
                 print(f'ERROR on line {lineNum}: undeclared variable {id}')
                 return -1
 
-            # top_type_env is {str : {str : (int, m_type)}}
+            if len(ids) == 1:
+                return currentType
+            return typeCheckDot(top_type_env, ids[1:], currentType)
 
-            for nestedID in ids[1:]:
-                # if the nested id exists in the type environment
-                if nestedID.identifier in top_type_env[targetType.typeID]:
-                    # reassign target type to the mapped type and continue
-                    targetType = top_type_env[targetType.typeID][nestedID.identifier][1]
-                else:
-                    print(f'ERROR on line {lineNum}: {targetType.typeID}.{nestedID.identifier} does not exist')
-                    return -1
+        case other:
+            print(f"ERROR: unrecognized structure in AST \n{other}")
 
-            return targetType
+# top_type_env is {str : {str : (int, m_type)}}
+def typeCheckDot(type_env:dict, ids:list[m_id], currentType:m_type):
+    if currentType.typeID not in type_env:
+        print(f'ERROR: unrecognized type {currentType.typeID}')
+        return -1
+    elif ids[0].identifier not in type_env[currentType.typeID]:
+        print(f'ERROR on line {ids[0].lineNum}: {currentType.typeID}.{ids[0].identifier} does not exist')
+        return -1
+    elif len(ids) == 1:
+        return type_env[currentType.typeID][ids[0].identifier][1]
+    else:
+        return typeCheckDot(type_env, ids[1:], type_env[currentType.typeID][ids[0].identifier][1])
