@@ -63,6 +63,7 @@ def expressionToLLVM(lastRegUsed:int, expr, types:dict, functions:dict, currentN
         case m_num() | m_bool():
             return lastRegUsed+1, 'i32', [f'%r{lastRegUsed+1} = i32 {expr.val}']
         case m_new_struct():
+            # ASK PROFESSOR ABOUT THIS ON TUESDAY
             code = [f'%r{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
                  f'%r{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
             return lastRegUsed+1, f'%struct.{expr.struct_id.identifier}*', code
@@ -107,6 +108,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             return (llvmType, regNum)
 
 # Placeholder for phi node
+# ASK PROFESSOR ABOUT THIS ON THURSDAY
 class phi:
     def __init__(self, lst:list, complete = False) -> Tuple[str, int]:
         self.possibleValues = lst
