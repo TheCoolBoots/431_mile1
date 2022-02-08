@@ -97,6 +97,44 @@ def dotToCFG(head, name):
 
 
 
+# given the head block of a function, step through and add previous blocks for each node
+def addPreviousBlocks(head):
+    # make a queue of nodes to visit - start at the head
+    queue = [head]
+
+    # keep track of visited nodes (dict)
+    visitedDict = {}
+
+    # search the queue while it isnt empty
+    while(queue != []):
+        # pop the front
+        curr = queue.pop(0)
+
+        if curr in visitedDict:
+            continue
+        else:
+            visitedDict[curr] = True
+
+        # add curr as a previous block
+        for node in curr.nextBlocks:
+            # THESE TWO SOLUTIONS SHOULD BE EQUIVALENT, IM JUST NOT 100% CONFIDENT IN "not in"
+
+            # add the current node to the previousBlocks list
+            if(curr not in node.previousBlocks):
+                node.previousBlocks.append(curr)
+
+            # if (curr in node.previousBlocks):
+            #     pass
+            # else:
+            #     node.previousBlocks.append(curr)
+
+            if node not in visitedDict:
+                queue.append(node)
+
+
+    return head
+
+
 
 
 # step through each node and print the head
@@ -144,6 +182,9 @@ def printCFG(head):
         for node in currNode.nextBlocks:
             print("nextNode id: " + str(node.id))
 
+        for node in currNode.previousBlocks:
+            print("prevNode id: " + str(node.id))
+
         # WAS IN
         # for node in currNode.previousBlocks:
         #     print("prevNode id: " + str(node.id))
@@ -158,18 +199,21 @@ def printCFG(head):
 def main():
     # # simple function case
     # testCFGa = generate_CFG_Prog_Handler(test_ast_trees.expected3)
+    # testCFGa.firstNode = addPreviousBlocks(testCFGa.firstNode)
     # # printCFG(testCFGa.firstNode)
     # dotToCFG(testCFGa.firstNode, "trivial case")
 
 
     # # invocation case
     # testCFGb = generate_CFG_Prog_Handler(test_ast_trees.expected7)
+    # testCFGb.firstNode = addPreviousBlocks(testCFGb.firstNode)
     # # printCFG(testCFGb.firstNode)
     # dotToCFG(testCFGb.firstNode, "simple invocation case")
 
 
     # # if case => if.mini
     # testCFGc = generate_CFG_Prog_Handler(test_ast_trees.expected5)
+    # testCFGc.firstNode = addPreviousBlocks(testCFGc.firstNode)
     # # printCFG(testCFGc.firstNode)
     # dotToCFG(testCFGc.firstNode, "simple if case")
     
@@ -177,6 +221,7 @@ def main():
     # # good for now, may think more about functions that have no return statement later on
     # # while case => loop.mini
     # testCFG0 = generate_CFG_Prog_Handler(test_ast_trees.expected4)
+    # testCFG0.firstNode = addPreviousBlocks(testCFG0.firstNode)
     # # printCFG(testCFG0.firstNode)
     # dotToCFG(testCFG0.firstNode, "simple while case")
 
@@ -186,6 +231,7 @@ def main():
     #     contents = json.load(file1)
     # ast = parse(contents)
     # testCFG1 = generate_CFG_Prog_Handler(ast)
+    # testCFG1.firstNode = addPreviousBlocks(testCFG1.firstNode)
     # # printCFG(testCFG1.firstNode)
     # dotToCFG(testCFG1.firstNode, "simple if else case")
 
@@ -195,6 +241,7 @@ def main():
     #     contents = json.load(file2)
     # ast = parse(contents)
     # testCFG2 = generate_CFG_Prog_Handler(ast)
+    # testCFG2.firstNode = addPreviousBlocks(testCFG2.firstNode)
     # # printCFG(testCFG2.firstNode)
     # dotToCFG(testCFG2.firstNode, "while and then if-else case")
 
@@ -205,6 +252,7 @@ def main():
     #     contents = json.load(file3)
     # ast = parse(contents)
     # testCFG3 = generate_CFG_Prog_Handler(ast)
+    # testCFG3.firstNode = addPreviousBlocks(testCFG3.firstNode)
     # printCFG(testCFG3.firstNode)
     # # dotToCFG(testCFG3.firstNode, "if and then while loop case")
 
@@ -215,6 +263,7 @@ def main():
     #     contents = json.load(file4)
     # ast = parse(contents)
     # testCFG4 = generate_CFG_Prog_Handler(ast)
+    # testCFG4.firstNode = addPreviousBlocks(testCFG4.firstNode)
     # printCFG(testCFG4.firstNode)
     # # dotToCFG(testCFG4.firstNode, "simple invocation case")
 
@@ -225,6 +274,7 @@ def main():
     #     contents = json.load(file5)
     # ast = parse(contents)
     # testCFG5 = generate_CFG_Prog_Handler(ast)
+    # testCFG5.firstNode = addPreviousBlocks(testCFG5.firstNode)
     # printCFG(testCFG5.firstNode)
     # # dotToCFG(testCFG5.firstNode, "two invocation case")
 
@@ -235,6 +285,7 @@ def main():
     #     contents = json.load(file6)
     # ast = parse(contents)
     # testCFG6 = generate_CFG_Prog_Handler(ast)
+    # testCFG6.firstNode = addPreviousBlocks(testCFG6.firstNode)
     # printCFG(testCFG6.firstNode)
     # # dotToCFG(testCFG6.firstNode, "nested invocation case")
 
@@ -245,6 +296,7 @@ def main():
     #     contents = json.load(file7)
     # ast = parse(contents)
     # testCFG7 = generate_CFG_Prog_Handler(ast)
+    # testCFG7.firstNode = addPreviousBlocks(testCFG7.firstNode)
     # # printCFG(testCFG7.firstNode)
     # dotToCFG(testCFG7.firstNode, "simple unary case")
 
@@ -255,6 +307,7 @@ def main():
     #     contents = json.load(file8)
     # ast = parse(contents)
     # testCFG8 = generate_CFG_Prog_Handler(ast)
+    # testCFG8.firstNode = addPreviousBlocks(testCFG8.firstNode)
     # # printCFG(testCFG8.firstNode)
     # dotToCFG(testCFG8.firstNode, "invocation unary case")
 
@@ -264,6 +317,7 @@ def main():
     #     contents = json.load(file9)
     # ast = parse(contents)
     # testCFG9 = generate_CFG_Prog_Handler(ast)
+    # testCFG9.firstNode = addPreviousBlocks(testCFG9.firstNode)
     # # printCFG(testCFG9.firstNode)
     # dotToCFG(testCFG9.firstNode, "simple binop case")
 
@@ -273,6 +327,7 @@ def main():
     #     contents = json.load(file10)
     # ast = parse(contents)
     # testCFG10 = generate_CFG_Prog_Handler(ast)
+    # testCFG10.firstNode = addPreviousBlocks(testCFG10.firstNode)
     # # printCFG(testCFG10.firstNode)
     # dotToCFG(testCFG10.firstNode, "invocation binop case")
 
@@ -282,6 +337,7 @@ def main():
     #     contents = json.load(file11)
     # ast = parse(contents)
     # testCFG11 = generate_CFG_Prog_Handler(ast)
+    # testCFG11.firstNode = addPreviousBlocks(testCFG11.firstNode)
     # # printCFG(testCFG11.firstNode)
     # dotToCFG(testCFG11.firstNode, "nested if case")
 
@@ -291,6 +347,7 @@ def main():
     #     contents = json.load(file12)
     # ast = parse(contents)
     # testCFG12 = generate_CFG_Prog_Handler(ast)
+    # testCFG12.firstNode = addPreviousBlocks(testCFG12.firstNode)
     # # printCFG(testCFG12.firstNode)
     # dotToCFG(testCFG12.firstNode, "nested else case")
 
@@ -300,6 +357,7 @@ def main():
     #     contents = json.load(file13)
     # ast = parse(contents)
     # testCFG13 = generate_CFG_Prog_Handler(ast)
+    # testCFG13.firstNode = addPreviousBlocks(testCFG13.firstNode)
     # # printCFG(testCFG13.firstNode)
     # dotToCFG(testCFG13.firstNode, "nested while case")
 
@@ -310,16 +368,18 @@ def main():
     #     contents = json.load(file14)
     # ast = parse(contents)
     # testCFG14 = generate_CFG_Prog_Handler(ast)
+    # testCFG14.firstNode = addPreviousBlocks(testCFG14.firstNode)
     # # printCFG(testCFG14.firstNode)
     # dotToCFG(testCFG14.firstNode, "if while nested case")
 
 
-    # # not good
+    # # lgtm
     # # while if nested case
     # with open('json_parser_tests/while_if_nested.json') as file15:
     #     contents = json.load(file15)
     # ast = parse(contents)
     # testCFG15 = generate_CFG_Prog_Handler(ast)
+    # testCFG15.firstNode = addPreviousBlocks(testCFG15.firstNode)
     # # printCFG(testCFG15.firstNode)
     # dotToCFG(testCFG15.firstNode, "while if nested case")
 
@@ -330,16 +390,18 @@ def main():
     #     contents = json.load(file16)
     # ast = parse(contents)
     # testCFG16 = generate_CFG_Prog_Handler(ast)
+    # testCFG16.firstNode = addPreviousBlocks(testCFG16.firstNode)
     # # printCFG(testCFG16.firstNode)
     # dotToCFG(testCFG16.firstNode, "triple nested if case")
 
 
-    # not good
+    # lgtm
     # triple nested while case
     with open('json_parser_tests/while_triple_nest.json') as file17:
         contents = json.load(file17)
     ast = parse(contents)
     testCFG17 = generate_CFG_Prog_Handler(ast)
+    testCFG17.firstNode = addPreviousBlocks(testCFG17.firstNode)
     printCFG(testCFG17.firstNode)
     # dotToCFG(testCFG17.firstNode, "nested while case")
 
