@@ -1,0 +1,6 @@
+1. finish up expression to llvm
+2. finish up statement to llvm
+3. mappings of parameters to registers in functions
+4. return node @ end of if statement 
+    will have to save a register in the top of if statements
+    will happen in generation of nodes
