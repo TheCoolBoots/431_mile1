@@ -224,8 +224,9 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
             
             # while statement, connect the returned guard node to the new node
             if(currTuple[1] == 2):
-                tempNode.nextBlocks.append(currNode) # what if the tempNode is None?
-                # currNode.nextBlocks[0].nextBlocks.append(newNode) # this was creating an extra link
+                if(tempNode != None): # this should fix that potential bug
+                    tempNode.nextBlocks.append(currNode) # what if the tempNode is None?
+                    # currNode.nextBlocks[0].nextBlocks.append(newNode) # this was creating an extra link
 
                 # simply put the newNode as a nextBlock from currNode and ...
                 currNode.nextBlocks.append(newNode) # WHAT IF THE NEW NODE IS NEVER FILLED IN? - it would get removed in the driver function
@@ -250,17 +251,102 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
 
                 # get the if node and also the else node if it exists
                 ifNode = currNode.nextBlocks[0]
-                # simply put the newNode as a nextBlock from both the if and else Nodes and ...
-                ifNode.nextBlocks.append(newNode)
-                # set the current final block to the if statement
-                currFinalBlocks = [ifNode] 
+
+
+                # FIRST STEP TO THE END OF THE IF BRANCH(S), AND THEN CONNECT TO THE NEW NODE
+                    # new function for this? could be many recursively
+                    # need to think specially about the while case since it would loop, what do we do when we see a node twice?
+
+
+                # make a queue of nodes to visit
+                queue = [ifNode]
+
+                # keep track of visited nodes (dict)
+                visitedDict = {}
+
+                # we will remake final blocks
+                currFinalBlocks = []
+
+                # search the queue while it isnt empty
+                while(queue != []):
+                    # pop the front
+                    curr = queue.pop(0)
+
+                    if curr in visitedDict:
+                        continue
+                    else:
+                        visitedDict[curr] = True
+
+
+                    # once you hit a node with no next nodes in its list, add the new node
+                    if(curr.nextBlocks == []):
+                        curr.nextBlocks.append(newNode)
+                        currFinalBlocks.append(curr)
+
+                        # if a node has more nodes in its list, add them to the queue and continue
+                    else:
+                        for node in curr.nextBlocks:
+                            queue.append(node)
+
+
+                # # simply put the newNode as a nextBlock from both the if and else Nodes and ...
+                # ifNode.nextBlocks.append(newNode) # THIS IS ALMOST CERTAINLY THE ISSUE
+
+
+
+                # NEED TO REPLACE THIS WITH SOMETHING
+                # # set the current final block to the if statement
+                # currFinalBlocks = [ifNode]
+
+
+
+
+
 
                 # do all the same for the else node if it exists
                 if len(currNode.nextBlocks) > 1:
                     elseNode = currNode.nextBlocks[1]
-                    elseNode.nextBlocks.append(newNode)
-                    # add the else block to current final blocks
-                    currFinalBlocks.append(elseNode)
+
+
+
+                    # elseNode.nextBlocks.append(newNode)
+
+
+
+                    # make a queue of nodes to visit
+                    queue = [elseNode]
+
+                    # keep track of visited nodes (dict)
+                    visitedDict = {}
+
+                    # we will remake final blocks
+                    currFinalBlocks = []
+
+                    # search the queue while it isnt empty
+                    while (queue != []):
+                        # pop the front
+                        curr = queue.pop(0)
+
+                        if curr in visitedDict:
+                            continue
+                        else:
+                            visitedDict[curr] = True
+
+                        # once you hit a node with no next nodes in its list, add the new node
+                        if (curr.nextBlocks == []):
+                            curr.nextBlocks.append(newNode)
+                            currFinalBlocks.append(curr)
+
+                            # if a node has more nodes in its list, add them to the queue and continue
+                        else:
+                            for node in curr.nextBlocks:
+                                queue.append(node)
+
+
+
+
+                    # # add the else block to current final blocks
+                    # currFinalBlocks.append(elseNode)
 
                 # update currNode to be newNode
                 currNode = newNode
@@ -398,7 +484,45 @@ def generate_CFG_Nodes(expression, currNode):
             # set this to next from the guard node, next from this should also be the guard node
             guardNode.nextBlocks.append(whileNode)
 # MAY WANT TO ADD THIS LINE BACK
-            whileNode.nextBlocks.append(guardNode)
+
+
+
+
+
+# # THIS IS THE PROBLEM, NEED TO TRAVERSE THE NODE TO FIND THE FINAL BLOCK
+            # whileNode.nextBlocks.append(guardNode)
+
+            # make a queue of nodes to visit
+            queue = [whileNode]
+
+            # keep track of visited nodes (dict)
+            visitedDict = {}
+
+            # search the queue while it isnt empty
+            while (queue != []):
+                # pop the front
+                curr = queue.pop(0)
+
+                if curr in visitedDict:
+                    # if there is one thing in the nextBlocks and its in the visitedDict, append
+                    if(len(curr.nextBlocks) == 1 and curr.nextBlocks[0] in visitedDict):
+                        curr.nextBlocks.append(guardNode)
+                    continue
+                else:
+                    visitedDict[curr] = True
+
+                # once you hit a node with no next nodes in its list, add the new node
+                if (curr.nextBlocks == []):
+                    curr.nextBlocks.append(guardNode)
+
+                    # if a node has more nodes in its list, add them to the queue and continue
+                else:
+                    for node in curr.nextBlocks:
+                        queue.append(node)
+
+
+
+
 
             # print("guardNode next nodes: " + str(guardNode.nextBlocks))
             # print("whileNode next nodes: " + str(whileNode.nextBlocks))
