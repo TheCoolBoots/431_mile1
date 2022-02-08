@@ -25,10 +25,10 @@ def _generateSSA(currentNode: CFG_Node):
 
 # mappings structure = {str id: (str llvmType, int regNum)}
 # returns a tuple containing (mappings within block, SSA LLVM code)
-def statementToSSA(lastRegUsed:int, stmt, mappings:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, dict, list[str]]:
+def statementToSSA(lastRegUsed:int, stmt, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, dict, list[str]]:
     match stmt:
         case m_assignment():
-            return assignToSSA(lastRegUsed, stmt, mappings, types, functions, currentNode)
+            return assignToSSA(lastRegUsed, stmt, types, functions, currentNode)
         case m_print():
             pass
         case m_delete():
@@ -39,22 +39,22 @@ def statementToSSA(lastRegUsed:int, stmt, mappings:dict, types:dict, functions:d
             pass
 
 
-def assignToSSA(lastRegUsed:int, assign:m_assignment, mappings:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, dict, list[str]]:
-    exprReg, exprType, mappings, exprCode = expressionToLLVM(lastRegUsed, assign.source_expression, mappings, types, functions, currentNode)
+def assignToSSA(lastRegUsed:int, assign:m_assignment, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, list[str]]:
+    exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, assign.source_expression, types, functions, currentNode)
     targetStrings = [mid.identifier for mid in assign.target_ids]
     key = '.'.join(targetStrings)
-    mappings[key] = (exprType, exprReg)
+    currentNode.mappings[key] = (exprType, exprReg)
 
-    return exprReg, mappings, exprCode
+    return exprReg, exprCode
     
 
 # returns a tuple containing (resultReg, llvmType, mappings within block, SSA LLVM code)
-def expressionToLLVM(lastRegUsed:int, expr, mappings:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, dict, list[str]]:
+def expressionToLLVM(lastRegUsed:int, expr, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     match expr:
         case m_binop():
-            return binaryToLLVM(lastRegUsed, expr, mappings, types, functions, currentNode)
+            return binaryToLLVM(lastRegUsed, expr, types, functions, currentNode)
         case m_num() | m_bool():
-            return lastRegUsed+1, 'i32', mappings, [f'%r{lastRegUsed+1} = i32 {expr.val}']
+            return lastRegUsed+1, 'i32', [f'%r{lastRegUsed+1} = i32 {expr.val}']
         case m_new_struct():
             pass
         case m_null():
@@ -68,36 +68,38 @@ def expressionToLLVM(lastRegUsed:int, expr, mappings:dict, types:dict, functions
         case m_dot():
             pass
         case m_id():
-            if expr.identifier in mappings:
-                return mappings[expr.identifier][1], mappings[expr.identifier][0], mappings, []
-            else:
-                if not currentNode.sealed:
-                    # return a phi node that is incomplete
-                    # add phi node to incomplete phi nodes
-                    pass 
-                elif len(currentNode.previousBlocks) == 0:
-                    # val is undefined
-                    # should never encounter this case
-                    pass
-                elif len(currentNode.previousBlocks) == 1:
-                    # call expressionToLLVM with expr and prev block's mappings
-                    prevMappings = currentNode.previousBlocks[0].mappings
-                    return expressionToLLVM(lastRegUsed, expr, prevMappings, types, functions, currentNode.previousBlocks[0])
-                else:
-                    # create phi node with values in prev blocks
-                    # map variable to phi node
-                    pass
-                pass
+            resultReg = readVariable(lastRegUsed, expr.identifier, currentNode)
 
 
-def readVariable(identifier:str, currentNode:CFG_Node):
-    if 
+def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> int:
+    if identifier in currentNode.mappings:
+        return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], []
+    else:
+        if not currentNode.sealed:
+            # return a phi node that is incomplete
+            # add phi node to incomplete phi nodes
+            pass 
+        elif len(currentNode.previousBlocks) == 0:
+            # val is undefined
+            # should never encounter this case
+            pass
+        elif len(currentNode.previousBlocks) == 1:
+            # call expressionToLLVM with expr and prev block's mappings
+            prevNode = currentNode.previousBlocks[0]
+            return readVariable(identifier, prevNode)
+        else:
+            # create phi node with values in prev blocks
+            possibleRegisters = [readVariable(identifier, node) for node in currentNode.previousBlocks]
+            # map variable to phi node
+            currentNode.mappings[identifier]
+            pass
+        pass
 
 
 # == != <= < > >= - + * / || &&
-def binaryToLLVM(lastRegUsed:int, binop:m_binop, mappings:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, dict, list[str]]:
-    leftOpReg, leftLLVMType, mappings, leftOpCode = expressionToLLVM(lastRegUsed, binop.left_expression, mappings, types, functions, currentNode)
-    rightOpReg, rightLLVMType, mappings, rightOpCode = expressionToLLVM(leftOpReg, binop.right_expression, mappings, types, functions, currentNode)
+def binaryToLLVM(lastRegUsed:int, binop:m_binop, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+    leftOpReg, leftLLVMType, leftOpCode = expressionToLLVM(lastRegUsed, binop.left_expression, types, functions, currentNode)
+    rightOpReg, rightLLVMType, rightOpCode = expressionToLLVM(leftOpReg, binop.right_expression, types, functions, currentNode)
 
     # == != <= < > >= - + * / || &&
     match binop.operator:
@@ -124,7 +126,7 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, mappings:dict, types:dict, func
         case '||':
             op = 'or i32'
         case '&&':
-            op = 'or i32'
+            op = 'and i32'
 
     instructions = []
     targetReg = rightOpReg + 1

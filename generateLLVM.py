@@ -371,7 +371,7 @@ def binaryToLLVM(lastRegUsed:int, exp:m_binop, env, t_env, f_env):
         case '||':
             op = 'or i32'
         case '&&':
-            op = 'or i32'
+            op = 'and i32'
 
     instructions = []
     targetReg = rightOpReg + 1
