@@ -30,9 +30,16 @@ def statementToSSA(lastRegUsed:int, stmt, types:dict, functions:dict, currentNod
         case m_assignment():
             return assignToSSA(lastRegUsed, stmt, types, functions, currentNode)
         case m_print():
-            pass
+            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, types, functions, currentNode)
+            if type(exprCode) == list:
+                instruction = f'%r{exprReg + 1} = call i32 @printf("%d", %r{exprReg})'
+                exprCode.append(instruction)
+                return exprReg + 1, 'i32', exprCode
         case m_delete():
-            pass
+            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, types, functions, currentNode)
+            exprCode.extend([f'%r{exprReg + 1} = bitcast {exprType} %r{exprReg} to i8*',
+                            f'call void @free(%r{exprReg + 1})'])
+            return exprReg + 1, 'void', exprCode
         case m_ret():
             pass
         case m_invocation():
@@ -56,29 +63,33 @@ def expressionToLLVM(lastRegUsed:int, expr, types:dict, functions:dict, currentN
         case m_num() | m_bool():
             return lastRegUsed+1, 'i32', [f'%r{lastRegUsed+1} = i32 {expr.val}']
         case m_new_struct():
-            pass
+            code = [f'%r{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
+                 f'%r{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
+            return lastRegUsed+1, f'%struct.{expr.struct_id.identifier}*', code
         case m_null():
-            pass
+            # keeping it like this ensures functionality for rest of compiler
+            return lastRegUsed, 'i32', 0
         case m_invocation():
             pass
         case m_read():
-            pass
+            return lastRegUsed+2, 'i32', [f'%r{lastRegUsed+2} = alloc i32', f'%r{lastRegUsed+1} = call i32 @scanf("%d", %{lastRegUsed+2}*)']
         case m_unary():
             pass
         case m_dot():
-            pass
+            ids = [mid.identifier for mid in expr.ids]
+            resultType, resultReg = readVariable(lastRegUsed, '.'.join(ids))
         case m_id():
             resultReg = readVariable(lastRegUsed, expr.identifier, currentNode)
 
 
-def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> int:
+def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[str, int]:
     if identifier in currentNode.mappings:
-        return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], []
+        return currentNode.mappings[identifier][0], currentNode.mappings[identifier][1]
     else:
         if not currentNode.sealed:
-            # return a phi node that is incomplete
-            # add phi node to incomplete phi nodes
-            pass 
+            llvmType, regNum = phi([], complete=False)
+            currentNode.mappings[identifier] = (llvmType, regNum)
+            return (llvmType, regNum)
         elif len(currentNode.previousBlocks) == 0:
             # val is undefined
             # should never encounter this case
@@ -90,11 +101,16 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> int:
         else:
             # create phi node with values in prev blocks
             possibleRegisters = [readVariable(identifier, node) for node in currentNode.previousBlocks]
+            llvmType, regNum = phi(possibleRegisters)
             # map variable to phi node
-            currentNode.mappings[identifier]
-            pass
-        pass
+            currentNode.mappings[identifier] = (llvmType, regNum)
+            return (llvmType, regNum)
 
+# Placeholder for phi node
+class phi:
+    def __init__(self, lst:list, complete = False) -> Tuple[str, int]:
+        self.possibleValues = lst
+        return 'i32', 0
 
 # == != <= < > >= - + * / || &&
 def binaryToLLVM(lastRegUsed:int, binop:m_binop, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
@@ -134,4 +150,4 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, types:dict, functions:dict, cur
     instructions.extend(rightOpCode)
     instructions.append(f'%r{targetReg} = {op} %r{leftOpReg}, %r{rightOpReg}')
 
-    return (targetReg, 'i32', mappings, instructions)
+    return (targetReg, 'i32', instructions)
