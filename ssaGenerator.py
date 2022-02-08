@@ -135,3 +135,23 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, types:dict, functions:dict, cur
     instructions.append(f'%r{targetReg} = {op} %r{leftOpReg}, %r{rightOpReg}')
 
     return (targetReg, 'i32', mappings, instructions)
+
+
+# ! -
+def unaryToLLVM(lastRegUsed:int, unary:m_unary, types:dict, functions:dict, currentNode:CFG_Node):
+    opReg, opLLVMType, mappings, opCode = expressionToLLVM(lastRegUsed, unary.operand_expression, types, functions, currentNode)
+
+    # == != <= < > >= - + * / || &&
+    match unary.operator:
+        case '!':
+            op = f'xor i32 1' # ANYTHING TO CHANGE ??
+        case '-':
+            op = f'mul i32 -1'  # ANYTHING TO CHANGE ??
+
+    instructions = []
+    targetReg = rightOpReg + 1          # this correct ????
+    instructions.extend(leftOpCode)
+    instructions.extend(rightOpCode)
+    instructions.append(f'%r{targetReg} = {op} %r{leftOpReg}, %r{rightOpReg}')
+
+    return (targetReg, 'i32', mappings, instructions)
