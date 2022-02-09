@@ -3,8 +3,8 @@ fun main() int{
     int b;
     int c;
 
-    a = 42;         // assigns r1 <- 42 and creates mapping of a : r1
-    b = a;          // create mapping of b : r1
-    c = a + b;      // assigns r2 <- r1 + r1 and creates mapping of c : r2
-    a = c + 23;     // assigns r3 <- 23 and r4 <- r2 + r3 creates mapping a : r4
+    a = 42;
+    b = a;
+    c = a + b;
+    a = c + 23;
 }

@@ -1,0 +1,11 @@
+struct A{
+   int a;
+   int b;
+};
+
+fun main() int{
+    int a;
+    a = 5;
+    a = foo(a);
+    return a;
+}

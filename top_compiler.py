@@ -19,7 +19,7 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll'):
     
 def importMiniFile(filepath) -> m_prog:
     with open('tmp', 'w+') as outputHolder:
-        subprocess.call(['java', '-jar', 'miniFiles/MiniCompiler.jar', filepath], stdout=outputHolder)
+        subprocess.call(['java', '-jar', 'MiniCompiler.jar', filepath], stdout=outputHolder)
 
     jsonAST = ''
     with open('tmp', 'r') as outputHolder:

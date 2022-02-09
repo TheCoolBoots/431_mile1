@@ -227,8 +227,10 @@ def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env) -> Tuple[int, str, list
 
 
 def getLLVMType(typeID:str) -> str:
-    if typeID == 'bool' or typeID == 'int' or typeID == 'void':
+    if typeID == 'bool' or typeID == 'int':
         return 'i32'
+    elif typeID == 'void':
+        return 'void'
     else:
         return f'%struct.{typeID}*'
 
@@ -288,12 +290,6 @@ def dotToLLVM(lastRegUsed:int, expression:m_dot, env, t_env, f_env) -> Tuple[int
 
     return (lastRegUsed + 1, currentIDTypeID, outputCode)
 
-
-# returns (struct member num, member typeID)
-def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[int, str]:
-    for i, decl in enumerate(declarations):
-        if decl.id == id:
-            return (i, decl.type.typeID)
 
 
 def invocationToLLVM(lastRegUsed:int, exp:m_invocation, env, t_env, f_env) -> Tuple[int, str, list[str]]:

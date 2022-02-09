@@ -1,0 +1,11 @@
+struct A{
+   int a;
+   int b;
+};
+
+fun main() int{
+    struct A varHolder;
+    varHolder.a = 1;
+    print varHolder.a;
+    delete varHolder;
+}
