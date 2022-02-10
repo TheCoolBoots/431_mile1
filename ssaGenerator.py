@@ -161,14 +161,13 @@ def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[in
             return (i, decl.type.typeID)
 
 
-def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[str, int]:
+def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if identifier in currentNode.mappings:
-        return currentNode.mappings[identifier][0], currentNode.mappings[identifier][1]
+        return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], []
     else:
         if not currentNode.sealed:
-            llvmType, regNum = phi([], complete=False)
-            currentNode.mappings[identifier] = (llvmType, regNum)
-            return (llvmType, regNum)
+            currentNode.mappings[identifier] = ('?', lastRegUsed+1)
+            return lastRegUsed+1, '?', [f'%{lastRegUsed + 1} = phi(_)']
         elif len(currentNode.previousBlocks) == 0:
             # val is undefined
             # should never encounter this case
@@ -180,10 +179,13 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         else:
             # create phi node with values in prev blocks
             possibleRegisters = [readVariable(identifier, node) for node in currentNode.previousBlocks]
-            llvmType, regNum = phi(possibleRegisters)
+            llvmType = possibleRegisters[0][1]
+            phiParams = [f'{reg[1]} %{reg[0]}' for reg in possibleRegisters]
+            phiParams = ', '.join(phiParams)
+
             # map variable to phi node
-            currentNode.mappings[identifier] = (llvmType, regNum)
-            return (llvmType, regNum)
+            currentNode.mappings[identifier] = (llvmType, lastRegUsed+1)
+            return (lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = phi({phiParams})'])
 
 # Placeholder for phi node
 # ASK PROFESSOR ABOUT THIS ON THURSDAY
