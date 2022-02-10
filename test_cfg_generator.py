@@ -9,6 +9,12 @@ import os
 
 # NOTE: YOU WILL WANT TO HAVE A NODE AT THE START OF THE CFG FOR INITIALIZATION PURPOSES LATER
 
+# YOU WILL NEED  A WAY TO PASS ALONG ALL OF THE FUNCTIONS HEAD NODES IN A LIST SO THAT THEY ARE EASY TO GRAB
+
+# FOR EACH ONE YOU WILL NEED TO CREATE A MAPPING FOR EACH PARAMETER OF THE FUNCTION
+
+
+
 # step through the node tree and print a formatted dot file
 def dotToCFG(head, name):
     # nodeId = 0 # consider implementing this, the issue came when trying to check the id of the next node
@@ -133,6 +139,33 @@ def addPreviousBlocks(head):
 
 
     return head
+
+
+
+
+# add an empty block at the start and end of each while as well as the start and end of each if/else
+# also add a return block for stack cleanup
+# dont worry about just if ??
+def addEmptyBlocks(head):
+
+    # it is a while block if it has 2 next blocks and 2 prev blocks (could even look at a prev block being the same as a next block)
+        # add a node before the guard and after (but between the while and NOT the body)
+        # make sure you remove all the prev blocks and put them on the new single prev block
+        # make sure you remove the correct next block and put it onto the next block
+
+
+    # it is an if block guard if it has 2 next blocks and none of the prev blocks are the same as the next blocks
+        # add a node before the guard
+
+
+    # it is an if block convergence point if it has two prev blocks (could it have more? is there anything I need to be careful about?)
+        # add a node before the block since you want the if and else to converge on a single empty node
+
+
+    # walk back thru and for each return block add a next block that goes to the same place
+
+
+    # finally add an initial block at the start that is empty
 
 
 
