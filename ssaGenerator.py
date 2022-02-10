@@ -1,10 +1,19 @@
-from typing import Tuple
+from typing import Dict, Tuple
 from ast_class_definitions import *
 from top_compiler import importMiniFile
 from cfg_generator import CFG_Node
 from generateLLVM import getLLVMType
 
-def generateSSA(rootNode:CFG_Node):
+def tmp(prog:m_prog):
+    # create a tree for every function in prog.functions
+    # generate globals, generate top_env, generate types
+    # generate llmv code for functions
+
+    pass
+
+def generateSSA(rootNode:CFG_Node, env, types, functions):
+    # whiles and ifs
+    
     pass
 
 
@@ -21,10 +30,11 @@ def _generateSSA(currentNode: CFG_Node, types, functions):
 
     return code, currentNode.mappings
 
-
+# env maps strings to types {str: str(typeID)}
+# r_ = load type[id] @z
 # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
 # returns a tuple containing (mappings within block, SSA LLVM code)
-def statementToSSA(lastRegUsed:int, stmt, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     match stmt:
         case m_assignment():
             return assignToSSA(lastRegUsed, stmt, types, functions, currentNode)
