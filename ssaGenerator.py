@@ -1,13 +1,82 @@
 from typing import Dict, Tuple
 from ast_class_definitions import *
 from top_compiler import importMiniFile
-from cfg_generator import CFG_Node
+from cfg_generator import *
 from generateLLVM import getLLVMType
 
 def tmp(prog:m_prog):
-    # create a tree for every function in prog.functions
+    # create a function node for each function
+    functionList = generate_CFG_Prog_Handler(prog) # this is a list of function nodes
+
+
     # generate globals, generate top_env, generate types
-    # generate llmv code for functions
+    # may need a new function for getting declarations in the global env
+    lastReg = 0
+    globalDeclarations = []
+    for dec in prog.global_declarations:
+        # get the list of code from the current declaration
+        declarationList = dec.getSSA(lastReg, prog.getTypeSizes())  # return list of strings
+        lastReg += 1  # increment by just 1?
+
+        # extend the globalDeclarations list of code
+        globalDeclarations.extend(declarationList)
+
+
+
+    # getTopEnv(self, includeLineNum=True)
+    # get the dictionary of string to type in the global environment
+    globalTopEnv = prog.getTopEnv(False)
+
+
+    # will need to step through each statement in each block in each function
+    # convert to llvm code with - statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, currentNode:CFG_Node)
+    for fun in functionList:
+        currBlock = fun.firstNode # get the first block in a function
+
+
+        # make dict of traversed nodes
+        nodeDict = {}
+
+        # make queue for traversing nodes
+        queue = []
+
+        # start off the queue
+        queue.append(currBlock)
+
+        # step through each block of current tree and convert statements to SSA LLVM
+        while queue != []:
+            # take first item from the queue
+            currBlock = queue.pop(0)
+
+            # check if youve already looked at this node
+            if currBlock in nodeDict:
+                continue
+
+            # add the current node to the visited dict
+            nodeDict[currBlock] = True
+
+            # will need to include global environment in the generateSSA function
+            # _generateSSA(currentNode: CFG_Node, types, functions) : return code, currentNode.mappings
+            tempCode, mappings = _generateSSA(currBlock, prog.getTypes(), WILLBEAFUNCTION(), globalTopEnv)
+
+            # update the ast code to be replaced with SSA LLVM code
+            currBlock.code = tempCode
+            currBlock.mappings = mappings # YES?
+
+            # check if there are any next nodes, add them if so
+            for tempNode in currBlock.nextBlocks:
+                queue.append(tempNode)
+
+
+            # anything else??
+
+
+
+
+    # generate llvm code for functions
+
+
+    # look at if and while loops
 
     pass
 

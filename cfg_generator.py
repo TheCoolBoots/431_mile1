@@ -28,9 +28,13 @@ class Function_Nodes:
         self.returnType = returnType
 
 
+# returns a list of all function linked blocks. Previously it only returned the main function.
 def generate_CFG_Prog_Handler(program:m_prog):
     global blockId
     # print("entered Prog_Handler")
+
+    functionList = []
+
     # look through the functions and make them into blocks (in order)
     for fun in program.functions:
         # if you get to main, break, this is a special case (??)
@@ -45,6 +49,10 @@ def generate_CFG_Prog_Handler(program:m_prog):
 
         # add the new block to the environment
         functionBlocks[fun.id.identifier] = newNode
+        # add the block to the funciton list
+        functionList.append(newNode)
+
+
 
     # once we get to main we will continue making blocks but also piecing together the other functions
     # print("LOOK HERE: " + str(mainFun.statements))
@@ -52,119 +60,129 @@ def generate_CFG_Prog_Handler(program:m_prog):
     # print(str(functionBlocks))
     # print("\n\nENTERING NODE REMOVAL\n\n")
 
-    queue = []
-    nodeReferences = {}
-    # enqueue the node at the front
-    queue.append( mainNode.firstNode )
-    updatePrevFlag = 1
+    # print(str(type(mainNode)))
 
-    # step through the nodes and delete the empty nodes by patching the others together
-    firstFlag = 1
-    while queue != []:
-        currNode = queue.pop(0)
-
-        if currNode in nodeReferences:
-            continue
-        else:
-            nodeReferences[currNode] = True
-
-        # print("currID: " + str(currNode.id) )
-        # print("currID: " + str(currNode.id) +  " Queue Size: " + str(len(queue)) + " Queue: " + str(queue))
-
-        # if current node is none, we assume we are at the first node, and continue
-        if currNode.code == [] and firstFlag == 1:
-            firstFlag = 0
-            # print("1 removing node number: " + str(currNode.id))
-
-            # the weird empty node branches into 2+
-            if len(currNode.nextBlocks) > 1:
-                # print("\n\n\n\nNO IDEA WHAT I SHOULD DO IN THIS CASE \n\n\n\n")
-                return None
-
-            # the empty node has no next blocks, I guess just return it
-            if len(currNode.nextBlocks) == 0:
-                # print("\n\n\n\nNO IDEA WHAT I SHOULD DO IN THIS CASE \n\n\n\n")
-                return mainNode
-
-            # change the front node
-            mainNode.firstNode = currNode.nextBlocks[0]
-            
-            # add the new front node to the queue
-            queue.append(currNode.nextBlocks[0])
-            
-            # just continue
-            continue
+    functionList.append(mainNode)
 
 
+    for node in functionList:
+        # print(str(type(node)))
+        queue = []
+        nodeReferences = {}
+        # enqueue the node at the front
+        queue.append(node.firstNode)
+        updatePrevFlag = 1
 
-        # check if any of the next nodes are 
-        i = 0
-        # print("length: " + str(len(currNode.nextBlocks)))
-        while i < len(currNode.nextBlocks):
-            # print(currNode.nextBlocks)
-            if currNode.nextBlocks[i].code == []:
-                # print("2 removing node number: " + str(currNode.nextBlocks[i].id))
-                # print("removed node nextBlocks: " + str(currNode.nextBlocks[i].nextBlocks))
-                
-                # add the nextBlocks of that node to the current one
-                for node in currNode.nextBlocks[i].nextBlocks:
-                    # print("Here")
-                    currNode.nextBlocks.append(node)
+        # step through the nodes and delete the empty nodes by patching the others together
+        firstFlag = 1
+        while queue != []:
+            currNode = queue.pop(0)
 
-                # remove the node
-                currNode.nextBlocks.pop(i)
-                # continue, dont increment i as it is now removed
+            if currNode in nodeReferences:
+                continue
+            else:
+                nodeReferences[currNode] = True
+
+            # print("currID: " + str(currNode.id) )
+            # print("currID: " + str(currNode.id) +  " Queue Size: " + str(len(queue)) + " Queue: " + str(queue))
+
+            # if current node is none, we assume we are at the first node, and continue
+            if currNode.code == [] and firstFlag == 1:
                 firstFlag = 0
-                continue 
+                # print("1 removing node number: " + str(currNode.id))
 
-            i += 1
+                # the weird empty node branches into 2+
+                if len(currNode.nextBlocks) > 1:
+                    # print("\n\n\n\nNO IDEA WHAT I SHOULD DO IN THIS CASE \n\n\n\n")
+                    return None
 
-        firstFlag = 0
+                # the empty node has no next blocks, I guess just return it
+                if len(currNode.nextBlocks) == 0:
+                    # print("\n\n\n\nNO IDEA WHAT I SHOULD DO IN THIS CASE \n\n\n\n")
+                    return mainNode
 
-        # add all the next nodes to the queue
-        for node in currNode.nextBlocks:
-            queue.append(node)
+                # change the front node
+                mainNode.firstNode = currNode.nextBlocks[0]
 
+                # add the new front node to the queue
+                queue.append(currNode.nextBlocks[0])
 
-
-    # LOGICAL RENUMBERING SECTION
-    # step thru the nodes in order and renumber them in a more logical manner
-    queue = []
-    nodeReferences = {}
-
-    # enqueue the node at the front
-    queue.append( mainNode.firstNode )
-
-    # number to update with
-    updateId = 0
-
-    # step through the nodes and renumber each node in order
-    while queue != []:
-        currNode = queue.pop(0)
-
-        # if the node is in the dict, ignore it. Otherwise we add it to the dict.
-        if currNode in nodeReferences:
-            continue
-        else:
-            nodeReferences[currNode] = True
-
-        # update the currNode id value
-        currNode.id = updateId
-
-        # increment new id value
-        updateId += 1
-
-        # add all the next nodes to the queue
-        for node in currNode.nextBlocks:
-            queue.append(node)
+                # just continue
+                continue
 
 
-        # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.id)]) + "\nblock Id: " + str(currNode.id) + "\n\n\n")
-        # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.code)]) + "\n\n\n")
-        # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) +       "\n\n\n")# + "\nnumReferences: " + str(nodeReferences[nodeNum]) + "\n\n\n")
+
+            # check if any of the next nodes are
+            i = 0
+            # print("length: " + str(len(currNode.nextBlocks)))
+            while i < len(currNode.nextBlocks):
+                # print(currNode.nextBlocks)
+                if currNode.nextBlocks[i].code == []:
+                    # print("2 removing node number: " + str(currNode.nextBlocks[i].id))
+                    # print("removed node nextBlocks: " + str(currNode.nextBlocks[i].nextBlocks))
+
+                    # add the nextBlocks of that node to the current one
+                    for tempNode in currNode.nextBlocks[i].nextBlocks:
+                        # print("Here")
+                        currNode.nextBlocks.append(tempNode)
+
+                    # remove the node
+                    currNode.nextBlocks.pop(i)
+                    # continue, dont increment i as it is now removed
+                    firstFlag = 0
+                    continue
+
+                i += 1
+
+            firstFlag = 0
+
+            # add all the next nodes to the queue
+            for nextNode in currNode.nextBlocks:
+                queue.append(nextNode)
+
+
+
+        # LOGICAL RENUMBERING SECTION
+        # step thru the nodes in order and renumber them in a more logical manner
+        queue = []
+        nodeReferences = {}
+
+        # enqueue the node at the front
+        queue.append( node.firstNode )
+
+        # number to update with
+        updateId = 0
+
+        # step through the nodes and renumber each node in order
+        while queue != []:
+            currNode = queue.pop(0)
+
+            # if the node is in the dict, ignore it. Otherwise we add it to the dict.
+            if currNode in nodeReferences:
+                continue
+            else:
+                nodeReferences[currNode] = True
+
+            # update the currNode id value
+            currNode.id = updateId
+
+            # increment new id value
+            updateId += 1
+
+            # add all the next nodes to the queue
+            for tempNode in currNode.nextBlocks:
+                queue.append(tempNode)
+
+
+            # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.id)]) + "\nblock Id: " + str(currNode.id) + "\n\n\n")
+            # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.code)]) + "\n\n\n")
+            # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) +       "\n\n\n")# + "\nnumReferences: " + str(nodeReferences[nodeNum]) + "\n\n\n")
+
+
+
 
     # print("\n\nEXITING NODE REMOVAL\n\n")
-    return mainNode
+    return functionList
 
 
 # the function flag tells us if we should create a function node or just a node (0 means function, 1 means not function)
@@ -796,6 +814,7 @@ def checkForInvocation(expression, currNode):
 
         # in case I missed any cases
         case _:
+            # currNode.code.append(expression)
             # print("WHY DID YOU GET HERE? Expression: " + str(expression))
             return (None, 0, currNode)
 
