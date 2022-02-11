@@ -86,15 +86,16 @@ def generateSSA(rootNode:CFG_Node, env, types, functions):
     pass
 
 
-# def _generateSSA(currentNode:CFG_Node):
-#     pass
+# top_env structure: {str: m_type} 
+# types structure: {str: list[m_declaration]}
+# functions structure: {str: (m_type, list[m_type])}     maps funID -> return type, param types
 
-def _generateSSA(currentNode: CFG_Node, types, functions):
+def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict):
     code = []
     lastRegUsed = 0
     statements = currentNode.code
     for statement in statements:
-        lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, types, functions, currentNode)
+        lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
         code.extend(newCode)
 
     return code, currentNode.mappings
@@ -128,7 +129,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             return -1, -1, -1
 
 
-def retToSSA(lastRegUsed, ret:m_ret, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if ret.expression == None:
         return (lastRegUsed, 'void', [f'ret void'])
 
@@ -141,13 +142,22 @@ def retToSSA(lastRegUsed, ret:m_ret, types:dict, functions:dict, currentNode:CFG
     return (returnReg, retType, returnCode)
 
 
-def assignToSSA(lastRegUsed:int, assign:m_assignment, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, list[str]]:
+def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, assign.source_expression, types, functions, currentNode)
     if type(exprReg) == int:
         lastRegUsed = exprReg
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
     if len(targetStrings) == 1:
+        # if the target is in the top_env, that means it is either a global var or local struct
+        #       if global var, use @
+        #       if local struct, use normal
+        if targetStrings[0] in env:
+            if env[targetStrings[0]] == m_type('int') or env[targetStrings[0]] == m_type('bool'):
+                return lastRegUsed, env[targetStrings[0]], [f'store {exprType} %{exprReg}, i32* @{targetStrings[0]}']
+
+        # if it is not in top_env, it is a local variable and is dealt with through SSA form
+
         currentNode.mappings[targetStrings[0]] = (exprType, exprReg, 'placeholder')
         return exprReg, exprType, exprCode
     else:
@@ -182,7 +192,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, types:dict, functions:dict
     
 
 # returns a tuple containing (resultReg, llvmType, mappings within block, SSA LLVM code)
-def expressionToLLVM(lastRegUsed:int, expr, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     match expr:
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, types, functions, currentNode)
@@ -211,7 +221,7 @@ def expressionToLLVM(lastRegUsed:int, expr, types:dict, functions:dict, currentN
             print(f'ERROR: unrecognized expression: {other}')
 
 
-def dotToSSA(lastRegUsed:int, expression:m_dot, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     currentID = expression.ids[0].identifier
     currentIDTypeID = currentNode.mappings[currentID][2]
 
@@ -275,7 +285,7 @@ class phi:
         return 'i32', 0
 
 # == != <= < > >= - + * / || &&
-def binaryToLLVM(lastRegUsed:int, binop:m_binop, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     leftOpReg, leftLLVMType, leftOpCode = expressionToLLVM(lastRegUsed, binop.left_expression, types, functions, currentNode)
     rightOpReg, rightLLVMType, rightOpCode = expressionToLLVM(leftOpReg, binop.right_expression, types, functions, currentNode)
 
@@ -315,7 +325,7 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, types:dict, functions:dict, cur
     return (targetReg, 'i32', instructions)
 
 
-def invocationToSSA(lastRegUsed:int, exp:m_invocation, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     params = []
     for expression in exp.args_expressions:
         params.append(expressionToLLVM(lastRegUsed, expression, types, functions, currentNode))
