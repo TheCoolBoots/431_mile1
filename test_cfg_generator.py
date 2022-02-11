@@ -6,6 +6,7 @@ from generateLLVM import *
 import test_ast_trees
 import json
 import os
+from ssaGenerator import *
 
 # NOTE: YOU WILL WANT TO HAVE A NODE AT THE START OF THE CFG FOR INITIALIZATION PURPOSES LATER
 
@@ -426,16 +427,27 @@ def main():
     # dotToCFG(testCFG13.firstNode, "nested while case")
 
 
-    # # lgtm
-    # # if while nested case
-    # with open('json_parser_tests/if_while_nested.json') as file14:
-    #     contents = json.load(file14)
-    # ast = parse(contents)
+    # lgtm
+    # if while nested case
+    with open('json_parser_tests/if_while_nested.json') as file14:
+        contents = json.load(file14)
+    ast = parse(contents)
+
+    functionList = tmp(ast)
+
+    for func in functionList:
+        print("\ncurrent function: " + func.id + "\n")
+
+        for codeLine in func.code:
+            print(codeLine + "\n")
+
+
+
     # functionList = generate_CFG_Prog_Handler(ast)
     # length = len(functionList)
     # testCFG14 = functionList[length-1]
     # testCFG14.firstNode = addPreviousBlocks(testCFG14.firstNode)
-    # # printCFG(testCFG14.firstNode)
+    # printCFG(testCFG14.firstNode)
     # dotToCFG(testCFG14.firstNode, "if while nested case")
 
 
@@ -465,18 +477,21 @@ def main():
     # dotToCFG(testCFG16.firstNode, "triple nested if case")
 
 
-    # lgtm
-    # triple nested while case
-    with open('json_parser_tests/while_triple_nest.json') as file17:
-        contents = json.load(file17)
-    ast = parse(contents)
-    functionList = generate_CFG_Prog_Handler(ast)
-    # print(str(functionList))
-    length = len(functionList)
-    testCFG17 = functionList[length - 1]
-    testCFG17.firstNode = addPreviousBlocks(testCFG17.firstNode)
-    printCFG(testCFG17.firstNode)
-    # dotToCFG(testCFG17.firstNode, "nested while case")
+    # # lgtm
+    # # triple nested while case
+    # with open('json_parser_tests/while_triple_nest.json') as file17:
+    #     contents = json.load(file17)
+    # ast = parse(contents)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    # # print(str(functionList))
+    # length = len(functionList)
+    # testCFG17 = functionList[length - 1]
+    # testCFG17.firstNode = addPreviousBlocks(testCFG17.firstNode)
+    # printCFG(testCFG17.firstNode)
+    # # dotToCFG(testCFG17.firstNode, "nested while case")
+
+
+
 
 
 if __name__ == "__main__":

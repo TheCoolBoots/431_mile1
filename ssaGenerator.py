@@ -57,7 +57,7 @@ def tmp(prog:m_prog):
 
             # will need to include global environment in the generateSSA function
             # _generateSSA(currentNode: CFG_Node, types, functions) : return code, currentNode.mappings
-            tempCode, mappings = _generateSSA(currBlock, prog.getTypes(), WILLBEAFUNCTION(), globalTopEnv)
+            tempCode, mappings = _generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog)) # _generateSSA(currBlock, prog.getTypes(), generateFunctionTypes(prog), globalTopEnv)
 
             # update the ast code to be replaced with SSA LLVM code
             currBlock.code = tempCode
@@ -72,11 +72,11 @@ def tmp(prog:m_prog):
 
 
 
-
-    # generate llvm code for functions
-
-
     # look at if and while loops
+
+
+    return functionList
+
 
     pass
 
@@ -89,6 +89,23 @@ def generateSSA(rootNode:CFG_Node, env, types, functions):
 # top_env structure: {str: m_type} 
 # types structure: {str: list[m_declaration]}
 # functions structure: {str: (m_type, list[m_type])}     maps funID -> return type, param types
+# {str funName: (m_type returnType, list[m_type] paramTypes)}
+def generateFunctionTypes(prog:m_prog):
+    # create initial function dictionary
+    funDict = {}
+
+    # step through function and create the type tuple you need for the dict
+    for fun in prog.functions:
+        # create list of the functions parameter types
+        paramTypeList = []
+        for param in fun.param_declarations:
+            paramTypeList.append(param.type)
+
+        # add the current functions values into the function dictionary
+        funDict[fun.id.identifier] = (fun.return_type, paramTypeList)
+
+    return funDict
+
 
 def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict):
     code = []
