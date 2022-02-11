@@ -86,10 +86,10 @@ def generateSSA(rootNode:CFG_Node, env, types, functions):
     pass
 
 
-# top_env structure: {str: m_type} 
+# top_env structure: {str: (bool, m_type)}              where bool == true if global, false if local 
 # types structure: {str: list[m_declaration]}
-# functions structure: {str: (m_type, list[m_type])}     maps funID -> return type, param types
-
+# functions structure: {str: (m_type, list[m_type])}    maps funID -> return type, param types
+# mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
 def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict):
     code = []
     lastRegUsed = 0
@@ -100,6 +100,7 @@ def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict
 
     return code, currentNode.mappings
 
+
 # env maps strings to types {str: str(typeID)}
 # r_ = load type[id] @z
 # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
@@ -107,15 +108,15 @@ def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict
 def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     match stmt:
         case m_assignment():
-            return assignToSSA(lastRegUsed, stmt, types, functions, currentNode)
+            return assignToSSA(lastRegUsed, stmt, env, types, functions, currentNode)
         case m_print():
-            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, types, functions, currentNode)
+            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, types, functions, currentNode)
             if type(exprCode) == list:
                 instruction = f'%{exprReg + 1} = call i32 @printf("%d", %{exprReg})'
                 exprCode.append(instruction)
                 return exprReg + 1, 'i32', exprCode
         case m_delete():
-            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, types, functions, currentNode)
+            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, types, functions, currentNode)
             if type(exprReg) != str:
                 lastRegUsed = exprReg
             exprCode.extend([f'%{lastRegUsed + 1} = bitcast {exprType} %{exprReg} to i8*',
@@ -123,7 +124,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             currentNode.mappings.pop(exprReg)
             return lastRegUsed + 1, 'void', exprCode
         case m_ret():
-            return retToSSA(lastRegUsed, stmt, types, functions, currentNode)
+            return retToSSA(lastRegUsed, stmt, env, types, functions, currentNode)
         case other:
             print(f'ERROR: unrecognized structure:{other}')
             return -1, -1, -1
@@ -133,7 +134,7 @@ def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, c
     if ret.expression == None:
         return (lastRegUsed, 'void', [f'ret void'])
 
-    returnReg, retType, returnCode = expressionToLLVM(lastRegUsed, ret.expression, types, functions, currentNode)
+    returnReg, retType, returnCode = expressionToLLVM(lastRegUsed, ret.expression, env, types, functions, currentNode)
     if(retType == 'void'):
         returnCode.append(f'ret {retType}')
     else:
@@ -143,21 +144,28 @@ def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, c
 
 
 def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
-    exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, assign.source_expression, types, functions, currentNode)
+    exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, assign.source_expression, env, types, functions, currentNode)
     if type(exprReg) == int:
         lastRegUsed = exprReg
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
     if len(targetStrings) == 1:
-        # if the target is in the top_env, that means it is either a global var or local struct
+        # if the target is in the top_env, that means it is either a global var or global/local struct
         #       if global var, use @
         #       if local struct, use normal
         if targetStrings[0] in env:
             if env[targetStrings[0]] == m_type('int') or env[targetStrings[0]] == m_type('bool'):
                 return lastRegUsed, env[targetStrings[0]], [f'store {exprType} %{exprReg}, i32* @{targetStrings[0]}']
+            # if struct is a global struct
+            elif env[targetStrings[0]][0]:
+                typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
+                return lastRegUsed, env[targetStrings[0]], [f'store {exprType} %{exprReg}, {typeStr} @{targetStrings[0]}']
+            # struct is a locally defined struct
+            else:
+                typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
+                return lastRegUsed, env[targetStrings[0]], [f'store {exprType} %{exprReg}, {typeStr} %{targetStrings[0]}']
 
         # if it is not in top_env, it is a local variable and is dealt with through SSA form
-
         currentNode.mappings[targetStrings[0]] = (exprType, exprReg, 'placeholder')
         return exprReg, exprType, exprCode
     else:
@@ -195,7 +203,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
 def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     match expr:
         case m_binop():
-            return binaryToLLVM(lastRegUsed, expr, types, functions, currentNode)
+            return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
         case m_num() | m_bool():
             return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = i32 {expr.val}']
         case m_new_struct():
@@ -207,16 +215,21 @@ def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict
             # keeping it like this ensures functionality for rest of compiler
             return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = i32 0']
         case m_invocation():
-            return invocationToSSA(lastRegUsed, expr, types, functions, currentNode)
+            return invocationToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_read():
             return lastRegUsed+2, 'i32', [f'%{lastRegUsed+2} = alloc i32', f'%{lastRegUsed+1} = call i32 @scanf("%d", %{lastRegUsed+2}*)']
         case m_unary():
             pass
         case m_dot():
-            return dotToSSA(lastRegUsed, expr, types, functions, currentNode)
+            return dotToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_id():
-            llvmType, resultReg = readVariable(lastRegUsed, expr.identifier, currentNode)
-            return resultReg, llvmType, []
+            if expr.identifier in env:
+                # if id is a global variable
+                if env[expr.identifier][0]:
+                    return lastRegUsed+1, env[expr.identifier][1], [f'%{lastRegUsed+1} = load {env[expr.identifier]} @{expr.identifier}']
+                else:
+                    return lastRegUsed+1, env[expr.identifier][1], [f'%{lastRegUsed+1} = load {env[expr.identifier]} %{expr.identifier}']
+            return readVariable(lastRegUsed, expr.identifier, currentNode)
         case other:
             print(f'ERROR: unrecognized expression: {other}')
 
@@ -243,13 +256,7 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
     return (lastRegUsed + 1, currentIDTypeID, outputCode)
 
 
-# returns (struct member num, member typeID)
-def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[int, str]:
-    for i, decl in enumerate(declarations):
-        if decl.id == id:
-            return (i, decl.type.typeID)
-
-
+# mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
 def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if identifier in currentNode.mappings:
         return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], []
@@ -276,18 +283,11 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             currentNode.mappings[identifier] = (llvmType, lastRegUsed+1)
             return (lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = phi({phiParams})'])
 
-# Placeholder for phi node
-# ASK PROFESSOR ABOUT THIS ON THURSDAY
-class phi:
-    def __init__(self, lst:list, complete = False):
-        self.possibleValues = lst
-    def getPlaceHolder():
-        return 'i32', 0
 
 # == != <= < > >= - + * / || &&
 def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
-    leftOpReg, leftLLVMType, leftOpCode = expressionToLLVM(lastRegUsed, binop.left_expression, types, functions, currentNode)
-    rightOpReg, rightLLVMType, rightOpCode = expressionToLLVM(leftOpReg, binop.right_expression, types, functions, currentNode)
+    leftOpReg, leftLLVMType, leftOpCode = expressionToLLVM(lastRegUsed, binop.left_expression, env, types, functions, currentNode)
+    rightOpReg, rightLLVMType, rightOpCode = expressionToLLVM(leftOpReg, binop.right_expression, env, types, functions, currentNode)
 
     # == != <= < > >= - + * / || &&
     match binop.operator:
@@ -328,7 +328,7 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
 def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     params = []
     for expression in exp.args_expressions:
-        params.append(expressionToLLVM(lastRegUsed, expression, types, functions, currentNode))
+        params.append(expressionToLLVM(lastRegUsed, expression, env, types, functions, currentNode))
         lastRegUsed = params[-1][0]
 
     targetReg = params[-1][0] + 1
@@ -348,3 +348,19 @@ def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, fun
     instructions.append(f'%{targetReg} = call {returnTypeID} @{funID}({parameters})')
 
     return (targetReg, returnTypeID, instructions)
+
+
+# returns (struct member num, member typeID)
+def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[int, str]:
+    for i, decl in enumerate(declarations):
+        if decl.id == id:
+            return (i, decl.type.typeID)
+
+
+# Placeholder for phi node
+# ASK PROFESSOR ABOUT THIS ON THURSDAY
+class phi:
+    def __init__(self, lst:list, complete = False):
+        self.possibleValues = lst
+    def getPlaceHolder():
+        return 'i32', 0

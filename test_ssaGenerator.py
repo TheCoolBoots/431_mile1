@@ -18,7 +18,7 @@ class test_ssa_generator(unittest.TestCase):
         # %3 = i32 23
         # %4 = add i32 %2, i32 %3
 
-        code, mappings = _generateSSA(node, {}, {})
+        code, mappings = _generateSSA(node, {}, {}, {})
         expected = ["%1 = i32 42","%2 = add i32 %1, i32 %1","%3 = i32 23","%4 = add i32 %2, i32 %3"]
         self.assertEqual(code, expected)
 
@@ -34,7 +34,7 @@ class test_ssa_generator(unittest.TestCase):
 
         node.mappings['varHolder'] = (f'%struct.A*', f'varHolder', 'A')
 
-        code, mappings = _generateSSA(node, types, {})
+        code, mappings = _generateSSA(node, {}, types, {})
         expected = ['%1 = i32 1',
             '%2 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0',
             'store i32 %1, i32* %2',
@@ -57,10 +57,13 @@ class test_ssa_generator(unittest.TestCase):
                 '%2 = call void @foo(i32 %1)',
                 'ret void']
 
-        code, mappings = _generateSSA(node, {}, functions)
+        code, mappings = _generateSSA(node, {}, {}, functions)
         self.assertEqual(code, expected)
         # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
         self.assertEqual({'a': ('void', 2, 'placeholder')}, mappings)
+
+    def test_globals(self):
+        ast = importMiniFile('ssaFormFiles/globals.mini')
     
 
 if __name__ == '__main__':
