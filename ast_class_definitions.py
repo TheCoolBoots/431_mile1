@@ -7,7 +7,7 @@ TASK 1: create python class for each format as described in overview.pdf
     NOTE maybe this isn't required? can do all semantic checks just on json?
 """
 
-from msilib.schema import Error
+# from msilib.schema import Error
 from typing import Tuple
 
 
