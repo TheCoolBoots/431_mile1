@@ -110,7 +110,7 @@ def generateFunctionTypes(prog:m_prog):
 
 def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict):
     code = []
-    lastRegUsed = 0
+    lastRegUsed = currentNode.lastRegUsed
     statements = currentNode.code
     for statement in statements:
         lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
@@ -300,10 +300,10 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         elif len(currentNode.previousBlocks) == 1:
             # call expressionToLLVM with expr and prev block's mappings
             prevNode = currentNode.previousBlocks[0]
-            return readVariable(identifier, prevNode)
+            return readVariable(lastRegUsed, identifier, prevNode)
         else:
             # create phi node with values in prev blocks
-            possibleRegisters = [readVariable(identifier, node) for node in currentNode.previousBlocks]
+            possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.previousBlocks]
             llvmType = possibleRegisters[0][1]
             phiParams = [f'{reg[1]} %{reg[0]}' for reg in possibleRegisters]
             phiParams = ', '.join(phiParams)

@@ -12,7 +12,7 @@ class test_ssa_generator(unittest.TestCase):
         ast = importMiniFile('ssaFormFiles/basic.mini')
         statementList = ast.functions[0].statements
 
-        node = CFG_Node([], [], statementList, 1)
+        node = CFG_Node(0, [], [], statementList, 1)
 
         # %1 = i32 42
         # %2 = add i32 %1, i32 %1
@@ -29,7 +29,7 @@ class test_ssa_generator(unittest.TestCase):
         ast = importMiniFile('ssaFormFiles/legacy.mini')
         statementList = ast.functions[0].statements
 
-        node = CFG_Node([], [], statementList, 1)
+        node = CFG_Node(0, [], [], statementList, 1)
 
         types = {'A':[m_declaration(1, m_type('int'), m_id(1, 'a'))]}
 
@@ -52,7 +52,7 @@ class test_ssa_generator(unittest.TestCase):
     def test_return(self):
         ast = importMiniFile('ssaFormFiles/return.mini')
         statements = ast.functions[0].statements
-        node = CFG_Node([],[],statements, 1)
+        node = CFG_Node(0, [],[],statements, 1)
         functions = {'foo':(m_type('void'), [m_type('int')])}
 
         expected = ['%1 = i32 5',
@@ -67,7 +67,7 @@ class test_ssa_generator(unittest.TestCase):
     def test_globals(self):
         ast = importMiniFile('ssaFormFiles/globals.mini')
         statements = ast.functions[0].statements
-        node = CFG_Node([],[], statements, 1)
+        node = CFG_Node(0, [],[], statements, 1)
         top_env = ast.getTopEnv(includeLineNum=False)
         types = ast.getTypes()
 
@@ -92,7 +92,7 @@ class test_ssa_generator(unittest.TestCase):
         top_env = ast.getTopEnv()
         types = ast.getTypes()
 
-        node = CFG_Node([],[],statements, 1)
+        node = CFG_Node(0, [],[],statements, 1)
 
         for localDec in localDeclarations:
             top_env[localDec.id.identifier] = (False, localDec.type)
@@ -117,8 +117,25 @@ class test_ssa_generator(unittest.TestCase):
         
         for localDec in localDeclarations:
             declarationCode.append(localDec.getSSALocals())
+
         expectedDecls = ['@beoch = common dso_local global %struct.A* null', '%redacted = alloca %struct.A*']
         self.assertEqual(declarationCode, expectedDecls)
+
+    def test_basicPhi(self):
+        currentNode = CFG_Node(0, [], [], [m_ret(0, m_id(1, 'a'))],2)
+
+        leftNode = CFG_Node(0, [], [], [], 1)
+        rightNode = CFG_Node(0, [], [], [], 1)
+        leftNode.mappings['a'] = ('i32', 4, 'int')
+        rightNode.mappings['a'] = ('i32', 5, 'int')
+
+        currentNode.previousBlocks=[leftNode, rightNode]
+        currentNode.sealed = True
+
+        code, mappings = _generateSSA(currentNode, {}, {}, {})
+        self.assertEqual(mappings, {'a': ('i32', 1)})
+        self.assertEqual(code, ['%1 = phi(i32 %4, i32 %5)', 'ret i32 %1'])
+        
 
 if __name__ == '__main__':
     unittest.main()
