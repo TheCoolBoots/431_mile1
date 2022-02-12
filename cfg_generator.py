@@ -698,7 +698,7 @@ def generate_CFG_Nodes(expression, currNode):
         case _:
             # print("other expression: " + str(expression))
             # add the code to the current list, continue to the next bit
-            currNode.code.append(expression)
+            # currNode.code.append(expression)
             return (currNode, 0)
 
 

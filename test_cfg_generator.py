@@ -148,25 +148,155 @@ def addPreviousBlocks(head):
 # also add a return block for stack cleanup
 # dont worry about just if ??
 def addEmptyBlocks(head):
-    pass
-    # it is a while block if it has 2 next blocks and 2 prev blocks (could even look at a prev block being the same as a next block)
-        # add a node before the guard and after (but between the while and NOT the body)
-        # make sure you remove all the prev blocks and put them on the new single prev block
-        # make sure you remove the correct next block and put it onto the next block
 
 
-    # it is an if block guard if it has 2 next blocks and none of the prev blocks are the same as the next blocks
-        # add a node before the guard
+    queue = [head]
+    nodeDict = {}
 
 
-    # it is an if block convergence point if it has two prev blocks (could it have more? is there anything I need to be careful about?)
-        # add a node before the block since you want the if and else to converge on a single empty node
+#NOTE: there is a weird case where an if-else leads into a while guard. This while guard node would have 3
+# previous blocks. However, while walking through the tree, you should reach the if else convergence point before
+# you reach the while node.
+    # step through every node in the tree
+    while queue != []:
+        currNode = queue.pop(0)
+
+        if currNode in nodeDict:
+            continue
+
+        falseCount = 0
+        prevBlocks = len(currNode.previousBlocks)
+        nextBlocks = len(currNode.nextBlocks)
+
+        # use this dict to find which node is the body for the guard
+        currNodeDict = {}
+        for tempNode in currNode.previousBlocks:
+            currNodeDict[tempNode] = True
+
+        for tempNode in currNode.nextBlocks:
+            # if it is the body, make the value False
+            if tempNode in currNodeDict:
+                falseCount += 1
+                currNodeDict[tempNode] = False
+
+            # if it is the true next node, make the value True
+            else:
+                currNodeDict[tempNode] = True
+
+        # KEEP IN MIND, THIS MIGHT BE A SPECIAL CASE SO WE MUST TREAT IT AS SUCH.
+        # ADD THE NEW NODE BEFORE THIS ONE AND THEN REQUEUE THE NODE.
+        # THIS IS NECESSARY WHEN THE NODE IS BOTH AN IF CONVERGENCE AND WHILE GUARD.
+        # it is an if block convergence point if it has two prev blocks (could it have more? is there anything I need to be careful about?)
+        if (prevBlocks == 2 and falseCount == 0) or (prevBlocks == 3 and falseCount == 1)
+            # add a node before the block since you want the if and else to converge on a single empty node
+
+            # -2 will signify empty prev (for now)
+            newPrevNode = CFG_Node([], [], [], -2)
+
+            newPrevNode.nextBlocks = [currNode]
+
+            for tempNode in currNode.previousBlocks:
+                if currNodeDict[tempNode] == True:
+                    newPrevNode.previousBlocks.append(tempNode)
+                    tempNode.nextBlocks = [newPrevNode]
+
+                else:
+                    currNode.previousBlocks = [tempNode]
+
+                currNode.previousBlocks.append(newPrevNode)
+
+            queue.append(currNode)
+            continue
+
+
+
+        # it is a while block if it has a false count. This means that 1 of the prev and next blcoks are the same
+        # it is a while block if it has 2 next blocks and 2 prev blocks (could even look at a prev block being the same as a next block)
+        elif falseCount > 0:
+
+            # -2 will signify empty prev (for now)
+            newPrevNode = CFG_Node([], [], [], -2)
+            # -1 will signify empty next (for now)
+            newNextNode = CFG_Node([], [], [], -1)
+
+
+            # fix up the previous and next block lists for both temp node and the new node
+            for tempNode in currNode.previousBlocks:
+                if currNodeDict[tempNode] == True:
+                    newPrevNode.previousBlocks.append(tempNode)
+                    tempNode.nextBlocks = [newPrevNode]
+
+                else:
+                    currNode.previousBlocks = [tempNode]
+
+            currNode.previousBlocks.append(newPrevNode)
+
+            for tempNode in currNode.nextBlocks:
+                if currNodeDict[tempNode] == True:
+                    newNextNode.nextBlocks.append(tempNode)
+                    tempNode.previousBlocks = [newNextNode]
+
+                else:
+                    currNode.nextBlocks = [tempNode]
+
+            currNode.previousBlocks.append(newNextNode)
+
+
+
+
+
+        # it is an if block guard if it has 2 next blocks and none of the prev blocks are the same as the next blocks
+        # this will catch both if-else and just plain if structures since both need to have two next blocks
+        elif nextBlocks >= 2 and falseCount == 0:  # will it ever be greater than 2?? nah
+            # add a node before the guard
+
+            # -2 will signify empty prev (for now)
+            newPrevNode = CFG_Node([], [], [], -2)
+
+
+            newPrevNode.nextBlocks = [currNode]
+
+            for tempNode in currNode.previousBlocks:
+                # if currNodeDict[tempNode] == True:
+                newPrevNode.previousBlocks.append(tempNode)
+                tempNode.nextBlocks = [newPrevNode]
+
+                # else:
+                #     currNode.previousBlocks = [tempNode]
+
+            currNode.previousBlocks.append(newPrevNode)
+
+
+
+
+        # # just a regular block, no need to do anything special
+        # else:
+        #     # do anything????
+
+        nodeDict[currNode] = True
+
+        for tempNode in currNode.nextBlocks:
+            queue.append(tempNode)
+
+
 
 
     # walk back thru and for each return block add a next block that goes to the same place
+        # for each node you will step through the lines of code
+
+        # if a line of code is an m_ret, link the block to the only return block (instead of the other block??? or as well as??? I think instead.)
+
+
+
+
 
 
     # finally add an initial block at the start that is empty
+
+
+
+
+    return head
 
 
 
@@ -368,16 +498,17 @@ def main():
     # dotToCFG(testCFG8.firstNode, "invocation unary case")
 
 # same as above ^ - UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
-    # # simple binop case 
-    # with open('json_parser_tests/simpleBinop.json') as file9:
-    #     contents = json.load(file9)
-    # ast = parse(contents)
+    # simple binop case
+    with open('json_parser_tests/simpleBinop.json') as file9:
+        contents = json.load(file9)
+    ast = parse(contents)
     # functionList = generate_CFG_Prog_Handler(ast)
-    # length = len(functionList)
-    # testCFG9 = functionList[length-1]
-    # testCFG9.firstNode = addPreviousBlocks(testCFG9.firstNode)
-    # # printCFG(testCFG9.firstNode)
-    # dotToCFG(testCFG9.firstNode, "simple binop case")
+    functionList = tmp(ast)
+    length = len(functionList)
+    testCFG9 = functionList[length-1]
+    testCFG9.firstNode = addPreviousBlocks(testCFG9.firstNode)
+    # printCFG(testCFG9.firstNode)
+    dotToCFG(testCFG9.firstNode, "simple binop case")
 
 
     # # invocation binop case 
@@ -429,21 +560,11 @@ def main():
 
     # lgtm
     # if while nested case
-    with open('json_parser_tests/if_while_nested.json') as file14:
-        contents = json.load(file14)
-    ast = parse(contents)
-
-    functionList = tmp(ast)
-
-    for func in functionList:
-        print("\ncurrent function: " + func.id + "\n")
-
-        for codeLine in func.code:
-            print(codeLine + "\n")
-
-
-
-    # functionList = generate_CFG_Prog_Handler(ast)
+    # with open('json_parser_tests/if_while_nested.json') as file14:
+    #     contents = json.load(file14)
+    # ast = parse(contents)
+    # functionList = tmp(ast)
+    # # functionList = generate_CFG_Prog_Handler(ast)
     # length = len(functionList)
     # testCFG14 = functionList[length-1]
     # testCFG14.firstNode = addPreviousBlocks(testCFG14.firstNode)
@@ -490,6 +611,34 @@ def main():
     # printCFG(testCFG17.firstNode)
     # # dotToCFG(testCFG17.firstNode, "nested while case")
 
+
+
+
+
+
+
+    for func in functionList:
+        print("\ncurrent function: " + str(func.firstNode.id) + "\n")
+
+        queue = []
+        queue.append(func.firstNode)
+        nodeDict = {}
+
+        while queue != []:
+            currNode = queue.pop(0)
+
+            if currNode in nodeDict:
+                continue
+
+            print("\nnew block\n")
+
+            nodeDict[currNode] = True
+
+            for codeLine in currNode.code:
+                print(codeLine + "\n")
+
+            for nextNode in currNode.nextBlocks:
+                queue.append(nextNode)
 
 
 
