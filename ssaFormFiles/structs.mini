@@ -1,0 +1,13 @@
+struct A{
+    int a;
+    int b;
+};
+
+struct A beoch;
+
+fun main() int{
+    struct A redacted;
+    redacted = new A;
+    beoch = new A;
+    return beoch.a;
+}

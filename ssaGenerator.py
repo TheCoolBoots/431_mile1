@@ -119,7 +119,7 @@ def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict
     return code, currentNode.mappings
 
 
-# env maps strings to types {str: str(typeID)}
+# env maps strings to types {str: bool, str(typeID)}
 # r_ = load type[id] @z
 # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
 # returns a tuple containing (mappings within block, SSA LLVM code)
@@ -139,7 +139,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
                 lastRegUsed = exprReg
             exprCode.extend([f'%{lastRegUsed + 1} = bitcast {exprType} %{exprReg} to i8*',
                             f'call void @free(%{lastRegUsed + 1})'])
-            currentNode.mappings.pop(exprReg)
+            # env.pop(exprReg)
             return lastRegUsed + 1, 'void', exprCode
         case m_ret():
             return retToSSA(lastRegUsed, stmt, env, types, functions, currentNode)
@@ -173,29 +173,35 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
         #       if local struct, use normal
         if targetStrings[0] in env:
             if env[targetStrings[0]] == m_type('int') or env[targetStrings[0]] == m_type('bool'):
-                return lastRegUsed, env[targetStrings[0]], [f'store {exprType} %{exprReg}, i32* @{targetStrings[0]}']
+                exprCode.append(f'store {exprType} %{exprReg}, i32* @{targetStrings[0]}')
+                return lastRegUsed, env[targetStrings[0]], exprCode
             # if struct is a global struct
             elif env[targetStrings[0]][0]:
                 typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
-                return lastRegUsed, env[targetStrings[0]], [f'store {exprType} %{exprReg}, {typeStr} @{targetStrings[0]}']
+                exprCode.append(f'store {exprType} %{exprReg}, {typeStr}* @{targetStrings[0]}')
+                return lastRegUsed, env[targetStrings[0]], exprCode
             # struct is a locally defined struct
             else:
                 typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
-                return lastRegUsed, env[targetStrings[0]], [f'store {exprType} %{exprReg}, {typeStr} %{targetStrings[0]}']
+                exprCode.append(f'store {exprType} %{exprReg}, {typeStr}* %{targetStrings[0]}')
+                return lastRegUsed, env[targetStrings[0]], exprCode
 
         # if it is not in top_env, it is a local variable and is dealt with through SSA form
         currentNode.mappings[targetStrings[0]] = (exprType, exprReg, 'placeholder')
         return exprReg, exprType, exprCode
     else:
         currentID = assign.target_ids[0].identifier
-        currentIDTypeID = currentNode.mappings[currentID][2]
+        currentIDTypeID = env[currentID][1].typeID
         
         nested = False
         for accessedm_id in assign.target_ids[1:]:
             nested = True
             accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
 
-            instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
+            if currentID in env and env[currentID][0]:
+                instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
+            else:
+                instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
             exprCode.append(instruction)
 
             currentID = lastRegUsed + 1
@@ -244,9 +250,11 @@ def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict
             if expr.identifier in env:
                 # if id is a global variable
                 if env[expr.identifier][0]:
-                    return lastRegUsed+1, env[expr.identifier][1], [f'%{lastRegUsed+1} = load {env[expr.identifier]} @{expr.identifier}']
+                    llvmType = getLLVMType(env[expr.identifier][1].typeID)
+                    return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = load {llvmType}* @{expr.identifier}']
                 else:
-                    return lastRegUsed+1, env[expr.identifier][1], [f'%{lastRegUsed+1} = load {env[expr.identifier]} %{expr.identifier}']
+                    llvmType = getLLVMType(env[expr.identifier][1].typeID)
+                    return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = load {llvmType}* %{expr.identifier}']
             return readVariable(lastRegUsed, expr.identifier, currentNode)
         case other:
             print(f'ERROR: unrecognized expression: {other}')
@@ -254,14 +262,17 @@ def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict
 
 def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     currentID = expression.ids[0].identifier
-    currentIDTypeID = currentNode.mappings[currentID][2]
+    currentIDTypeID = env[currentID][1].typeID
 
     outputCode = []
     
     for accessedm_id in expression.ids[1:]:
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
 
-        instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
+        if currentID in env and env[currentID][0]:
+            instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
+        else:
+            instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
         outputCode.append(instruction)
 
         currentID = lastRegUsed + 1
