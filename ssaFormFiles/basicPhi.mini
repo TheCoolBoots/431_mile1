@@ -4,16 +4,5 @@ struct A{
 }
 
 fun main() int{
-
-    struct A magic;             a < 5
-    magic = new struct A;       magic < struct A
-    int a;
-    a = 5;
-
-    if(a == 5){
-        a = 3;          a < 3
-    }
-
     return a;
-
 }

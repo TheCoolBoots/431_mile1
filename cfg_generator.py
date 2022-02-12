@@ -11,7 +11,7 @@ class CFG_Node:
 
 class CFG_Node:
     # def __init__(self, nextBlocks:list, code:list[m_statement], id:int, returnType = None): 
-    def __init__(self, previousBlocks:list[CFG_Node], nextBlocks:list[CFG_Node], code:list, id:int, returnType = None): 
+    def __init__(self, lastRegUsed:int, previousBlocks:list[CFG_Node], nextBlocks:list[CFG_Node], code:list, id:int, returnType = None): 
         self.previousBlocks = previousBlocks # can be multiple
         self.nextBlocks = nextBlocks # could be multiple
         self.code = code    # is a list of statements
@@ -19,6 +19,7 @@ class CFG_Node:
         self.returnType = returnType # default is currently None, might wanna do m_type("void") instead, also should probably add a type
         self.mappings = {}
         self.sealed = False
+        self.lastRegUsed = lastRegUsed
 
 
 class Function_Nodes:
