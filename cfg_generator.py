@@ -192,7 +192,7 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
     global blockId
     # print("entered Function_Handler with flag " + str(functionFlag))
     # create a node
-    currNode = CFG_Node([], [], [], blockId)
+    currNode = CFG_Node(-1 ,[], [], [], blockId) # NO IDEA WHAT I SHOULD PUT IN THE LAST USED REGISTER FIELD
     blockId += 1
     currFinalBlocks = []
     initialNode = currNode 
@@ -238,7 +238,7 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                 
             # do we even need currNodeCount?
             currNodeCount = 0
-            newNode = CFG_Node([], [], [], blockId)
+            newNode = CFG_Node(-1, [], [], [], blockId)
             blockId += 1
             
             # while statement, connect the returned guard node to the new node
@@ -401,7 +401,7 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                 currNode = currNode.nextBlocks[0]
 
             # print("CURRENT NODE BEFORE: " + str(currNode))
-            newNode = CFG_Node([],[],[], blockId)
+            newNode = CFG_Node(-1, [],[],[], blockId)
             blockId += 1
             currNode.nextBlocks.append(newNode)
             # print("UMMMMMM" + str(currNode.code))
@@ -667,7 +667,7 @@ def generate_CFG_Nodes(expression, currNode):
             # if(newTuple[1] == 1):  
             #     tempNode = newTuple[0]
             #     currNode.nextBlocks.append(tempNode)
-            #     newNode = CFG_Node([],[],[],blockId)
+            #     newNode = CFG_Node(-1, [],[],[],blockId)
             #     blockId += 1
             
             #     # attach newNode to the end of the current link
@@ -725,7 +725,7 @@ def checkForInvocation(expression, currNode):
             if temp[1] == 1:
                 leftFlag = 1
                 # create a leftNode
-                leftNode = CFG_Node([], [], [], blockId)
+                leftNode = CFG_Node(-1, [], [], [], blockId)
                 blockId += 1
 
             # search the right expression for invocation
@@ -737,7 +737,7 @@ def checkForInvocation(expression, currNode):
             if temp[1] == 1:
                 rightFlag = 1
                 # create a rightNode
-                rightNode = CFG_Node([], [], [], blockId)
+                rightNode = CFG_Node(-1, [], [], [], blockId)
                 blockId += 1
 
             # if you had an invocation in the left node
@@ -773,7 +773,7 @@ def checkForInvocation(expression, currNode):
             # if you find invocation ...
             if temp[1] == 1:
                 # create a unaryNode
-                unaryNode = CFG_Node([], [], [], blockId)
+                unaryNode = CFG_Node(-1, [], [], [], blockId)
                 blockId += 1
                 # return the unaryNode
                 return (unaryNode, 1, currNode)

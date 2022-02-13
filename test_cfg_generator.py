@@ -187,23 +187,35 @@ def addEmptyBlocks(head):
         # ADD THE NEW NODE BEFORE THIS ONE AND THEN REQUEUE THE NODE.
         # THIS IS NECESSARY WHEN THE NODE IS BOTH AN IF CONVERGENCE AND WHILE GUARD.
         # it is an if block convergence point if it has two prev blocks (could it have more? is there anything I need to be careful about?)
-        if (prevBlocks == 2 and falseCount == 0) or (prevBlocks == 3 and falseCount == 1)
+        if (prevBlocks == 2 and falseCount == 0) or (prevBlocks == 3 and falseCount == 1):
+            print("entered if convergence")
             # add a node before the block since you want the if and else to converge on a single empty node
+            # print("\nprevBlocks: " + str(prevBlocks))
+            # print("falseCount: " + str(falseCount))
 
             # -2 will signify empty prev (for now)
-            newPrevNode = CFG_Node([], [], [], -2)
+            newPrevNode = CFG_Node(-1, [], [], [], -2)
 
             newPrevNode.nextBlocks = [currNode]
 
+            # if len(currNode.previousBlocks) > 5:
+            #     # print("list length: " + str(len(currNode.previousBlocks)))
+            #     return
+
             for tempNode in currNode.previousBlocks:
-                if currNodeDict[tempNode] == True:
+                # if tempNode not in currNodeDict:
+                #     print("PROBABLY SHOULDNT REACH THIS LINE")
+
+                if tempNode in currNodeDict and currNodeDict[tempNode] == True:
+                    # print("entered if")
                     newPrevNode.previousBlocks.append(tempNode)
                     tempNode.nextBlocks = [newPrevNode]
 
                 else:
+                    # print("entered else")
                     currNode.previousBlocks = [tempNode]
 
-                currNode.previousBlocks.append(newPrevNode)
+            currNode.previousBlocks.append(newPrevNode)
 
             queue.append(currNode)
             continue
@@ -213,11 +225,11 @@ def addEmptyBlocks(head):
         # it is a while block if it has a false count. This means that 1 of the prev and next blcoks are the same
         # it is a while block if it has 2 next blocks and 2 prev blocks (could even look at a prev block being the same as a next block)
         elif falseCount > 0:
-
+            print("entered while guard")
             # -2 will signify empty prev (for now)
-            newPrevNode = CFG_Node([], [], [], -2)
+            newPrevNode = CFG_Node(-1, [], [], [], -2)
             # -1 will signify empty next (for now)
-            newNextNode = CFG_Node([], [], [], -1)
+            newNextNode = CFG_Node(-1, [], [], [], -1)
 
 
             # fix up the previous and next block lists for both temp node and the new node
@@ -248,10 +260,11 @@ def addEmptyBlocks(head):
         # it is an if block guard if it has 2 next blocks and none of the prev blocks are the same as the next blocks
         # this will catch both if-else and just plain if structures since both need to have two next blocks
         elif nextBlocks >= 2 and falseCount == 0:  # will it ever be greater than 2?? nah
+            print("entered if guard")
             # add a node before the guard
 
             # -2 will signify empty prev (for now)
-            newPrevNode = CFG_Node([], [], [], -2)
+            newPrevNode = CFG_Node(-1, [], [], [], -2)
 
 
             newPrevNode.nextBlocks = [currNode]
@@ -281,22 +294,59 @@ def addEmptyBlocks(head):
 
 
 
+    queue = [head]
+    nodeDict = {}
+
+    returnLinkNode = CFG_Node(-1, [], [], [], -3) # NO IDEA WHAT I SHOULD PUT IN THE LAST USED REGISTER FIELD
+
     # walk back thru and for each return block add a next block that goes to the same place
+    while queue != []:
+        currNode = queue.pop(0)
+
+        # check if youve already looked at the currnode
+        if currNode in nodeDict:
+            continue
+        else:
+            nodeDict[currNode] = True
+
+        # add all the next blocks to the queue
+        for tempNode in currNode.nextBlocks:
+            queue.append(tempNode)
+
         # for each node you will step through the lines of code
+        for line in currNode.code:
 
-        # if a line of code is an m_ret, link the block to the only return block (instead of the other block??? or as well as??? I think instead.)
+            # if the type is m_ret
+            # if a line of code is an m_ret, link the block to the only return block (instead of the other block??? or as well as??? I think instead.)
+            # match line:
+            matchVar = line.split()
+            if len(matchVar) < 1:
+                continue
 
+            match matchVar[0]:
+                case "ret": # MAKE SURE THIS WORKS AS INTENDED
+                    print("ENTERED PRINT CASE")
+                    # link the curr node to the return node
+                    currNode.nextBlocks = [returnLinkNode]
+                    # add the curr node to the return node previous list
+                    currNode.previousBlocks.append(returnLinkNode)
+                    break
 
-
-
+                # just continue to the next node
+                case _:
+                    print("ENTERED OTHER CASE")
+                    continue
 
 
     # finally add an initial block at the start that is empty
+    initialBlock = CFG_Node(-1, [], [], [], -4) # NO IDEA WHAT I SHOULD PUT IN THE LAST USED REGISTER FIELD
+    initialBlock.nextBlocks = [head]
 
+    # make initial block the actual initial block
+    head.previousBlocks = [initialBlock]
 
-
-
-    return head
+    # return the initial block as if its the head
+    return initialBlock
 
 
 
@@ -420,17 +470,24 @@ def main():
     # dotToCFG(testCFG2.firstNode, "while and then if-else case")
 
 
-    # # lgtm
-    # # if and then while loop case
-    # with open('json_parser_tests/if_loop.json') as file3:
-    #     contents = json.load(file3)
-    # ast = parse(contents)
+    # lgtm
+    # if and then while loop case
+    with open('json_parser_tests/if_loop.json') as file3:
+        contents = json.load(file3)
+    ast = parse(contents)
+    functionList = tmp(ast)
     # functionList = generate_CFG_Prog_Handler(ast)
-    # length = len(functionList)
-    # testCFG3 = functionList[length-1]
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG3 = functionList[length-1]
     # testCFG3.firstNode = addPreviousBlocks(testCFG3.firstNode)
-    # printCFG(testCFG3.firstNode)
-    # # dotToCFG(testCFG3.firstNode, "if and then while loop case")
+    printCFG(testCFG3.firstNode)
+    # dotToCFG(testCFG3.firstNode, "if and then while loop case")
 
 
     # # looks good
@@ -497,18 +554,23 @@ def main():
     # # printCFG(testCFG8.firstNode)
     # dotToCFG(testCFG8.firstNode, "invocation unary case")
 
-# same as above ^ - UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
-    # simple binop case
-    with open('json_parser_tests/simpleBinop.json') as file9:
-        contents = json.load(file9)
-    ast = parse(contents)
-    # functionList = generate_CFG_Prog_Handler(ast)
-    functionList = tmp(ast)
-    length = len(functionList)
-    testCFG9 = functionList[length-1]
-    testCFG9.firstNode = addPreviousBlocks(testCFG9.firstNode)
-    # printCFG(testCFG9.firstNode)
-    dotToCFG(testCFG9.firstNode, "simple binop case")
+# # same as above ^ - UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
+#     # simple binop case
+#     with open('json_parser_tests/simpleBinop.json') as file9:
+#         contents = json.load(file9)
+#     ast = parse(contents)
+#     # functionList = generate_CFG_Prog_Handler(ast)
+#     functionList = tmp(ast)
+#     length = len(functionList)
+#     i = 0
+#     while i < length:
+#         functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+#         functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+#         i += 1
+#     testCFG9 = functionList[length-1]
+#     # testCFG9.firstNode = addPreviousBlocks(testCFG9.firstNode)
+#     printCFG(testCFG9.firstNode)
+#     # dotToCFG(testCFG9.firstNode, "simple binop case")
 
 
     # # invocation binop case 
@@ -558,16 +620,22 @@ def main():
     # dotToCFG(testCFG13.firstNode, "nested while case")
 
 
-    # lgtm
-    # if while nested case
+    # # lgtm
+    # # if while nested case
     # with open('json_parser_tests/if_while_nested.json') as file14:
     #     contents = json.load(file14)
     # ast = parse(contents)
     # functionList = tmp(ast)
     # # functionList = generate_CFG_Prog_Handler(ast)
     # length = len(functionList)
-    # testCFG14 = functionList[length-1]
-    # testCFG14.firstNode = addPreviousBlocks(testCFG14.firstNode)
+    # i = 0
+    # while i < length:
+    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+    #     functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+    #     i += 1
+    #
+    # testCFG14 = functionList[length - 1]
+    # # testCFG14.firstNode = addPreviousBlocks(testCFG14.firstNode)
     # printCFG(testCFG14.firstNode)
     # dotToCFG(testCFG14.firstNode, "if while nested case")
 
@@ -616,30 +684,29 @@ def main():
 
 
 
-
-    for func in functionList:
-        print("\ncurrent function: " + str(func.firstNode.id) + "\n")
-
-        queue = []
-        queue.append(func.firstNode)
-        nodeDict = {}
-
-        while queue != []:
-            currNode = queue.pop(0)
-
-            if currNode in nodeDict:
-                continue
-
-            print("\nnew block\n")
-
-            nodeDict[currNode] = True
-
-            for codeLine in currNode.code:
-                print(codeLine + "\n")
-
-            for nextNode in currNode.nextBlocks:
-                queue.append(nextNode)
-
+    # # loop for printing out the code from each function
+    # for func in functionList:
+    #     print("\ncurrent function: " + str(func.firstNode.id) + "\n")
+    #
+    #     queue = []
+    #     queue.append(func.firstNode)
+    #     nodeDict = {}
+    #
+    #     while queue != []:
+    #         currNode = queue.pop(0)
+    #
+    #         if currNode in nodeDict:
+    #             continue
+    #
+    #         print("\nnew block\n")
+    #
+    #         nodeDict[currNode] = True
+    #
+    #         for codeLine in currNode.code:
+    #             print(codeLine + "\n")
+    #
+    #         for nextNode in currNode.nextBlocks:
+    #             queue.append(nextNode)
 
 
 
