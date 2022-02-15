@@ -21,7 +21,7 @@ class CFG_Node:
         self.mappings = {}
         self.sealed = False
         self.lastRegUsed = lastRegUsed
-WEIRD BUG HERE, FOR SOME REASON idCode IS THE SAME FOR EVERY NODE IN A FUNCTION BLOCK
+# WEIRD BUG HERE, FOR SOME REASON idCode IS THE SAME FOR EVERY NODE IN A FUNCTION BLOCK
         self.idCode = idCode  # 0 is normal, 1 is if-guard, 2 is if-convergence, 3 is while-guard, 4 is while-body
 
 
