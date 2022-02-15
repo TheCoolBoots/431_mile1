@@ -7,6 +7,7 @@ TASK 1: create python class for each format as described in overview.pdf
     NOTE maybe this isn't required? can do all semantic checks just on json?
 """
 
+# from msilib.schema import Error
 from typing import Tuple
 
 
@@ -83,6 +84,19 @@ class m_declaration:
             case structID:
                 return [f'%{lastRegUsed + 1} = call i8* @malloc({type_sizes[structID]})',
                 f'%{self.id.identifier} = bitcast i8* %{lastRegUsed + 1} to %struct.{structID}*']
+
+    def getSSAGlobals(self) -> list[str]:
+        if self.type.typeID == 'int' or self.type.typeID == 'bool':
+            return f'@{self.id.identifier} = common dso_local global i32 0'
+        else:
+            return f'@{self.id.identifier} = common dso_local global %struct.{self.type.typeID}* null'
+
+    def getSSALocals(self) -> list[str]:
+        if self.type.typeID == 'int' or self.type.typeID == 'bool':
+            raise AttributeError('THERE SHOULD NEVER BE A LOCAL DEFINITION OF A PRIMITIVE TYPE IN SSA FORM')
+        else:
+            return f'%{self.id.identifier} = alloca %struct.A*'
+
 
 
 # type declaration → struct id { nested decl } ;
@@ -162,7 +176,7 @@ class m_prog:
         if includeLineNum:
             return {decl.id.identifier:(decl.lineNum, decl.type) for decl in self.global_declarations}
         else:
-            return {decl.id.identifier:decl.type for decl in self.global_declarations}
+            return {decl.id.identifier:(True, decl.type) for decl in self.global_declarations}
 
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):

@@ -12,5 +12,4 @@ fun main() int{
     }
 
     return a;
-
 }

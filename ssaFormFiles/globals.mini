@@ -4,5 +4,5 @@ int b;
 fun main() int{
     a = 5;
     b = 4;
-    ret a+b;
+    return a+b;
 }
