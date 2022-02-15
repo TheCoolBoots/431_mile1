@@ -148,7 +148,7 @@ def addPreviousBlocks(head):
 # also add a return block for stack cleanup
 # dont worry about just if ??
 def addEmptyBlocks(head):
-
+    emptyBlockId = -1
 
     queue = [head]
     nodeDict = {}
@@ -158,6 +158,7 @@ def addEmptyBlocks(head):
 # previous blocks. However, while walking through the tree, you should reach the if else convergence point before
 # you reach the while node.
     # step through every node in the tree
+    print("\n\n")
     while queue != []:
         currNode = queue.pop(0)
 
@@ -183,18 +184,26 @@ def addEmptyBlocks(head):
             else:
                 currNodeDict[tempNode] = True
 
+        print("block id: " + str(currNode.id))
+        print("current idCode list: " + str(currNode.idCode))
         # KEEP IN MIND, THIS MIGHT BE A SPECIAL CASE SO WE MUST TREAT IT AS SUCH.
         # ADD THE NEW NODE BEFORE THIS ONE AND THEN REQUEUE THE NODE.
         # THIS IS NECESSARY WHEN THE NODE IS BOTH AN IF CONVERGENCE AND WHILE GUARD.
         # it is an if block convergence point if it has two prev blocks (could it have more? is there anything I need to be careful about?)
-        if (prevBlocks == 2 and falseCount == 0) or (prevBlocks == 3 and falseCount == 1):
+        if 2 in currNode.idCode:
+        # if (prevBlocks == 2 and falseCount == 0) or (prevBlocks == 3 and falseCount == 1):
             print("entered if convergence")
+            # print("node id: " + str(currNode.id))
+
+            currNode.idCode.remove(2)
+
             # add a node before the block since you want the if and else to converge on a single empty node
             # print("\nprevBlocks: " + str(prevBlocks))
             # print("falseCount: " + str(falseCount))
 
             # -2 will signify empty prev (for now)
-            newPrevNode = CFG_Node(-1, [], [], [], -2)
+            newPrevNode = CFG_Node(-1, [], [], [], emptyBlockId)
+            emptyBlockId -= 1
 
             newPrevNode.nextBlocks = [currNode]
 
@@ -218,53 +227,84 @@ def addEmptyBlocks(head):
             currNode.previousBlocks.append(newPrevNode)
 
             queue.append(currNode)
+            print("\n")
             continue
 
 
 
         # it is a while block if it has a false count. This means that 1 of the prev and next blcoks are the same
         # it is a while block if it has 2 next blocks and 2 prev blocks (could even look at a prev block being the same as a next block)
-        elif falseCount > 0:
+        elif 3 in currNode.idCode:
+        # elif falseCount > 0:
             print("entered while guard")
+            # print("node id: " + str(currNode.id))
+
+            currNode.idCode.remove(3)
+
             # -2 will signify empty prev (for now)
-            newPrevNode = CFG_Node(-1, [], [], [], -2)
+            newPrevNode = CFG_Node(-1, [], [], [], emptyBlockId)
+            newPrevNode.nextBlocks = [currNode]
+            emptyBlockId -= 1
             # -1 will signify empty next (for now)
-            newNextNode = CFG_Node(-1, [], [], [], -1)
+            newNextNode = CFG_Node(-1, [], [], [], emptyBlockId)
+            newNextNode.previousBlocks = [currNode]
+            emptyBlockId -= 1
+
 
 
             # fix up the previous and next block lists for both temp node and the new node
             for tempNode in currNode.previousBlocks:
                 if currNodeDict[tempNode] == True:
+                    print("guard to previous (not body)")
                     newPrevNode.previousBlocks.append(tempNode)
-                    tempNode.nextBlocks = [newPrevNode]
+                    tempNode.nextBlocks.remove(currNode) # IS THIS LINE WORKING
+                    tempNode.nextBlocks.append(newPrevNode)
 
                 else:
+                    print("guard to body previous")
                     currNode.previousBlocks = [tempNode]
 
+            print("update previousBlocks")
             currNode.previousBlocks.append(newPrevNode)
 
             for tempNode in currNode.nextBlocks:
                 if currNodeDict[tempNode] == True:
+                    print("guard to next (not body)")
                     newNextNode.nextBlocks.append(tempNode)
-                    tempNode.previousBlocks = [newNextNode]
+                    tempNode.previousBlocks.remove(currNode) # IS THIS LINE WORKING
+                    tempNode.previousBlocks.append(newNextNode)
+
 
                 else:
+                    print("guard to body next")
                     currNode.nextBlocks = [tempNode]
 
-            currNode.previousBlocks.append(newNextNode)
+            print("update nextBlocks")
+            currNode.nextBlocks.append(newNextNode)
 
+            print("\n")
 
 
 
 
         # it is an if block guard if it has 2 next blocks and none of the prev blocks are the same as the next blocks
         # this will catch both if-else and just plain if structures since both need to have two next blocks
-        elif nextBlocks >= 2 and falseCount == 0:  # will it ever be greater than 2?? nah
+        elif 1 in currNode.idCode:
+        # elif nextBlocks >= 2 and falseCount == 0:  # will it ever be greater than 2?? nah
             print("entered if guard")
+            print("node id: " + str(currNode.id))
+
+            currNode.idCode.remove(1)
+
+            # print("next blocks: " + str(currNode.nextBlocks))
+            print("next blocks: ")
+            for tempNode in currNode.nextBlocks:
+                print("\tid: " + str(tempNode.id))
             # add a node before the guard
 
             # -2 will signify empty prev (for now)
-            newPrevNode = CFG_Node(-1, [], [], [], -2)
+            newPrevNode = CFG_Node(-1, [], [], [], emptyBlockId)
+            emptyBlockId -= 1
 
 
             newPrevNode.nextBlocks = [currNode]
@@ -279,12 +319,13 @@ def addEmptyBlocks(head):
 
             currNode.previousBlocks.append(newPrevNode)
 
-
+            print("\n")
 
 
         # # just a regular block, no need to do anything special
-        # else:
-        #     # do anything????
+        else:
+            print("Did not enter any of the if blocks\n")
+            # do anything????
 
         nodeDict[currNode] = True
 
@@ -297,7 +338,8 @@ def addEmptyBlocks(head):
     queue = [head]
     nodeDict = {}
 
-    returnLinkNode = CFG_Node(-1, [], [], [], -3) # NO IDEA WHAT I SHOULD PUT IN THE LAST USED REGISTER FIELD
+    returnLinkNode = CFG_Node(-1, [], [], [], emptyBlockId) # NO IDEA WHAT I SHOULD PUT IN THE LAST USED REGISTER FIELD
+    emptyBlockId -= 1
 
     # walk back thru and for each return block add a next block that goes to the same place
     while queue != []:
@@ -325,11 +367,11 @@ def addEmptyBlocks(head):
 
             match matchVar[0]:
                 case "ret": # MAKE SURE THIS WORKS AS INTENDED
-                    print("ENTERED PRINT CASE")
+                    print("ENTERED RETURN CASE")
                     # link the curr node to the return node
                     currNode.nextBlocks = [returnLinkNode]
                     # add the curr node to the return node previous list
-                    currNode.previousBlocks.append(returnLinkNode)
+                    returnLinkNode.previousBlocks.append(currNode)
                     break
 
                 # just continue to the next node
@@ -339,7 +381,8 @@ def addEmptyBlocks(head):
 
 
     # finally add an initial block at the start that is empty
-    initialBlock = CFG_Node(-1, [], [], [], -4) # NO IDEA WHAT I SHOULD PUT IN THE LAST USED REGISTER FIELD
+    initialBlock = CFG_Node(-1, [], [], [], emptyBlockId) # NO IDEA WHAT I SHOULD PUT IN THE LAST USED REGISTER FIELD
+    emptyBlockId -= 1
     initialBlock.nextBlocks = [head]
 
     # make initial block the actual initial block
@@ -390,6 +433,7 @@ def printCFG(head):
             # print("check2\n")
             # nodeReferences[str(currNode.code)] = nodeReferences[str(currNode.code)] + 1
             nodeReferences[str(currNode.id)] = nodeReferences[str(currNode.id)] + 1
+            continue
 
         print(currNode.code)
 
@@ -403,7 +447,7 @@ def printCFG(head):
         # for node in currNode.previousBlocks:
         #     print("prevNode id: " + str(node.id))
 
-        print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.id)]) + "\nblock Id: " + str(currNode.id) + "\n\n\n")
+        print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.id)]) + "\nblock Id: " + str(currNode.id) + "\nblock idCodes: " + str(currNode.idCode) + "\n\n\n")
         # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) + "\nnumReferences: " + str(nodeReferences[str(currNode.code)]) + "\n\n\n")
         # print("nodeNum: " + str(nodeNum) + "\nnodeLevel: " + str(currTuple[1]) +       "\n\n\n")# + "\nnumReferences: " + str(nodeReferences[nodeNum]) + "\n\n\n")
         
@@ -428,21 +472,36 @@ def main():
 
 
     # # if case => if.mini
-    # functionList = generate_CFG_Prog_Handler(test_ast_trees.expected5)
+    # functionList = tmp(test_ast_trees.expected5)
+    # # functionList = generate_CFG_Prog_Handler(test_ast_trees.expected5)
     # length = len(functionList)
+    # i = 0
+    # while i < length:
+    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+    #     # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+    #     i += 1
     # testCFGc = functionList[length-1]
-    # testCFGc.firstNode = addPreviousBlocks(testCFGc.firstNode)
-    # # printCFG(testCFGc.firstNode)
-    # dotToCFG(testCFGc.firstNode, "simple if case")
-    
+    # printCFG(testCFGc.firstNode)
+    # # dotToCFG(testCFGc.firstNode, "simple if case")
 
-    # # good for now, may think more about functions that have no return statement later on
-    # # while case => loop.mini
+
+    # good for now, may think more about functions that have no return statement later on
+    # while case => loop.mini
+    with open('json_parser_tests/loop.json') as file1:
+        contents = json.load(file1)
+    ast = parse(contents)
     # functionList = generate_CFG_Prog_Handler(test_ast_trees.expected4)
-    # length = len(functionList)
-    # testCFG0 = functionList[length-1]
+    functionList = tmp(ast)
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+    testCFG0 = functionList[length-1]
     # testCFG0.firstNode = addPreviousBlocks(testCFG0.firstNode)
-    # # printCFG(testCFG0.firstNode)
+
+    printCFG(testCFG0.firstNode)
     # dotToCFG(testCFG0.firstNode, "simple while case")
 
 
@@ -450,12 +509,18 @@ def main():
     # with open('json_parser_tests/ifelse.json') as file1:
     #     contents = json.load(file1)
     # ast = parse(contents)
-    # functionList = generate_CFG_Prog_Handler(ast)
+    # functionList = tmp(ast)
+    # # functionList = generate_CFG_Prog_Handler(ast)
     # length = len(functionList)
+    # i = 0
+    # while i < length:
+    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+    #     # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+    #     i += 1
     # testCFG1 = functionList[length-1]
-    # testCFG1.firstNode = addPreviousBlocks(testCFG1.firstNode)
-    # # printCFG(testCFG1.firstNode)
-    # dotToCFG(testCFG1.firstNode, "simple if else case")
+    # printCFG(testCFG1.firstNode)
+    # # dotToCFG(testCFG1.firstNode, "simple if else case")
+
 
     # # lgtm
     # # while and then if-else case
@@ -470,24 +535,24 @@ def main():
     # dotToCFG(testCFG2.firstNode, "while and then if-else case")
 
 
-    # lgtm
-    # if and then while loop case
-    with open('json_parser_tests/if_loop.json') as file3:
-        contents = json.load(file3)
-    ast = parse(contents)
-    functionList = tmp(ast)
-    # functionList = generate_CFG_Prog_Handler(ast)
-    length = len(functionList)
-    i = 0
-    while i < length:
-        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
-        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
-        i += 1
-
-    testCFG3 = functionList[length-1]
-    # testCFG3.firstNode = addPreviousBlocks(testCFG3.firstNode)
-    printCFG(testCFG3.firstNode)
-    # dotToCFG(testCFG3.firstNode, "if and then while loop case")
+    # # lgtm
+    # # if and then while loop case
+    # with open('json_parser_tests/if_loop.json') as file3:
+    #     contents = json.load(file3)
+    # ast = parse(contents)
+    # functionList = tmp(ast)
+    # # functionList = generate_CFG_Prog_Handler(ast)
+    # length = len(functionList)
+    # i = 0
+    # while i < length:
+    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+    #     # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+    #     i += 1
+    #
+    # testCFG3 = functionList[length-1]
+    # # testCFG3.firstNode = addPreviousBlocks(testCFG3.firstNode)
+    # printCFG(testCFG3.firstNode)
+    # # dotToCFG(testCFG3.firstNode, "if and then while loop case")
 
 
     # # looks good

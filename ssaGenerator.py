@@ -3,10 +3,14 @@ from ast_class_definitions import *
 from top_compiler import importMiniFile
 from cfg_generator import *
 from generateLLVM import getLLVMType
+from test_cfg_generator import printCFG
 
 def tmp(prog:m_prog):
     # create a function node for each function
     functionList = generate_CFG_Prog_Handler(prog) # this is a list of function nodes
+
+    # the codes were in fact fucked up at this point
+    # printCFG(functionList[len(functionList) - 1].firstNode)
 
 
     # generate globals, generate top_env, generate types
@@ -112,8 +116,20 @@ def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict
     code = []
     lastRegUsed = currentNode.lastRegUsed
     statements = currentNode.code
+
+    print("ALL statements: " + str(statements))
+
     for statement in statements:
         lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
+
+        if newCode == -1:
+            print("currStatement: " + str(statement))
+
+            # NEED TO WRITE CODE TO DEAL WITH UNARY, BINOP, AND BOOL HERE
+            code.extend(["GUARD CODE PLACEHOLDER"])
+
+            continue  # REMOVE continue ????
+
         code.extend(newCode)
 
     return code, currentNode.mappings
