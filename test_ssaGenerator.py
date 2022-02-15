@@ -61,6 +61,9 @@ class test_ssa_generator(unittest.TestCase):
         self.assertEqual(code, expected)
         # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
         self.assertEqual({'a': ('void', 2, 'placeholder')}, mappings)
+
+    def test_globalVariables(self):
+        pass
     
 
 if __name__ == '__main__':

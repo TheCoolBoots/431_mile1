@@ -3,6 +3,7 @@ struct A{
 };
 
 int a;
+struct A* magic;
 
 int main(void) {
     a = 5;

@@ -1,0 +1,13 @@
+struct A{
+    int j;
+    int k;
+}
+
+struct A magic;
+int bakugan;
+
+fun main() int{
+    magic = new struct A;
+    bakugan = 3;
+    return bakugan;
+}
