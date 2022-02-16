@@ -6,6 +6,7 @@ target triple = "x86_64-pc-linux-gnu"
 %struct.A = type { i32 }
 
 @a = common dso_local global i32 0, align 4
+@magic = common dso_local global %struct.A* null, align 8
 
 ; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @main() #0 {

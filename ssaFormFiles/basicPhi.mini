@@ -4,5 +4,12 @@ struct A{
 }
 
 fun main() int{
+    int a;
+    a = 5;
+
+    if(a == 5){
+        a = 3;
+    }
+
     return a;
 }
