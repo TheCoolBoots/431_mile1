@@ -12,7 +12,7 @@ class CFG_Node:
 
 class CFG_Node:
     # def __init__(self, nextBlocks:list, code:list[m_statement], id:int, returnType = None): 
-    def __init__(self, lastRegUsed:int, previousBlocks:list[CFG_Node], nextBlocks:list[CFG_Node], code:list, id:int, idCode:list = [], returnType = None):
+    def __init__(self, lastRegUsed:int, previousBlocks:list[CFG_Node], nextBlocks:list[CFG_Node], code:list, id:int, idCode:list = None, returnType = None):
         self.previousBlocks = previousBlocks # can be multiple
         self.nextBlocks = nextBlocks # could be multiple
         self.code = code    # is a list of statements
@@ -382,9 +382,9 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                                 queue.append(node)
 
 
-                    # this will add a connection from the guard to the next node if the else doesnt exist
-                    else:
-                        currNode.nextBlocks.append(newNode)
+                # this will add a connection from the guard to the next node if the else doesnt exist
+                else:
+                    currNode.nextBlocks.append(newNode)
 
 
 
@@ -392,8 +392,13 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                     # currFinalBlocks.append(elseNode)
 
                 # update currNode to be newNode
-                newNode.idCode.append(2)  # THIS IS THE CODE FOR AN IF CONVERGENCE BLOCK
-                print("adding 2 to idcode\n")
+                if newNode.idCode is None:
+                    newNode.idCode = [2]
+                else:
+                    newNode.idCode.append(2)  # THIS IS THE CODE FOR AN IF CONVERGENCE BLOCK
+                # print("adding 2 to idcode\n")
+
+                # print("currNode nextBlocks: " + str(currNode.nextBlocks))
                 currNode = newNode
 
 
@@ -489,8 +494,11 @@ def generate_CFG_Nodes(expression, currNode):
             # DO I EVEN WANT TO EVALUATE THE GUARD EXPRESSION ?????
             ifOrWhileFlag = 1
             guardNode = generate_CFG_Function_Handler([expression.guard_expression], 1)
-            guardNode.idCode.append(1)  # THIS IS THE CODE FOR AN IF GUARD BLOCK
-            print("adding 1 to idcode\n")
+            if guardNode.idCode is None:
+                guardNode.idCode = [1]
+            else:
+                guardNode.idCode.append(1)  # THIS IS THE CODE FOR AN IF GUARD BLOCK
+            # print("adding 1 to idcode\n")
             ifOrWhileFlag = 0
 
             # if you got a function environment error - probably not needed
@@ -528,8 +536,12 @@ def generate_CFG_Nodes(expression, currNode):
             # DO I EVEN WANT TO EVALUATE THE GUARD EXPRESSION ?????
             ifOrWhileFlag = 1
             guardNode = generate_CFG_Function_Handler([expression.guard_expression], 1)
-            print("adding 3 to idcode\n")
-            guardNode.idCode.append(3)  # THIS IS THE CODE FOR A WHILE GUARD BLOCK
+            # print("adding 3 to idcode\n")
+
+            if guardNode.idCode is None:
+                guardNode.idCode = [3]
+            else:
+                guardNode.idCode.append(3)  # THIS IS THE CODE FOR A WHILE GUARD BLOCK
             ifOrWhileFlag = 0
 
             if guardNode == None:
@@ -538,8 +550,11 @@ def generate_CFG_Nodes(expression, currNode):
 
             # call generete_CFG_Nodes on the statement in the while
             whileNode = generate_CFG_Function_Handler(expression.body_statements, 1)
-            whileNode.idCode.append(4)  # THIS IS THE CODE FOR A WHILE BODY BLOCK
-            print("adding 4 to idcode\n")
+            if whileNode.idCode is None:
+                whileNode.idCode = [4]
+            else:
+                whileNode.idCode.append(4)  # THIS IS THE CODE FOR A WHILE BODY BLOCK
+            # print("adding 4 to idcode\n")
 
             # error case (probably dont need)
             if whileNode == None:

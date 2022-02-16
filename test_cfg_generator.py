@@ -158,7 +158,7 @@ def addEmptyBlocks(head):
 # previous blocks. However, while walking through the tree, you should reach the if else convergence point before
 # you reach the while node.
     # step through every node in the tree
-    print("\n\n")
+    # print("\n\n")
     while queue != []:
         currNode = queue.pop(0)
 
@@ -166,33 +166,33 @@ def addEmptyBlocks(head):
             continue
 
         falseCount = 0
-        prevBlocks = len(currNode.previousBlocks)
-        nextBlocks = len(currNode.nextBlocks)
+        # prevBlocks = len(currNode.previousBlocks)
+        # nextBlocks = len(currNode.nextBlocks)
+        #
+        # # use this dict to find which node is the body for the guard
+        # currNodeDict = {}
+        # for tempNode in currNode.previousBlocks:
+        #     currNodeDict[tempNode] = True
+        #
+        # for tempNode in currNode.nextBlocks:
+        #     # if it is the body, make the value False
+        #     if tempNode in currNodeDict:
+        #         falseCount += 1
+        #         currNodeDict[tempNode] = False
+        #
+        #     # if it is the true next node, make the value True
+        #     else:
+        #         currNodeDict[tempNode] = True
 
-        # use this dict to find which node is the body for the guard
-        currNodeDict = {}
-        for tempNode in currNode.previousBlocks:
-            currNodeDict[tempNode] = True
-
-        for tempNode in currNode.nextBlocks:
-            # if it is the body, make the value False
-            if tempNode in currNodeDict:
-                falseCount += 1
-                currNodeDict[tempNode] = False
-
-            # if it is the true next node, make the value True
-            else:
-                currNodeDict[tempNode] = True
-
-        print("block id: " + str(currNode.id))
-        print("current idCode list: " + str(currNode.idCode))
+        # print("block id: " + str(currNode.id))
+        # print("current idCode list: " + str(currNode.idCode))
         # KEEP IN MIND, THIS MIGHT BE A SPECIAL CASE SO WE MUST TREAT IT AS SUCH.
         # ADD THE NEW NODE BEFORE THIS ONE AND THEN REQUEUE THE NODE.
         # THIS IS NECESSARY WHEN THE NODE IS BOTH AN IF CONVERGENCE AND WHILE GUARD.
         # it is an if block convergence point if it has two prev blocks (could it have more? is there anything I need to be careful about?)
-        if 2 in currNode.idCode:
+        if currNode.idCode is not None and 2 in currNode.idCode:
         # if (prevBlocks == 2 and falseCount == 0) or (prevBlocks == 3 and falseCount == 1):
-            print("entered if convergence")
+        #     print("entered if convergence")
             # print("node id: " + str(currNode.id))
 
             currNode.idCode.remove(2)
@@ -215,28 +215,33 @@ def addEmptyBlocks(head):
                 # if tempNode not in currNodeDict:
                 #     print("PROBABLY SHOULDNT REACH THIS LINE")
 
-                if tempNode in currNodeDict and currNodeDict[tempNode] == True:
+                # if tempNode in currNodeDict and currNodeDict[tempNode] == True:
                     # print("entered if")
-                    newPrevNode.previousBlocks.append(tempNode)
-                    tempNode.nextBlocks = [newPrevNode]
+                newPrevNode.previousBlocks.append(tempNode)
+                tempNode.nextBlocks.remove(currNode)
+                tempNode.nextBlocks.append(newPrevNode)
+                # tempNode.nextBlocks = [newPrevNode]
 
-                else:
-                    # print("entered else")
-                    currNode.previousBlocks = [tempNode]
+                # else:
+                #     print("entered else")
+                #     currNode.previousBlocks = [tempNode]
+                #     return None
 
-            currNode.previousBlocks.append(newPrevNode)
+
+            # currNode.previousBlocks.append(newPrevNode)
+            currNode.previousBlocks = [newPrevNode]
 
             queue.append(currNode)
-            print("\n")
+            # print("\n")
             continue
 
 
 
         # it is a while block if it has a false count. This means that 1 of the prev and next blcoks are the same
         # it is a while block if it has 2 next blocks and 2 prev blocks (could even look at a prev block being the same as a next block)
-        elif 3 in currNode.idCode:
+        elif currNode.idCode is not None and 3 in currNode.idCode:
         # elif falseCount > 0:
-            print("entered while guard")
+        #     print("entered while guard")
             # print("node id: " + str(currNode.id))
 
             currNode.idCode.remove(3)
@@ -254,52 +259,80 @@ def addEmptyBlocks(head):
 
             # fix up the previous and next block lists for both temp node and the new node
             for tempNode in currNode.previousBlocks:
-                if currNodeDict[tempNode] == True:
-                    print("guard to previous (not body)")
+                # if currNodeDict[tempNode] == True:
+                #     print("guard to previous (not body)")
+                #     newPrevNode.previousBlocks.append(tempNode)
+                #     tempNode.nextBlocks.remove(currNode) # IS THIS LINE WORKING
+                #     tempNode.nextBlocks.append(newPrevNode)
+                #
+                # else:
+                #     print("guard to body previous")
+                #     currNode.previousBlocks = [tempNode]
+
+                # need to recoginize which is the return from the while body
+                if tempNode.id < currNode.id:
+                    # print("guard to previous (not body)")
                     newPrevNode.previousBlocks.append(tempNode)
-                    tempNode.nextBlocks.remove(currNode) # IS THIS LINE WORKING
+                    tempNode.nextBlocks.remove(currNode)  # IS THIS LINE WORKING
                     tempNode.nextBlocks.append(newPrevNode)
 
                 else:
-                    print("guard to body previous")
+                    # print("guard to body previous")
                     currNode.previousBlocks = [tempNode]
 
-            print("update previousBlocks")
+
+
+
+
+            # print("update previousBlocks")
             currNode.previousBlocks.append(newPrevNode)
 
+            # want to put the new next between the guard and node that isnt the body
             for tempNode in currNode.nextBlocks:
-                if currNodeDict[tempNode] == True:
+                # if currNodeDict[tempNode] == True:
+                #     print("guard to next (not body)")
+                #     newNextNode.nextBlocks.append(tempNode)
+                #     tempNode.previousBlocks.remove(currNode) # IS THIS LINE WORKING
+                #     tempNode.previousBlocks.append(newNextNode)
+                #
+                # else:
+                #     print("guard to body next")
+                #     currNode.nextBlocks = [tempNode]
+
+                # this is the body
+                if tempNode.idCode == None or 4 not in tempNode.idCode:
                     print("guard to next (not body)")
                     newNextNode.nextBlocks.append(tempNode)
-                    tempNode.previousBlocks.remove(currNode) # IS THIS LINE WORKING
+                    tempNode.previousBlocks.remove(currNode)
                     tempNode.previousBlocks.append(newNextNode)
 
-
+                # this is not the body
                 else:
-                    print("guard to body next")
+                    # print("guard to body next")
                     currNode.nextBlocks = [tempNode]
 
-            print("update nextBlocks")
+            # print("update nextBlocks")
             currNode.nextBlocks.append(newNextNode)
 
-            print("\n")
+            # print("updated nextBlocks: " + str(currNode.nextBlocks))
+            # print("\n")
 
 
 
 
         # it is an if block guard if it has 2 next blocks and none of the prev blocks are the same as the next blocks
         # this will catch both if-else and just plain if structures since both need to have two next blocks
-        elif 1 in currNode.idCode:
+        elif currNode.idCode is not None and 1 in currNode.idCode:
         # elif nextBlocks >= 2 and falseCount == 0:  # will it ever be greater than 2?? nah
-            print("entered if guard")
-            print("node id: " + str(currNode.id))
+        #     print("entered if guard")
+        #     print("node id: " + str(currNode.id))
 
             currNode.idCode.remove(1)
 
             # print("next blocks: " + str(currNode.nextBlocks))
-            print("next blocks: ")
-            for tempNode in currNode.nextBlocks:
-                print("\tid: " + str(tempNode.id))
+            # print("next blocks: ")
+            # for tempNode in currNode.nextBlocks:
+            #     print("\tid: " + str(tempNode.id))
             # add a node before the guard
 
             # -2 will signify empty prev (for now)
@@ -319,12 +352,13 @@ def addEmptyBlocks(head):
 
             currNode.previousBlocks.append(newPrevNode)
 
-            print("\n")
+            # print("\n")
 
 
         # # just a regular block, no need to do anything special
         else:
-            print("Did not enter any of the if blocks\n")
+            # print("Did not enter any of the if blocks\n")
+            pass
             # do anything????
 
         nodeDict[currNode] = True
@@ -367,7 +401,7 @@ def addEmptyBlocks(head):
 
             match matchVar[0]:
                 case "ret": # MAKE SURE THIS WORKS AS INTENDED
-                    print("ENTERED RETURN CASE")
+                    # print("ENTERED RETURN CASE")
                     # link the curr node to the return node
                     currNode.nextBlocks = [returnLinkNode]
                     # add the curr node to the return node previous list
@@ -376,7 +410,7 @@ def addEmptyBlocks(head):
 
                 # just continue to the next node
                 case _:
-                    print("ENTERED OTHER CASE")
+                    # print("ENTERED OTHER CASE")
                     continue
 
 
@@ -453,39 +487,58 @@ def printCFG(head):
         
         nodeNum += 1
 
-
-def main():
-    # # simple function case
+# dotFlag tells us if we should print the node or output the .dot file
+def testa(dotFlag):  # if dotFlag == True, print the dot output instead of print
+    # simple function case
+    functionList = tmp(test_ast_trees.expected3)
     # functionList = generate_CFG_Prog_Handler(test_ast_trees.expected3)
-    # testCFGa = functionList[-1]
-    # testCFGa.firstNode = addPreviousBlocks(testCFGa.firstNode)
-    # # printCFG(testCFGa.firstNode)
-    # dotToCFG(testCFGa.firstNode, "trivial case")
+
+    length = len(functionList)
+    testCFGa = functionList[length - 1]
+
+    if(dotFlag):
+        dotToCFG(testCFGa.firstNode, "trivial case")
+    else:
+        printCFG(testCFGa.firstNode)
 
 
-    # # invocation case
-    # functionList = generate_CFG_Prog_Handler(test_ast_trees.expected7)
-    # testCFGb = functionList[-1]
-    # testCFGb.firstNode = addPreviousBlocks(testCFGb.firstNode)
-    # # printCFG(testCFGb.firstNode)
-    # dotToCFG(testCFGb.firstNode, "simple invocation case")
+# invocation case
+def testb(dotFlag):
+    functionList = generate_CFG_Prog_Handler(test_ast_trees.expected7)
+    testCFGb = functionList[-1]
+    testCFGb.firstNode = addPreviousBlocks(testCFGb.firstNode)
+    # printCFG(testCFGb.firstNode)
+
+    if(dotFlag):
+        dotToCFG(testCFGb.firstNode, "simple invocation case")
+    else:
+        printCFG(testCFGb.firstNode)
 
 
-    # # if case => if.mini
-    # functionList = tmp(test_ast_trees.expected5)
-    # # functionList = generate_CFG_Prog_Handler(test_ast_trees.expected5)
-    # length = len(functionList)
-    # i = 0
-    # while i < length:
-    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
-    #     # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
-    #     i += 1
-    # testCFGc = functionList[length-1]
-    # printCFG(testCFGc.firstNode)
-    # # dotToCFG(testCFGc.firstNode, "simple if case")
+# if case => if.mini
+def testc(dotFlag):
+    functionList = tmp(test_ast_trees.expected5)
+    # functionList = generate_CFG_Prog_Handler(test_ast_trees.expected5)
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+    testCFGc = functionList[length-1]
+
+    if(dotFlag):
+        dotToCFG(testCFGc.firstNode, "simple if case")
+    else:
+        printCFG(testCFGc.firstNode)
 
 
-    # good for now, may think more about functions that have no return statement later on
+
+
+
+def test0(dotFlag):
+
+    # lgtm
     # while case => loop.mini
     with open('json_parser_tests/loop.json') as file1:
         contents = json.load(file1)
@@ -505,23 +558,25 @@ def main():
     # dotToCFG(testCFG0.firstNode, "simple while case")
 
 
-    # # simplest case of if else, print statement in each
-    # with open('json_parser_tests/ifelse.json') as file1:
-    #     contents = json.load(file1)
-    # ast = parse(contents)
-    # functionList = tmp(ast)
-    # # functionList = generate_CFG_Prog_Handler(ast)
-    # length = len(functionList)
-    # i = 0
-    # while i < length:
-    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
-    #     # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
-    #     i += 1
-    # testCFG1 = functionList[length-1]
-    # printCFG(testCFG1.firstNode)
-    # # dotToCFG(testCFG1.firstNode, "simple if else case")
+def test1():
+    # simplest case of if else, print statement in each
+    with open('json_parser_tests/ifelse.json') as file1:
+        contents = json.load(file1)
+    ast = parse(contents)
+    functionList = tmp(ast)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+    testCFG1 = functionList[length-1]
+    printCFG(testCFG1.firstNode)
+    # dotToCFG(testCFG1.firstNode, "simple if else case")
 
 
+def test2():
     # # lgtm
     # # while and then if-else case
     # with open('json_parser_tests/loop_if.json') as file2:
@@ -533,28 +588,31 @@ def main():
     # testCFG2.firstNode = addPreviousBlocks(testCFG2.firstNode)
     # # printCFG(testCFG2.firstNode)
     # dotToCFG(testCFG2.firstNode, "while and then if-else case")
+    pass
 
 
-    # # lgtm
-    # # if and then while loop case
-    # with open('json_parser_tests/if_loop.json') as file3:
-    #     contents = json.load(file3)
-    # ast = parse(contents)
-    # functionList = tmp(ast)
-    # # functionList = generate_CFG_Prog_Handler(ast)
-    # length = len(functionList)
-    # i = 0
-    # while i < length:
-    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
-    #     # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
-    #     i += 1
-    #
-    # testCFG3 = functionList[length-1]
-    # # testCFG3.firstNode = addPreviousBlocks(testCFG3.firstNode)
-    # printCFG(testCFG3.firstNode)
-    # # dotToCFG(testCFG3.firstNode, "if and then while loop case")
+def test3():
+    # lgtm
+    # if and then while loop case
+    with open('json_parser_tests/if_loop.json') as file3:
+        contents = json.load(file3)
+    ast = parse(contents)
+    functionList = tmp(ast)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        # functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG3 = functionList[length-1]
+    # testCFG3.firstNode = addPreviousBlocks(testCFG3.firstNode)
+    printCFG(testCFG3.firstNode)
+    # dotToCFG(testCFG3.firstNode, "if and then while loop case")
 
 
+def test4():
     # # looks good
     # # invocation case 2
     # with open('json_parser_tests/myFunctionCall.json') as file4:
@@ -566,8 +624,10 @@ def main():
     # testCFG4.firstNode = addPreviousBlocks(testCFG4.firstNode)
     # printCFG(testCFG4.firstNode)
     # # dotToCFG(testCFG4.firstNode, "simple invocation case")
+    pass
 
 
+def test5():
     # # looks good
     # # invocation case 3
     # with open('json_parser_tests/harderFunctionCall.json') as file5:
@@ -579,8 +639,10 @@ def main():
     # testCFG5.firstNode = addPreviousBlocks(testCFG5.firstNode)
     # printCFG(testCFG5.firstNode)
     # # dotToCFG(testCFG5.firstNode, "two invocation case")
+    pass
 
 
+def test6():
     # # lgtm
     # # invocation case 4
     # with open('json_parser_tests/hardestFunctionCall.json') as file6:
@@ -592,10 +654,11 @@ def main():
     # testCFG6.firstNode = addPreviousBlocks(testCFG6.firstNode)
     # printCFG(testCFG6.firstNode)
     # # dotToCFG(testCFG6.firstNode, "nested invocation case")
+    pass
 
 
-# UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
-    # # simple unary case 
+def test7():
+    # # simple unary case
     # with open('json_parser_tests/simpleUnary.json') as file7:
     #     contents = json.load(file7)
     # ast = parse(contents)
@@ -605,10 +668,12 @@ def main():
     # testCFG7.firstNode = addPreviousBlocks(testCFG7.firstNode)
     # # printCFG(testCFG7.firstNode)
     # dotToCFG(testCFG7.firstNode, "simple unary case")
+    pass
 
 
+def test8():
     # # lgtm
-    # # invocation unary case 
+    # # invocation unary case
     # with open('json_parser_tests/invocationUnary.json') as file8:
     #     contents = json.load(file8)
     # ast = parse(contents)
@@ -618,27 +683,30 @@ def main():
     # testCFG8.firstNode = addPreviousBlocks(testCFG8.firstNode)
     # # printCFG(testCFG8.firstNode)
     # dotToCFG(testCFG8.firstNode, "invocation unary case")
-
-# # same as above ^ - UNSURE ABOUT THIS, SINCE THERE IS ONLY ONE BLOCK, THERE ISNT A GRAPH TO SHOW
-#     # simple binop case
-#     with open('json_parser_tests/simpleBinop.json') as file9:
-#         contents = json.load(file9)
-#     ast = parse(contents)
-#     # functionList = generate_CFG_Prog_Handler(ast)
-#     functionList = tmp(ast)
-#     length = len(functionList)
-#     i = 0
-#     while i < length:
-#         functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
-#         functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
-#         i += 1
-#     testCFG9 = functionList[length-1]
-#     # testCFG9.firstNode = addPreviousBlocks(testCFG9.firstNode)
-#     printCFG(testCFG9.firstNode)
-#     # dotToCFG(testCFG9.firstNode, "simple binop case")
+    pass
 
 
-    # # invocation binop case 
+def test9():
+    # simple binop case
+    with open('json_parser_tests/simpleBinop.json') as file9:
+        contents = json.load(file9)
+    ast = parse(contents)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    functionList = tmp(ast)
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+    testCFG9 = functionList[length-1]
+    # testCFG9.firstNode = addPreviousBlocks(testCFG9.firstNode)
+    printCFG(testCFG9.firstNode)
+    # dotToCFG(testCFG9.firstNode, "simple binop case")
+
+
+def test10():
+    # # invocation binop case
     # with open('json_parser_tests/invocationBinop.json') as file10:
     #     contents = json.load(file10)
     # ast = parse(contents)
@@ -648,7 +716,10 @@ def main():
     # testCFG10.firstNode = addPreviousBlocks(testCFG10.firstNode)
     # # printCFG(testCFG10.firstNode)
     # dotToCFG(testCFG10.firstNode, "invocation binop case")
+    pass
 
+
+def test11():
     # # lgtm
     # # nested if case
     # with open('json_parser_tests/nested_if.json') as file11:
@@ -660,7 +731,10 @@ def main():
     # testCFG11.firstNode = addPreviousBlocks(testCFG11.firstNode)
     # # printCFG(testCFG11.firstNode)
     # dotToCFG(testCFG11.firstNode, "nested if case")
+    pass
 
+
+def test12():
     # # lgtm
     # # nested else case
     # with open('json_parser_tests/nested_else.json') as file12:
@@ -671,7 +745,10 @@ def main():
     # testCFG12.firstNode = addPreviousBlocks(testCFG12.firstNode)
     # # printCFG(testCFG12.firstNode)
     # dotToCFG(testCFG12.firstNode, "nested else case")
+    pass
 
+
+def test13():
     # # lgtm
     # # nested while case
     # with open('json_parser_tests/nested_while.json') as file13:
@@ -683,28 +760,32 @@ def main():
     # testCFG13.firstNode = addPreviousBlocks(testCFG13.firstNode)
     # # printCFG(testCFG13.firstNode)
     # dotToCFG(testCFG13.firstNode, "nested while case")
+    pass
 
 
-    # # lgtm
-    # # if while nested case
-    # with open('json_parser_tests/if_while_nested.json') as file14:
-    #     contents = json.load(file14)
-    # ast = parse(contents)
-    # functionList = tmp(ast)
-    # # functionList = generate_CFG_Prog_Handler(ast)
-    # length = len(functionList)
-    # i = 0
-    # while i < length:
-    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
-    #     functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
-    #     i += 1
-    #
-    # testCFG14 = functionList[length - 1]
-    # # testCFG14.firstNode = addPreviousBlocks(testCFG14.firstNode)
-    # printCFG(testCFG14.firstNode)
-    # dotToCFG(testCFG14.firstNode, "if while nested case")
+def test14():
+    # lgtm
+    # if while nested case
+    with open('json_parser_tests/if_while_nested.json') as file14:
+        contents = json.load(file14)
+    ast = parse(contents)
+    functionList = tmp(ast)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG14 = functionList[length - 1]
+    # testCFG14.firstNode = addPreviousBlocks(testCFG14.firstNode)
+    printCFG(testCFG14.firstNode)
+    dotToCFG(testCFG14.firstNode, "if while nested case")
 
 
+
+def test15():
     # # lgtm
     # # while if nested case
     # with open('json_parser_tests/while_if_nested.json') as file15:
@@ -716,36 +797,170 @@ def main():
     # testCFG15.firstNode = addPreviousBlocks(testCFG15.firstNode)
     # # printCFG(testCFG15.firstNode)
     # dotToCFG(testCFG15.firstNode, "while if nested case")
+    pass
 
 
-    # # lgtm
-    # # triple nested if case
-    # with open('json_parser_tests/if_triple_nest.json') as file16:
-    #     contents = json.load(file16)
-    # ast = parse(contents)
+def test16():
+    # lgtm
+    # triple nested if case
+    with open('json_parser_tests/if_triple_nest.json') as file16:
+        contents = json.load(file16)
+    ast = parse(contents)
     # functionList = generate_CFG_Prog_Handler(ast)
-    # length = len(functionList)
-    # testCFG16 = functionList[length-1]
+    functionList = tmp(ast)
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+    testCFG16 = functionList[length-1]
     # testCFG16.firstNode = addPreviousBlocks(testCFG16.firstNode)
-    # # printCFG(testCFG16.firstNode)
-    # dotToCFG(testCFG16.firstNode, "triple nested if case")
+    # printCFG(testCFG16.firstNode)
+    dotToCFG(testCFG16.firstNode, "triple nested if case")
 
 
-    # # lgtm
-    # # triple nested while case
-    # with open('json_parser_tests/while_triple_nest.json') as file17:
-    #     contents = json.load(file17)
-    # ast = parse(contents)
+def test17():
+    # lgtm
+    # triple nested while case
+    with open('json_parser_tests/while_triple_nest.json') as file17:
+        contents = json.load(file17)
+    ast = parse(contents)
     # functionList = generate_CFG_Prog_Handler(ast)
-    # # print(str(functionList))
-    # length = len(functionList)
-    # testCFG17 = functionList[length - 1]
+    functionList = tmp(ast)
+    # print(str(functionList))
+    length = len(functionList)
+
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG17 = functionList[length - 1]
     # testCFG17.firstNode = addPreviousBlocks(testCFG17.firstNode)
     # printCFG(testCFG17.firstNode)
-    # # dotToCFG(testCFG17.firstNode, "nested while case")
+    dotToCFG(testCFG17.firstNode, "nested while case")
+
+
+def test18():
+    # lgtm
+    # simple if (no else) case
+    with open('json_parser_tests/if_no_else.json') as file18:
+        contents = json.load(file18)
+    ast = parse(contents)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    functionList = tmp(ast)
+    length = len(functionList)
+
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG18 = functionList[length-1]
+    # testCFG18.firstNode = addPreviousBlocks(testCFG16.firstNode)
+    # printCFG(testCFG18.firstNode)
+    dotToCFG(testCFG18.firstNode, "simple if (no else) case")
+
+
+# HAS AN EXTRA EMPTY BLOCK (node #6 and #9) seems pretty harmless tho
+def test19():
+    # triple nested if (no else) case
+    with open('json_parser_tests/nested_if_no_else.json') as file19:
+        contents = json.load(file19)
+    ast = parse(contents)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    functionList = tmp(ast)
+    length = len(functionList)
+
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG19 = functionList[length-1]
+    # testCFG19.firstNode = addPreviousBlocks(testCFG19.firstNode)
+    # printCFG(testCFG19.firstNode)
+    dotToCFG(testCFG19.firstNode, "triple nested if (no else) case")
+
+
+def test20():
+    # lgtm
+    # 2 return case
+    with open('json_parser_tests/2_return.json') as file20:
+        contents = json.load(file20)
+    ast = parse(contents)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    functionList = tmp(ast)
+    length = len(functionList)
+
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG20 = functionList[length-1]
+    # testCFG20.firstNode = addPreviousBlocks(testCFG20.firstNode)
+    # printCFG(testCFG20.firstNode)
+    dotToCFG(testCFG20.firstNode, "2 return case")
+
+
+def test21():
+    # lgtm
+    # 3 return (while) case
+    with open('json_parser_tests/3_return_while.json') as file21:
+        contents = json.load(file21)
+    ast = parse(contents)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    functionList = tmp(ast)
+    length = len(functionList)
+
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+    testCFG21 = functionList[length-1]
+    # testCFG21.firstNode = addPreviousBlocks(testCFG21.firstNode)
+    printCFG(testCFG21.firstNode)
+    # dotToCFG(testCFG21.firstNode, "3 return (while) case")
 
 
 
+# HAS AN EXTRA EMPTY BLOCK (node #8) seems pretty harmless tho
+def test22():
+    # 3 return (if) case
+    with open('json_parser_tests/3_return_if.json') as file22:
+        contents = json.load(file22)
+    ast = parse(contents)
+    # functionList = generate_CFG_Prog_Handler(ast)
+    functionList = tmp(ast)
+    length = len(functionList)
+
+    # i = 0
+    # while i < length:
+    #     functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+    #     functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+    #     i += 1
+
+    testCFG22 = functionList[length-1]
+    # testCFG22.firstNode = addPreviousBlocks(testCFG22.firstNode)
+    printCFG(testCFG22.firstNode)
+    # dotToCFG(testCFG22.firstNode, "3 return (if) case")
+
+
+
+
+
+def main():
+
+
+    test22()
 
 
 
@@ -772,6 +987,9 @@ def main():
     #
     #         for nextNode in currNode.nextBlocks:
     #             queue.append(nextNode)
+
+
+
 
 
 

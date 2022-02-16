@@ -3,15 +3,15 @@ from ast_class_definitions import *
 from top_compiler import importMiniFile
 from cfg_generator import *
 from generateLLVM import getLLVMType
-from test_cfg_generator import printCFG
+from test_cfg_generator import *
 
 def tmp(prog:m_prog):
     # create a function node for each function
     functionList = generate_CFG_Prog_Handler(prog) # this is a list of function nodes
 
-    # the codes were in fact fucked up at this point
-    # printCFG(functionList[len(functionList) - 1].firstNode)
 
+
+    # printCFG(functionList[len(functionList) - 1].firstNode)
 
     # generate globals, generate top_env, generate types
     # may need a new function for getting declarations in the global env
@@ -75,6 +75,15 @@ def tmp(prog:m_prog):
             # anything else??
 
 
+    # add the empty and previous blocks for each function
+    length = len(functionList)
+    i = 0
+    while i < length:
+        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
+        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
+        i += 1
+
+
 
     # look at if and while loops
 
@@ -117,13 +126,13 @@ def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict
     lastRegUsed = currentNode.lastRegUsed
     statements = currentNode.code
 
-    print("ALL statements: " + str(statements))
+    # print("ALL statements: " + str(statements))
 
     for statement in statements:
         lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
 
         if newCode == -1:
-            print("currStatement: " + str(statement))
+            # print("currStatement: " + str(statement))
 
             # NEED TO WRITE CODE TO DEAL WITH UNARY, BINOP, AND BOOL HERE
             code.extend(["GUARD CODE PLACEHOLDER"])
