@@ -6,6 +6,7 @@ from generateLLVM import *
 import test_ast_trees
 import json
 import os
+import copy
 from ssaGenerator import *
 
 # NOTE: YOU WILL WANT TO HAVE A NODE AT THE START OF THE CFG FOR INITIALIZATION PURPOSES LATER
@@ -102,12 +103,18 @@ def addPreviousBlocks(head):
 def addEmptyBlocks(head):
     emptyBlockId = -1
 
-    queue = [head]
-    nodeDict = {}
+    queue = [head]      # kick off the queue with the intial head
+    nodeDict = {}       # tracks when a node has been visited
+    idCodeDict = {}     # tracks the inital idCode of each node
+
 
     # step through every node in the tree
     while queue != []:
         currNode = queue.pop(0)
+
+        # track the initial idCode of each node (we will need to restore this later
+        if currNode.id not in idCodeDict:
+            idCodeDict[currNode.id] = copy.deepcopy(currNode.idCode)
 
         if currNode in nodeDict:
             continue
@@ -171,7 +178,7 @@ def addEmptyBlocks(head):
             for tempNode in currNode.nextBlocks:
                 # this is NOT the body
                 if tempNode.idCode == None or 4 not in tempNode.idCode:
-                    print("guard to next (not body)")
+                    # print("guard to next (not body)")
                     newNextNode.nextBlocks.append(tempNode)
                     tempNode.previousBlocks.remove(currNode)
                     tempNode.previousBlocks.append(newNextNode)
@@ -209,6 +216,30 @@ def addEmptyBlocks(head):
 
         # update the dict entry
         nodeDict[currNode] = True
+
+        # enqueue all of the next nodes
+        for tempNode in currNode.nextBlocks:
+            queue.append(tempNode)
+
+
+
+    # now we restore the idCode for each node
+    queue = [head]  # kick off the queue with the intial head
+    nodeDict = {}  # tracks when a node has been visited
+
+    # step through every node in the tree
+    while queue != []:
+        currNode = queue.pop(0)
+
+        # restore the idCode field of each node using the dictionary from before
+        if currNode.id in idCodeDict:
+            currNode.idCode = idCodeDict[currNode.id]
+
+        if currNode in nodeDict:
+            continue
+        else:
+            # update the dict entry
+            nodeDict[currNode] = True
 
         # enqueue all of the next nodes
         for tempNode in currNode.nextBlocks:
