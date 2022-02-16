@@ -5,6 +5,94 @@ from cfg_generator import *
 from generateLLVM import getLLVMType
 from test_cfg_generator import *
 
+
+def addWhileIfCode(functionList):
+    # look at if and while loops
+    # step through each node in each function and fix up the while and if code
+    codeList = []       # code list will be a list of SSA-LLVM strings that correspond to a function in functionList
+    functionIndex = 0   # current function index in function list
+
+    for fun in functionList:
+
+        currNode = fun.firstNode   # get the first block in a function
+        nodeDict = {}               # make dict of traversed nodes
+        queue = []                  # make queue for traversing nodes
+        queue.append(currNode)     # start off the queue
+        currCode = ""               # this is the code from the current function
+
+        # step through each block of current tree and find the if and while statements
+        while queue != []:
+            currNode = queue.pop(0)    # take first item from the queue
+
+            # check if youve already looked at this node
+            if currNode in nodeDict:
+                continue
+
+            # add the current node to the visited dict
+            nodeDict[currNode] = True
+
+
+
+            # if convergence block case (code 2)
+            if currNode.idCode is not None and 2 in currNode.idCode:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+
+            # if guard block case (code 1) - this encompasses if-else and just plain if
+            elif currNode.idCode is not None and 1 in currNode.idCode:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+
+            # while body block case (code 4)
+            elif currNode.idCode != None and 4 in currNode.idCode:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+
+            # while guard block case (code 3)
+            elif currNode.idCode != None and 3 in currNode.idCode:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+
+            # body is typical (not an if or while component)
+            else:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+
+            # check if there are any next nodes, add them if so
+            for tempNode in currNode.nextBlocks:
+                queue.append(tempNode)
+
+
+        # add the current functions code to the codeList
+        codeList.append(currCode)
+
+    # this will be the code for each function (same order)
+    return codeList
+
+
+
+
+
 def tmp(prog:m_prog):
     # create a function node for each function
     functionList = generate_CFG_Prog_Handler(prog) # this is a list of function nodes
@@ -83,60 +171,8 @@ def tmp(prog:m_prog):
         functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
         i += 1
 
-
-
-    # look at if and while loops
-
-    # step through each node in each function and fix up the while and if code
-    for fun in functionList:
-        currBlock = fun.firstNode       # get the first block in a function
-        nodeDict = {}                   # make dict of traversed nodes
-        queue = []                      # make queue for traversing nodes
-        queue.append(currBlock)         # start off the queue
-
-        # step through each block of current tree and find the if and while statements
-        while queue != []:
-            currBlock = queue.pop(0)    # take first item from the queue
-
-            # check if youve already looked at this node
-            if currBlock in nodeDict:
-                continue
-
-            # add the current node to the visited dict
-            nodeDict[currBlock] = True
-
-
-
-
-            # if convergence block case (code 2)
-            if currBlock.idCode is not None and 2 in currBlock.idCode:
-
-
-                # WRITE CODE HERE
-                pass
-
-
-            # if guard block case (code 1) - this encompasses if-else and just plain if
-            elif currBlock.idCode is not None and 1 in currBlock.idCode:
-
-
-                # WRITE CODE HERE
-                pass
-
-
-            # while guard block case (code 3)
-            elif currBlock.idCode != None and 3 in currBlock.idCode:
-
-
-                # WRITE CODE HERE
-                pass
-
-
-
-
-            # check if there are any next nodes, add them if so
-            for tempNode in currBlock.nextBlocks:
-                queue.append(tempNode)
+    # function will return a string of code that has the while and if statements incorperated
+    ssaCode = addWhileIfCode( ... )
 
             # anything else??
 
