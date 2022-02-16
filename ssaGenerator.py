@@ -87,6 +87,60 @@ def tmp(prog:m_prog):
 
     # look at if and while loops
 
+    # step through each node in each function and fix up the while and if code
+    for fun in functionList:
+        currBlock = fun.firstNode       # get the first block in a function
+        nodeDict = {}                   # make dict of traversed nodes
+        queue = []                      # make queue for traversing nodes
+        queue.append(currBlock)         # start off the queue
+
+        # step through each block of current tree and find the if and while statements
+        while queue != []:
+            currBlock = queue.pop(0)    # take first item from the queue
+
+            # check if youve already looked at this node
+            if currBlock in nodeDict:
+                continue
+
+            # add the current node to the visited dict
+            nodeDict[currBlock] = True
+
+
+
+
+            # if convergence block case (code 2)
+            if currBlock.idCode is not None and 2 in currBlock.idCode:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+            # if guard block case (code 1) - this encompasses if-else and just plain if
+            elif currBlock.idCode is not None and 1 in currBlock.idCode:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+            # while guard block case (code 3)
+            elif currBlock.idCode != None and 3 in currBlock.idCode:
+
+
+                # WRITE CODE HERE
+                pass
+
+
+
+
+            # check if there are any next nodes, add them if so
+            for tempNode in currBlock.nextBlocks:
+                queue.append(tempNode)
+
+            # anything else??
+
+
 
     return functionList
 
