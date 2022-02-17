@@ -6,11 +6,12 @@ from generateLLVM import getLLVMType
 from test_cfg_generator import *
 
 
-def addWhileIfCode(head):
-    # look at if and while loops
-    # step through the nodes of each function and put together a string of ssa code
-    # return this code in a list (same order as the function list)
 
+
+# look at if and while loops
+# step through the nodes of a function and put together a string of ssa code
+# return this code
+def addWhileIfCode(head):
     nodeDict = {}               # make dict of traversed nodes
     queue = []                  # make queue for traversing nodes
     queue.append(head)          # start off the queue
@@ -29,35 +30,98 @@ def addWhileIfCode(head):
 
 
 
-        # if convergence block case (code 2)
-        if currNode.idCode is not None and 2 in currNode.idCode:
-
-
-            # WRITE CODE HERE
-            pass
+        # # if convergence block case (code 2)
+        # if currNode.idCode is not None and 2 in currNode.idCode:
+        #     # DONT SEE A REASON WHY YOU WOULD GET HERE
+        #     # WRITE CODE HERE
+        #     pass
 
 
 
         # if guard block case (code 1) - this encompasses if-else and just plain if
-        elif currNode.idCode is not None and 1 in currNode.idCode:
+        if currNode.idCode is not None and 1 in currNode.idCode:
 
+            # potential bug here where the guard appears to be a convergence
+            if 2 in currNode.idCode:
+                currNode.idCode.remove(2)
+
+            # may want to check if you have an else block first
+            elseFlag = 1  # 1 indicates that there IS an else block
+            ifBlock = None
+            elseBlock = None
+            for tempNode in currNode.nextBlocks:
+                # this is the convergence, there is no else
+                if tempNode.idCode != None and 2 in tempNode.idCode:
+                    elseFlag = 0  # 0 indicates no else
+
+                # save the if block for later (this will catch if and else blocks if they both exist)
+                else:
+                    # IMPORTANT: We are assuming that the if node comes before the else block (fairly certain this will always be true)
+                    if ifBlock == None:
+                        ifBlock = tempNode
+                    # if there are two block, this will catch the else block
+                    else:
+                        elseBlock = tempNode
+
+
+            # add code for if block start
+            currCode += "IF BLOCK START PLACEHOLDER {\n"
+
+            # use the ifElseCodeHelper on the if statement
+            newCode = ifElseCodeHelper(ifBlock)
+
+            # add the code to the currCode
+            currCode += newCode
+
+            # add code for if block end
+            currCode += "IF BLOCK END PLACEHOLDER }\n"
+
+
+            # if there is an else block
+            if elseFlag == 1:
+                # add code for else block start
+                currCode += "ELSE BLOCK START PLACEHOLDER {\n"
+
+                # use the ifElseCodeHelper on the else statement
+                newCode = ifElseCodeHelper(elseBlock)
+
+                # add the code to the currCode
+                currCode += newCode
+
+                # add code for else block end
+                currCode += "ELSE BLOCK END PLACEHOLDER }\n"
+
+
+            # if there is no else block
+            else:
+                # add code for no else block ?
+                currCode += "NO ELSE BLOCK PLACEHOLDER\n"
+                    # possibly need to link guard to not if somehow
+
+
+            # YOU WILL NEED TO GET THE convergenceNode RETURNED FROM THE ifBlock FUNCTION CALL
+            # THIS WILL ALLOW YOU TO CONTINUE AFTER THE IF STATEMENT FINISHES
+            currNode = convergenceNode
 
             # WRITE CODE HERE
             pass
 
 
 
-        # while body block case (code 4)
-        elif currNode.idCode != None and 4 in currNode.idCode:
-
-
-            # WRITE CODE HERE
-            pass
+        # # while body block case (code 4)
+        # elif currNode.idCode != None and 4 in currNode.idCode:
+        #     # DONT SEE A REASON WHY YOU WOULD GET HERE
+        #     # WRITE CODE HERE
+        #     pass
 
 
 
         # while guard block case (code 3)
         elif currNode.idCode != None and 3 in currNode.idCode:
+
+            # potential bug here where the guard appears to be a convergence
+            if 2 in currNode.idCode:
+                currNode.idCode.remove(2)
 
             # add the code for start of while: while (statement) {
                 # what exactly does this look like in SSA-LLVM ??
@@ -120,11 +184,169 @@ def addWhileIfCode(head):
 # and then it will return the block of code that it generated
 # what should we do if we reach another while? another if?
 def whileCodeHelper(head, guardNode):
+    nodeDict = {}  # make dict of traversed nodes
+    queue = []  # make queue for traversing nodes
+    queue.append(head)  # start off the queue
+    currCode = ""  # this is the code from the current function
+
+    # step through each block of current tree and find the if and while statements
+    while queue != []:
+        currNode = queue.pop(0)  # take first item from the queue
+
+        # check if youve already looked at this node
+        if currNode in nodeDict:
+            continue
+
+        # add the current node to the visited dict
+        nodeDict[currNode] = True
 
 
 
-    # write code here
-    pass
+
+        # if guard block case (code 1) - this encompasses if-else and just plain if
+        if currNode.idCode is not None and 1 in currNode.idCode:
+
+            # YOU REACH AN IF GUARD, DEAL WITH THE GROSS BITS AND THEN CALL IF HELPER ON WHAT YOU NEED TO
+            # WRITE CODE HERE
+            pass
+
+
+
+        # while guard block case (code 3)
+        elif currNode.idCode != None and 3 in currNode.idCode and currNode.id == guardNode.id:
+
+            # THIS IS AN IMPORTANT SPECIAL CASE WHERE YOU FIND THE ORIGINAL GUARD BLOCK.
+            # YOU WILL RETURN BACK WITH ALL THE CODE YOU'VE ACCUMULATED SO THAT THE UPPER LEVEL FUNCTION CAN DEAL WITH IT.
+            # WRITE CODE HERE
+            pass
+
+
+
+        # while guard block case (code 3)
+        elif currNode.idCode != None and 3 in currNode.idCode:
+
+            # add the code for start of while: while (statement) {
+            # what exactly does this look like in SSA-LLVM ??
+            currCode += "HEAD OF WHILE (PLACEHOLDER STATEMENT) {\n"  # THIS IS OBVIOUSLY NOT CORRECT
+
+            # NOTE: THIS IS ALSO WHERE WE CAN DEAL WITH THE m_bool, m_unary, m_binop IN THE GUARD STATEMENT
+            # could also do it in _ssaGenerator if we want
+
+            # traverse the while body using whileCodeHelper
+            for tempNode in currNode.nextBlocks:
+                # if you are looking at the body, traverse with whileCodeHelper
+                if 4 in tempNode.idCode:
+
+                    # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
+                    newCode = whileCodeHelper(tempNode, currNode)
+
+                    # add this new code to the currCode string
+                    currCode += newCode
+
+                # add the next (not body) node to the queue
+                else:
+                    queue.append(tempNode)
+
+            # add the code for end of while: }
+            # what exactly does this look like in SSA-LLVM ??
+            currCode += "END OF WHILE }\n"  # THIS IS OBVIOUSLY NOT CORRECT
+
+            # anything else?
+
+            # WRITE CODE HERE
+            pass
+
+
+
+        # body is typical (not an if or while component)
+        else:
+            for currLine in currNode.code:
+                currCode += currLine
+
+        # check if there are any next nodes, add them if so
+        for tempNode in currNode.nextBlocks:
+            queue.append(tempNode)
+
+    # this will be the code for each function (same order)
+    return currCode
+
+
+
+
+
+
+# step thru the if/else nodes until you find a convergence block, another if guard, another while guard, or a dead end (return)
+# each of these is a special case
+# ONE MAIN DIFFERENCE FROM A WHILE STATEMENT IS THAT YOU MAY NEED TO RETURN THE CONVERGENCE BLOCK SO THAT YOU CAN CONTINUE WALKING THE NODES
+def ifElseCodeHelper(head):
+    nodeDict = {}  # make dict of traversed nodes
+    queue = []  # make queue for traversing nodes
+    queue.append(head)  # start off the queue
+    currCode = ""  # this is the code from the current function
+
+    # step through each block of current tree and find the if and while statements
+    while queue != []:
+        currNode = queue.pop(0)  # take first item from the queue
+
+        # check if youve already looked at this node
+        if currNode in nodeDict:
+            continue
+
+        # add the current node to the visited dict
+        nodeDict[currNode] = True
+
+
+        # if convergence block case (code 2)
+        if currNode.idCode is not None and 2 in currNode.idCode:
+
+            # YOU FOUND THE CONVERGENCE BLOCK, THIS MEANS THAT YOU CAN RETURN THE CODE YOU HAVE SO FAR
+            # YOU SHOULD PROBABLY RETURN THIS NODE (along with the code) SO THAT YOU CAN CONTINUE WALKING THE NODES
+
+            pass
+
+
+
+        # if guard block case (code 1) - this encompasses if-else and just plain if
+        elif currNode.idCode is not None and 1 in currNode.idCode:
+
+            # YOU HAVE FOUND A NEW IF GUARD, YOU WILL NEED TO RECURSIVELY CALL THIS FUNCTION
+
+            pass
+
+
+
+        # while body block case (code 4)
+        elif currNode.idCode != None and 4 in currNode.idCode:
+
+            # YOU HAVE FOUND A WHILE GUARD, YOU WILL NEED TO RECURSIVELY CALL THE GUARD HELPER
+            pass
+
+
+
+        # while guard block case (code 3)
+        elif currNode.idCode != None and 3 in currNode.idCode:
+
+            # IS THERE A REASON WHY YOU WOULD REACH THIS??? I dont think so.
+            # WRITE CODE HERE
+            pass
+
+
+        # body is typical (not an if or while component)
+        else:
+            for currLine in currNode.code:
+                currCode += currLine
+
+        # check if there are any next nodes, add them if so
+        for tempNode in currNode.nextBlocks:
+            queue.append(tempNode)
+
+    # this will be the code for each function (same order)
+    return currCode
+
+
+
+
+
 
 
 
