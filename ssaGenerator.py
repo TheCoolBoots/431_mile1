@@ -122,6 +122,8 @@ def addWhileIfCode(head):
 
             # NOTE: THIS IS ALSO WHERE WE CAN DEAL WITH THE m_bool, m_unary, m_binop IN THE GUARD STATEMENT
                 # could also do it in _ssaGenerator if we want
+                # expression to SSA for guard statements
+                # THINK ABOUT GETTING LAST REGISTER USED FROM PREVIOUS NODE
 
 
             # traverse the while body using whileCodeHelper
@@ -577,10 +579,12 @@ def tmp(prog:m_prog):
     # get the dictionary of string to type in the global environment
     globalTopEnv = prog.getTopEnv(False)
 
+    globalReg = lastReg
 
     # will need to step through each statement in each block in each function
     # convert to llvm code with - statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, currentNode:CFG_Node)
     for fun in functionList:
+        lastReg = globalReg
         currBlock = fun.firstNode # get the first block in a function
 
 
@@ -602,15 +606,20 @@ def tmp(prog:m_prog):
             if currBlock in nodeDict:
                 continue
 
+            currBlock.lastRegUsed = lastReg
+
             # add the current node to the visited dict
             nodeDict[currBlock] = True
 
             # will need to include global environment in the generateSSA function
             # _generateSSA(currentNode: CFG_Node, types, functions) : return code, currentNode.mappings
-            tempCode, mappings = _generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog)) # _generateSSA(currBlock, prog.getTypes(), generateFunctionTypes(prog), globalTopEnv)
+            lastReg, tempCode, mappings = _generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog)) # _generateSSA(currBlock, prog.getTypes(), generateFunctionTypes(prog), globalTopEnv)
 
             # update the ast code to be replaced with SSA LLVM code
             currBlock.code = tempCode
+
+            # '\n'.join(codeList) # takes every element in the list and puts \n between them (turns into one string)
+
             currBlock.mappings = mappings # YES?
 
             # check if there are any next nodes, add them if so
@@ -696,7 +705,7 @@ def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict
 
         code.extend(newCode)
 
-    return code, currentNode.mappings
+    return lastRegUsed, code, currentNode.mappings
 
 
 # env maps strings to types {str: bool, str(typeID)}
@@ -725,7 +734,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             return retToSSA(lastRegUsed, stmt, env, types, functions, currentNode)
         case other:
             print(f'ERROR: unrecognized structure:{other}')
-            return -1, -1, -1
+            return lastRegUsed, -1, -1
 
 
 def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
