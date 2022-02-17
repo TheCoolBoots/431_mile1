@@ -27,10 +27,11 @@ class CFG_Node:
 
 
 class Function_Nodes:
-    def __init__(self, firstNode:CFG_Node, lastNodes:list[CFG_Node], returnType = None): # is return type necessary
+    def __init__(self, firstNode:CFG_Node, lastNodes:list[CFG_Node], returnType = None, ssaCode = None): # is return type necessary
         self.firstNode = firstNode
         self.lastNodes = lastNodes
         self.returnType = returnType
+        self.ssaCode = ssaCode
 
 
 # returns a list of all function linked blocks. Previously it only returned the main function.

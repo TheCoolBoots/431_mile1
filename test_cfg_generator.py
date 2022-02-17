@@ -416,6 +416,7 @@ def test1(dotFlag):
         dotToCFG(testCFG1.firstNode, "simple if else case")
     else:
         printCFG(testCFG1.firstNode)
+    print(testCFG1.ssaCode)
 
 
 
@@ -497,7 +498,6 @@ def test6(dotFlag):
         dotToCFG(testCFG6.firstNode, "nested invocation case")
     else:
         printCFG(testCFG6.firstNode)
-    pass
 
 
 
@@ -768,7 +768,7 @@ def main():
             # test1(True)
 
 
-    test22(False)
+    test1(False)
 
 
 
