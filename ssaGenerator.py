@@ -6,88 +6,126 @@ from generateLLVM import getLLVMType
 from test_cfg_generator import *
 
 
-def addWhileIfCode(functionList):
+def addWhileIfCode(head):
     # look at if and while loops
-    # step through each node in each function and fix up the while and if code
-    codeList = []       # code list will be a list of SSA-LLVM strings that correspond to a function in functionList
-    functionIndex = 0   # current function index in function list
+    # step through the nodes of each function and put together a string of ssa code
+    # return this code in a list (same order as the function list)
 
-    for fun in functionList:
+    nodeDict = {}               # make dict of traversed nodes
+    queue = []                  # make queue for traversing nodes
+    queue.append(head)          # start off the queue
+    currCode = ""               # this is the code from the current function
 
-        currNode = fun.firstNode   # get the first block in a function
-        nodeDict = {}               # make dict of traversed nodes
-        queue = []                  # make queue for traversing nodes
-        queue.append(currNode)     # start off the queue
-        currCode = ""               # this is the code from the current function
+    # step through each block of current tree and find the if and while statements
+    while queue != []:
+        currNode = queue.pop(0)    # take first item from the queue
 
-        # step through each block of current tree and find the if and while statements
-        while queue != []:
-            currNode = queue.pop(0)    # take first item from the queue
+        # check if youve already looked at this node
+        if currNode in nodeDict:
+            continue
 
-            # check if youve already looked at this node
-            if currNode in nodeDict:
-                continue
-
-            # add the current node to the visited dict
-            nodeDict[currNode] = True
+        # add the current node to the visited dict
+        nodeDict[currNode] = True
 
 
 
-            # if convergence block case (code 2)
-            if currNode.idCode is not None and 2 in currNode.idCode:
+        # if convergence block case (code 2)
+        if currNode.idCode is not None and 2 in currNode.idCode:
 
 
-                # WRITE CODE HERE
-                pass
-
-
-
-            # if guard block case (code 1) - this encompasses if-else and just plain if
-            elif currNode.idCode is not None and 1 in currNode.idCode:
-
-
-                # WRITE CODE HERE
-                pass
+            # WRITE CODE HERE
+            pass
 
 
 
-            # while body block case (code 4)
-            elif currNode.idCode != None and 4 in currNode.idCode:
+        # if guard block case (code 1) - this encompasses if-else and just plain if
+        elif currNode.idCode is not None and 1 in currNode.idCode:
 
 
-                # WRITE CODE HERE
-                pass
-
-
-
-            # while guard block case (code 3)
-            elif currNode.idCode != None and 3 in currNode.idCode:
-
-
-                # WRITE CODE HERE
-                pass
+            # WRITE CODE HERE
+            pass
 
 
 
-            # body is typical (not an if or while component)
-            else:
+        # while body block case (code 4)
+        elif currNode.idCode != None and 4 in currNode.idCode:
 
 
-                # WRITE CODE HERE
-                pass
+            # WRITE CODE HERE
+            pass
 
 
 
-            # check if there are any next nodes, add them if so
+        # while guard block case (code 3)
+        elif currNode.idCode != None and 3 in currNode.idCode:
+
+            # add the code for start of while: while (statement) {
+                # what exactly does this look like in SSA-LLVM ??
+            currCode += "HEAD OF WHILE (PLACEHOLDER STATEMENT) {\n"  # THIS IS OBVIOUSLY NOT CORRECT
+
+            # NOTE: THIS IS ALSO WHERE WE CAN DEAL WITH THE m_bool, m_unary, m_binop IN THE GUARD STATEMENT
+                # could also do it in _ssaGenerator if we want
+
+
+            # traverse the while body using whileCodeHelper
             for tempNode in currNode.nextBlocks:
-                queue.append(tempNode)
+                # if you are looking at the body, traverse with whileCodeHelper
+                if 4 in tempNode.idCode:
+
+                    # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
+                    newCode = whileCodeHelper(tempNode, currNode)
+
+                    # add this new code to the currCode string
+                    currCode += newCode
+
+                # add the next (not body) node to the queue
+                else:
+                    queue.append(tempNode)
 
 
-        # add the current functions code to the codeList
-        codeList.append(currCode)
+            # add the code for end of while: }
+                # what exactly does this look like in SSA-LLVM ??
+            currCode += "END OF WHILE }\n"  # THIS IS OBVIOUSLY NOT CORRECT
+
+
+            # anything else?
+
+
+            # WRITE CODE HERE
+            pass
+
+
+
+        # body is typical (not an if or while component)
+        else:
+            for currLine in currNode.code:
+                currCode += currLine
+
+
+        # check if there are any next nodes, add them if so
+        for tempNode in currNode.nextBlocks:
+            queue.append(tempNode)
+
 
     # this will be the code for each function (same order)
-    return codeList
+    return currCode
+
+
+
+
+# idea is that the helper will walk through body node until it reaches:
+    # the while guard
+    # a dead end (likely the return block)
+    # anything else?
+# and then it will return the block of code that it generated
+# what should we do if we reach another while? another if?
+def whileCodeHelper(head, guardNode):
+
+
+
+    # write code here
+    pass
+
 
 
 
@@ -171,8 +209,15 @@ def tmp(prog:m_prog):
         functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
         i += 1
 
+
     # function will return a string of code that has the while and if statements incorperated
-    ssaCode = addWhileIfCode( ... )
+    codeList = []
+    length = len(functionList)
+    i = 0
+    while i < length:
+        ssaCode = addWhileIfCode( ... )
+        codeList.append(ssaCode)
+        i += 1
 
             # anything else??
 
