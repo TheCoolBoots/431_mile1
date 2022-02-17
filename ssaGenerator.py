@@ -136,7 +136,17 @@ def addWhileIfCode(head):
 
             # add the code for start of while: while (statement) {
                 # what exactly does this look like in SSA-LLVM ??
+            
+            
+            #evaluate guard statement, add code to codelist
+            # reserve 3 register slots for labels (lastRegUsed+1, +2, +3)
+            # add entry label {lastRegUsed + 1}
+            # add branch instruction br i32 [guardreg], label %{lastRegUsed+2}, label %{lastRegUsed+3}
             currCode += "\nSTART OF WHILE (PLACEHOLDER STATEMENT) {\n"  # THIS IS OBVIOUSLY NOT CORRECT
+            # add body entry label to codelist {lastRegUsed+2}:
+            # evaluate while body statements and add code to codelist
+
+
 
             # NOTE: THIS IS ALSO WHERE WE CAN DEAL WITH THE m_bool, m_unary, m_binop IN THE GUARD STATEMENT
                 # could also do it in _ssaGenerator if we want
@@ -161,6 +171,9 @@ def addWhileIfCode(head):
                 else:
                     queue.append(tempNode)
 
+
+            # br %{lastRegUsed + 1}
+            # add exit label {lastRegUsed+3}:
 
             # add the code for end of while: }
                 # what exactly does this look like in SSA-LLVM ??
