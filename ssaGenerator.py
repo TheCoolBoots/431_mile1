@@ -55,9 +55,18 @@ def addWhileIfCode(head):
                         elseBlock = tempNode
 
             # add code for if block start
-            currCode += "\nIF BLOCK START PLACEHOLDER {\n"
+            # evaluate guard expression
+             lastRegUsed, code, mappings = _generateSSA(...)
+            currCode += code # "\nIF BLOCK START PLACEHOLDER {\n"
 
             # use the ifElseCodeHelper on the if statement
+            # if statement has else block:
+                # br i32 [guard reg], label %[lastRegUsed+1], label %[lastRegUsed+2]
+                # lastRegUsed += 3
+            # else:
+                # br i32 [guard reg], label %[lastRegUsed+1], label %[lastRegUsed+2]
+                # lastRegUsed += 2
+            # add "{lastRegUsed+1}:" to code list (label)
             newTuple = ifElseCodeHelper(ifBlock, nodeDict)
             newCode = newTuple[0]
             convergenceNode = newTuple[1]  # this may be None if it ended in Return
@@ -66,7 +75,12 @@ def addWhileIfCode(head):
             # add the code to the currCode
             currCode += newCode
 
-            # add code for if block end
+            # evaluate if block statements, add to code list
+            # if statement has else block, add jump to label %{lastRegUsed+3
+            #   if it doesnt, add jump to label %{lastRegUsed + 2}
+            # add "{lastRegUsed+2}:" to code list ()
+
+            
             currCode += "\nIF BLOCK END PLACEHOLDER }\n"
 
             # if there is an else block
@@ -89,6 +103,10 @@ def addWhileIfCode(head):
 
                 # add code for else block end
                 currCode += "\nELSE BLOCK END PLACEHOLDER }\n"
+                # if statement has else block:
+                    # evaluate else block statements and add to code list
+                    # add jump to %{lastRegUsed+3}
+                    # add "{lastRegUsed+3}:"
 
 
             # if there is no else block
