@@ -54,9 +54,9 @@ def addWhileIfCode(head):
                     else:
                         elseBlock = tempNode
 
-            # add code for if block start
-            # evaluate guard expression
-             lastRegUsed, code, mappings = _generateSSA(...)
+            # # add code for if block start
+            # # evaluate guard expression
+            #  lastRegUsed, code, mappings = _generateSSA(...)
             currCode += code # "\nIF BLOCK START PLACEHOLDER {\n"
 
             # use the ifElseCodeHelper on the if statement
@@ -716,10 +716,11 @@ def _generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict
         if newCode == -1:
             # print("currStatement: " + str(statement))
 
-            # NEED TO WRITE CODE TO DEAL WITH UNARY, BINOP, AND BOOL HERE
-            code.extend(["GUARD CODE PLACEHOLDER"])
+            # lastRegUsed: int, expr, env: dict, types: dict, functions: dict, currentNode: CFG_Node
+            lastRegUsed, llvmType, newCode = expressionToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
 
-            continue  # REMOVE continue ????
+            # # NEED TO WRITE CODE TO DEAL WITH UNARY, BINOP, AND BOOL HERE
+            # code.extend(["GUARD CODE PLACEHOLDER"])
 
         code.extend(newCode)
 
@@ -831,7 +832,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
     
 
 # returns a tuple containing (resultReg, llvmType, mappings within block, SSA LLVM code)
-def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     match expr:
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
