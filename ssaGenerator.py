@@ -1,6 +1,5 @@
 from typing import Dict, Tuple
 from ast_class_definitions import *
-from top_compiler import importMiniFile
 from cfg_generator import *
 from generateLLVM import getLLVMType
 from test_cfg_generator import *
@@ -14,25 +13,14 @@ from test_cfg_generator import *
 # {str funName: (m_type returnType, list[m_type] paramTypes)}
 
 
-def generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict):
+# returns int: lastRegUsed, list[str]: llvm code for statements within currentNode, dict: ssa mappings
+def generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict) -> Tuple[int, list[str], dict]:
     code = []
     lastRegUsed = currentNode.lastRegUsed
     statements = currentNode.code
 
-    # print("ALL statements: " + str(statements))
-
     for statement in statements:
         lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
-
-        if newCode == -1:
-            # print("currStatement: " + str(statement))
-
-            # lastRegUsed: int, expr, env: dict, types: dict, functions: dict, currentNode: CFG_Node
-            lastRegUsed, llvmType, newCode = expressionToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
-
-            # # NEED TO WRITE CODE TO DEAL WITH UNARY, BINOP, AND BOOL HERE
-            # code.extend(["GUARD CODE PLACEHOLDER"])
-
         code.extend(newCode)
 
     return lastRegUsed, code, currentNode.mappings
@@ -295,7 +283,7 @@ def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, fun
             
     instructions.append(f'%{targetReg} = call {returnTypeID} @{funID}({parameters})')
 
-    return (targetReg, returnTypeID, instructions)
+    return targetReg, returnTypeID, instructions
 
 
 # returns (struct member num, member typeID)
