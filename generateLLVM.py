@@ -84,7 +84,7 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str
         case m_assignment():
             return assignToLLVM(lastRegUsed, stmt, env, t_env, f_env)
         case m_print():
-            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, t_env, f_env)
+            exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, stmt.expression, env, t_env, f_env)
             if type(exprCode) == list:
                 instruction = f'%{exprReg + 1} = call i32 @printf("%d", %{exprReg})'
                 exprCode.append(instruction)
@@ -93,7 +93,7 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str
                 instruction = f'%{exprReg + 1} = call i32 @printf("%d", {exprCode})'
                 return exprReg + 1, 'i32', [instruction]
         case m_delete():
-            exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, t_env, f_env)
+            exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, stmt.expression, env, t_env, f_env)
             exprCode.extend([f'%{exprReg + 1} = bitcast {exprType} %{exprReg} to i8*',
                             f'call void @free(%{exprReg + 1})'])
             return exprReg + 1, 'void', exprCode
@@ -108,7 +108,7 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str
 
 
 def loopToLLVM(lastRegUsed:int, loop:m_loop, env, t_env, f_env) -> Tuple[int, str, list[str]]:
-    guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, loop.guard_expression, env, t_env, f_env)
+    guardReg, guardType, guardCode = expressionToSSA(lastRegUsed, loop.guard_expression, env, t_env, f_env)
 
     if type(guardCode) == list:
         guardCode.append(f'{guardReg+1}:')
@@ -131,7 +131,7 @@ def loopToLLVM(lastRegUsed:int, loop:m_loop, env, t_env, f_env) -> Tuple[int, st
 
 
 def condToLLVM(lastRegUsed:int, stmt:m_conditional, env, t_env, f_env) -> Tuple[int, str, list[str]]:
-    guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, stmt.guard_expression, env, t_env, f_env)
+    guardReg, guardType, guardCode = expressionToSSA(lastRegUsed, stmt.guard_expression, env, t_env, f_env)
 
     if type(guardCode) == list:
         guardCode.append(f'br i32 %{guardReg}, label %{guardReg+1}, label %{guardReg+2}')
@@ -164,7 +164,7 @@ def condToLLVM(lastRegUsed:int, stmt:m_conditional, env, t_env, f_env) -> Tuple[
 
 def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env) -> Tuple[int, str, list[str]]:
 
-    exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, assign.source_expression, env, t_env, f_env)
+    exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, assign.source_expression, env, t_env, f_env)
     lastRegUsed = exprReg
 
     if type(exprCode) == list:
@@ -215,7 +215,7 @@ def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env) -> Tup
 
 
 def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env) -> Tuple[int, str, list[str]]:
-    returnReg, retType, returnCode = expressionToLLVM(lastRegUsed, ret.expression, env, t_env, f_env)
+    returnReg, retType, returnCode = expressionToSSA(lastRegUsed, ret.expression, env, t_env, f_env)
 
     if type(returnCode) == list:
         returnCode.append(f'ret {retType} %{returnReg}')
@@ -237,7 +237,7 @@ def getLLVMType(typeID:str) -> str:
 
 # expressions = binop, number, bool, new id, null, invocation, unary, dot, id
 # returns (return register, llvm return type, llvm instruction list)
-def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[int, str, list[str]]:
+def expressionToSSA(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[int, str, list[str]]:
     match expression:
         case None:
             return lastRegUsed, 'void', 'void'
@@ -295,7 +295,7 @@ def dotToLLVM(lastRegUsed:int, expression:m_dot, env, t_env, f_env) -> Tuple[int
 def invocationToLLVM(lastRegUsed:int, exp:m_invocation, env, t_env, f_env) -> Tuple[int, str, list[str]]:
     params = []
     for expression in exp.args_expressions:
-        params.append(expressionToLLVM(lastRegUsed, expression, env, t_env, f_env))
+        params.append(expressionToSSA(lastRegUsed, expression, env, t_env, f_env))
         lastRegUsed = params[-1][0]
 
     targetReg = params[-1][0] + 1
@@ -322,7 +322,7 @@ def invocationToLLVM(lastRegUsed:int, exp:m_invocation, env, t_env, f_env) -> Tu
 
 # ! -
 def unaryToLLVM(lastRegUsed:int, exp:m_unary, env, t_env, f_env) -> Tuple[int, str, list[str]]:
-    operandReg, operandType, operandCode = expressionToLLVM(lastRegUsed, exp.operand_expression, env, t_env, f_env)
+    operandReg, operandType, operandCode = expressionToSSA(lastRegUsed, exp.operand_expression, env, t_env, f_env)
 
     match exp.operator:
         case '!':
@@ -339,8 +339,8 @@ def unaryToLLVM(lastRegUsed:int, exp:m_unary, env, t_env, f_env) -> Tuple[int, s
 
 # == != <= < > >= - + * / || &&
 def binaryToLLVM(lastRegUsed:int, exp:m_binop, env, t_env, f_env):
-    leftOpReg, leftLLVMType, leftOpCode = expressionToLLVM(lastRegUsed, exp.left_expression, env, t_env, f_env)
-    rightOpReg, rightLLVMType, rightOpCode = expressionToLLVM(leftOpReg, exp.right_expression, env, t_env, f_env)
+    leftOpReg, leftLLVMType, leftOpCode = expressionToSSA(lastRegUsed, exp.left_expression, env, t_env, f_env)
+    rightOpReg, rightLLVMType, rightOpCode = expressionToSSA(leftOpReg, exp.right_expression, env, t_env, f_env)
 
     # == != <= < > >= - + * / || &&
     match exp.operator:

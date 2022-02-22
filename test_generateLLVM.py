@@ -1,6 +1,6 @@
 import unittest
 from ast_class_definitions import *
-from generateLLVM import expressionToLLVM, statementToLLVM
+from generateLLVM import expressionToSSA, statementToLLVM
 import test_ast_trees
 
 
@@ -161,21 +161,21 @@ class test_LLVM_generation(unittest.TestCase):
 
 
     def test_unary(self):
-        actual = expressionToLLVM(0, m_unary(3, '-', m_num(5)), {}, {}, {})
+        actual = expressionToSSA(0, m_unary(3, '-', m_num(5)), {}, {}, {})
         expected = ['%1 = mul i32 -1, 5']
         self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 1 and actual[1] == 'i32')
 
-        actual = expressionToLLVM(0, m_unary(3, '!', m_bool(False)), {}, {}, {})
+        actual = expressionToSSA(0, m_unary(3, '!', m_bool(False)), {}, {}, {})
         expected = ['%1 = xor i32 1, 0']
         self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 1 and actual[1] == 'i32')
 
         env = {'a': m_type('int')}
 
-        actual = expressionToLLVM(0, m_unary(3, '-', m_id(2, 'a')), env, {}, {})
+        actual = expressionToSSA(0, m_unary(3, '-', m_id(2, 'a')), env, {}, {})
         expected = ['%1 = load i32, i32* %a', '%2 = mul i32 -1, %1']
         self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 2  and actual[1] == 'i32')
 
-        actual = expressionToLLVM(0, m_unary(3, '!', m_id(2, 'a')), env, {}, {})
+        actual = expressionToSSA(0, m_unary(3, '!', m_id(2, 'a')), env, {}, {})
         expected = ['%1 = load i32, i32* %a', '%2 = xor i32 1, %1']
         self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 2 and actual[1] == 'i32')
 
@@ -183,23 +183,23 @@ class test_LLVM_generation(unittest.TestCase):
     def test_binary(self):
         env = {'a': m_type('int')}
 
-        actual = expressionToLLVM(0, m_binop(2, '==', m_bool(True), m_bool(False)), env, {}, {})
+        actual = expressionToSSA(0, m_binop(2, '==', m_bool(True), m_bool(False)), env, {}, {})
         expected = ['%1 = icmp eq i32 1, 0']
         self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 1 and actual[1] == 'i32')
 
-        actual = expressionToLLVM(0, m_binop(2, '==', m_id(2, 'a'), m_id(2, 'a')), env, {}, {})
+        actual = expressionToSSA(0, m_binop(2, '==', m_id(2, 'a'), m_id(2, 'a')), env, {}, {})
         expected = ['%1 = load i32, i32* %a', '%2 = load i32, i32* %a', '%3 = icmp eq i32 %1, %2']
         self.assertTrue(actual[0] == 3 and actual[1] == 'i32' and listsEqual(actual[2], expected))
 
 
     def test_invocation(self):
         # function_env structure: {str: (m_type, list[m_type])}     maps funID -> return type
-        actual = expressionToLLVM(0, m_invocation(3, m_id(3, 'FOO'), [m_num(3)]), {}, {}, fun_env)
+        actual = expressionToSSA(0, m_invocation(3, m_id(3, 'FOO'), [m_num(3)]), {}, {}, fun_env)
         expected = ['%1 = call i32 @FOO(i32 3)']
         self.assertTrue(actual[0] == 1 and actual[1] == 'i32' and listsEqual(actual[2], expected))
 
         invocation = m_invocation(3, m_id(3, 'FOO'), [m_id(2, 'a')])
-        actual = expressionToLLVM(0, invocation, top_env, type_env, fun_env)
+        actual = expressionToSSA(0, invocation, top_env, type_env, fun_env)
         expected = ['%1 = load i32, i32* %a',
                     '%2 = call i32 @FOO(i32 %1)']
 
@@ -220,7 +220,7 @@ class test_LLVM_generation(unittest.TestCase):
                     f'%2 = getelementptr %struct.s1, %struct.s1* %1, i32 0, i32 1',
                     f'%3 = load i32, i32* %2']
 
-        actual = expressionToLLVM(0, dot, env, t_env, {})
+        actual = expressionToSSA(0, dot, env, t_env, {})
         self.assertTrue(listsEqual(actual[0] == 3 and actual[1] == 'i32' and actual[2], expected))
 
 
@@ -228,7 +228,7 @@ class test_LLVM_generation(unittest.TestCase):
         env = {'a':m_type('int')}
         ast = m_dot(1, [m_id(1, 'a')])
         expected = [f'%1 = load i32, i32* %a']
-        actual = expressionToLLVM(0, ast, env, {}, {})
+        actual = expressionToSSA(0, ast, env, {}, {})
         self.assertTrue(actual[0] == 1 and actual[1] == 'i32' and listsEqual(actual[2], expected))
 
 

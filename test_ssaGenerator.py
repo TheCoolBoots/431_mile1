@@ -1,7 +1,7 @@
 from xml.etree.ElementInclude import include
 from ast_class_definitions import *
 from cfg_generator import CFG_Node
-from ssaGenerator import _generateSSA
+from ssaGenerator import generateSSA
 import unittest
 from top_compiler import importMiniFile
 
@@ -19,7 +19,7 @@ class test_ssa_generator(unittest.TestCase):
         # %3 = i32 23
         # %4 = add i32 %2, i32 %3
 
-        code, mappings = _generateSSA(node, {}, {}, {})
+        code, mappings = generateSSA(node, {}, {}, {})
         expected = ["%1 = i32 42","%2 = add i32 %1, i32 %1","%3 = i32 23","%4 = add i32 %2, i32 %3"]
         self.assertEqual(code, expected)
 
@@ -35,7 +35,7 @@ class test_ssa_generator(unittest.TestCase):
 
         env = {'varHolder': (False, m_type('A'))}
 
-        code, mappings = _generateSSA(node, env, types, {})
+        code, mappings = generateSSA(node, env, types, {})
         expected = ['%1 = i32 1', 
         '%2 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
         'store i32 %1, i32* %2', 
@@ -59,7 +59,7 @@ class test_ssa_generator(unittest.TestCase):
                 '%2 = call void @foo(i32 %1)',
                 'ret void']
 
-        code, mappings = _generateSSA(node, {}, {}, functions)
+        code, mappings = generateSSA(node, {}, {}, functions)
         self.assertEqual(code, expected)
         # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
         self.assertEqual({'a': ('void', 2, 'placeholder')}, mappings)
@@ -80,7 +80,7 @@ class test_ssa_generator(unittest.TestCase):
                     '%5 = add i32 %3, i32 %4', 
                     'ret i32 %5']
 
-        code, mappings = _generateSSA(node, top_env, types, {})
+        code, mappings = generateSSA(node, top_env, types, {})
 
         self.assertEqual(expected,code)
         self.assertEqual(mappings, {})
@@ -97,7 +97,7 @@ class test_ssa_generator(unittest.TestCase):
         for localDec in localDeclarations:
             top_env[localDec.id.identifier] = (False, localDec.type)
 
-        code, mappings = _generateSSA(node, top_env, types, {})
+        code, mappings = generateSSA(node, top_env, types, {})
 
         expected =['%1 = call i8* @malloc(8)', 
                 '%1 = bitcast i8* %1 to %struct.A*', 
@@ -132,7 +132,7 @@ class test_ssa_generator(unittest.TestCase):
         currentNode.previousBlocks=[leftNode, rightNode]
         currentNode.sealed = True
 
-        code, mappings = _generateSSA(currentNode, {}, {}, {})
+        code, mappings = generateSSA(currentNode, {}, {}, {})
         self.assertEqual(mappings, {'a': ('i32', 1)})
         self.assertEqual(code, ['%1 = phi(i32 %4, i32 %5)', 'ret i32 %1'])
         
