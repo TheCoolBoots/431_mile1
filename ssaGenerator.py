@@ -6,7 +6,6 @@ from generateLLVM import getLLVMType
 from test_cfg_generator import *
 
 
-
 # top_env structure: {str: (bool, m_type)}              where bool == true if global, false if local 
 # types structure: {str: list[m_declaration]}
 # functions structure: {str: (m_type, list[m_type])}    maps funID -> return type, param types
@@ -28,10 +27,11 @@ def generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict)
         if newCode == -1:
             # print("currStatement: " + str(statement))
 
-            # NEED TO WRITE CODE TO DEAL WITH UNARY, BINOP, AND BOOL HERE
-            code.extend(["GUARD CODE PLACEHOLDER"])
+            # lastRegUsed: int, expr, env: dict, types: dict, functions: dict, currentNode: CFG_Node
+            lastRegUsed, llvmType, newCode = expressionToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
 
-            continue  # REMOVE continue ????
+            # # NEED TO WRITE CODE TO DEAL WITH UNARY, BINOP, AND BOOL HERE
+            # code.extend(["GUARD CODE PLACEHOLDER"])
 
         code.extend(newCode)
 
