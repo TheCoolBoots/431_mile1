@@ -2,6 +2,7 @@ from typing import Dict, Tuple
 from ast_class_definitions import *
 from cfg_generator import *
 from ssaGenerator import generateSSA
+from ssaGenerator import expressionToSSA
 import copy
 
 
@@ -57,7 +58,15 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
 
             # will need to include global environment in the generateSSA function
             # _generateSSA(currentNode: CFG_Node, types, functions) : return code, currentNode.mappings
-            lastReg, tempCode, mappings = generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog)) # _generateSSA(currBlock, prog.getTypes(), generateFunctionTypes(prog), globalTopEnv)
+
+            # this is a guard node
+            if(IdCodes.IF_GUARD in currBlock.idCode or IdCodes.WHILE_GUARD in currBlock.idCode):
+                # lastReg, tempCode, mappings = generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog))
+                lastReg, garbage, tempCode = expressionToSSA(lastReg, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog), currBlock)
+
+            else:
+                lastReg, tempCode, mappings = generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog)) # _generateSSA(currBlock, prog.getTypes(), generateFunctionTypes(prog), globalTopEnv)
+
 
             # update the ast code to be replaced with SSA LLVM code
             currBlock.code = tempCode
@@ -138,8 +147,9 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
 
             # add code for if block start
             # evaluate guard expression
-            lastRegUsed, code, mappings = generateSSA(...)
-            currCode += code # "\nIF BLOCK START PLACEHOLDER {\n"
+            # lastRegUsed, code, mappings = generateSSA(...)
+            # currCode += code # "\nIF BLOCK START PLACEHOLDER {\n"
+            currCode += "\nIF BLOCK START PLACEHOLDER {\n"
 
             # use the ifElseCodeHelper on the if statement
             # if statement has else block:

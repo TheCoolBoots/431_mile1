@@ -1,0 +1,24 @@
+fun main() int
+{
+    int num;
+    int num2;
+    print 1;
+
+    if (true) {
+        num2 = 1;
+    }
+
+    else {
+        num = 1;
+        if (true) {
+            print 4;
+        }
+        else {
+            num = 2;
+        }
+
+        print 8;
+    }
+
+    return 2;
+}

@@ -1,0 +1,5 @@
+name [shape=record,label="code1\lcode2\l ... " ]
+digraph "Basic Dot Example" {
+  a -> b -> d;
+  a -> c -> d;
+}
