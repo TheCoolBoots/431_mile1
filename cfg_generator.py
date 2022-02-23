@@ -30,7 +30,7 @@ class CFG_Node:
         self.id = id
         self.returnType = returnType  # default is currently None, might wanna do m_type("void") instead, also should probably add a type
         self.mappings = {}
-        self.sealed = False
+        self.sealed = True
         self.lastRegUsed = lastRegUsed
         self.idCode = idCode  # 0 is normal, 1 is if-guard, 2 is if-convergence, 3 is while-guard, 4 is while-body
 

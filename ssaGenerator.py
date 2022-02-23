@@ -2,7 +2,7 @@ from typing import Dict, Tuple
 from ast_class_definitions import *
 from cfg_generator import *
 from generateLLVM import getLLVMType
-from test_cfg_generator import *
+# from test_cfg_generator import *
 
 
 # top_env structure: {str: (bool, m_type)}              where bool == true if global, false if local 

@@ -179,10 +179,10 @@ def test1(dotFlag):
     # functionList = generate_CFG_Prog_Handler(ast)
     length = len(functionList)
     testCFG1 = functionList[length-1]
-    if(dotFlag):
-        dotToCFG(testCFG1.firstNode, "simple if else case")
-    else:
-        printCFG(testCFG1.firstNode)
+    # if(dotFlag):
+    #     dotToCFG(testCFG1.firstNode, "simple if else case")
+    # else:
+    #     printCFG(testCFG1.firstNode)
     print(testCFG1.ssaCode)
 
 
