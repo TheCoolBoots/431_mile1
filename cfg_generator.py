@@ -14,10 +14,10 @@ class CFG_Node:
 
 # 0 is normal, 1 is if-guard, 2 is if-convergence, 3 is while-guard, 4 is while-body
 class IdCodes(Enum):
-    IF_GUARD = 1
-    IF_CONVERGENCE = 2
-    WHILE_GUARD = 3
-    WHILE_BODY = 4
+    IF_GUARD = 1        # IdCodes.IF_GUARD
+    IF_CONVERGENCE = 2  # IdCodes.IF_CONVERGENCE
+    WHILE_GUARD = 3     # IdCodes.WHILE_GUARD
+    WHILE_BODY = 4      # IdCodes.WHILE_BODY
 
 
 class CFG_Node:

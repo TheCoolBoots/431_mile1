@@ -7,3 +7,7 @@
 5. change format of global variables to @
 6. method that steps through all the nodes and generates SSA code with phi nodes
 7. stepping through again and removing all phi nodes
+
+MERGE whileCodeHelper and ifElseCodeHelper into one function
+    get rid of magic numbers (using the enum)
+    break each case in combined function into their own functions
