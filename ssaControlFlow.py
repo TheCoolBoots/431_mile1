@@ -468,9 +468,6 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
         if currNode in nodeDict:
             continue
 
-        # # add the current node to the visited dict
-        # nodeDict[currNode] = True
-
         # if convergence block case (code 2)
         if currNode.idCode is not None and 2 in currNode.idCode:
 

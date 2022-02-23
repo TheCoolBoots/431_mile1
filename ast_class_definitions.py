@@ -11,14 +11,6 @@ TASK 1: create python class for each format as described in overview.pdf
 from typing import Tuple
 
 
-def listsEqual(listA:list, listB:list):
-    if len(listA) != len(listB):
-        return False
-    for i in range(len(listA)):
-        if not (listA[i] == listB[i]):
-            return False
-    return True
-
 class m_bool:
     def __init__(self, val:bool):
         self.val = val
@@ -108,7 +100,7 @@ class m_type_declaration:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.id == __o.id and listsEqual(self.nested_declarations, __o.nested_declarations) and self.lineNum == __o.lineNum
+        return self.id == __o.id and self.nested_declaration == __o.nested_declarations and self.lineNum == __o.lineNum
     def getLLVM(self):
             # %struct.foo = type {i32, i32, %struct.simple*}
             # %struct.simple = type {i32}
@@ -137,9 +129,9 @@ class m_function:
 
         bools = [self.id == __o.id, 
             self.return_type == __o.return_type, 
-            listsEqual(self.statements, __o.statements),
-            listsEqual(self.body_declarations, __o.body_declarations),
-            listsEqual(self.param_declarations, __o.param_declarations),
+            self.statements == __o.statements,
+            self.body_declarations == __o.body_declarations,
+            self.param_declarations == __o.param_declarations,
             self.lineNum == __o.lineNum]
 
         equal = all(bools)
@@ -182,7 +174,7 @@ class m_prog:
         if type(__o) != type(self):
             return False
 
-        return listsEqual(self.types, __o.types) and listsEqual(self.global_declarations, __o.global_declarations) and listsEqual(self.functions, __o.functions)
+        return self.types == __o.types and self.global_declarations == __o.global_declarations and self.functions == __o.functions
     
 
 # assignment → lvalue = { expression | read } ;
@@ -194,7 +186,7 @@ class m_assignment:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.source_expression == __o.source_expression and listsEqual(self.target_ids, __o.target_ids) and self.lineNum == __o.lineNum
+        return self.source_expression == __o.source_expression and self.target_ids == __o.target_ids and self.lineNum == __o.lineNum
 
 
 # print → print expression {endl}opt;
@@ -219,7 +211,7 @@ class m_conditional:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        equal = self.guard_expression == __o.guard_expression and listsEqual(self.if_statements, __o.if_statements) and listsEqual(self.else_statements, __o.else_statements)
+        equal = self.guard_expression == __o.guard_expression and self.if_statements == __o.if_statements and self.else_statements == __o.else_statements
         # print(f'conditional is equal? {equal}')
         return equal and self.lineNum == __o.lineNum
 
@@ -233,7 +225,7 @@ class m_loop:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        equal = self.guard_expression == __o.guard_expression and listsEqual(self.body_statements, __o.body_statements)
+        equal = self.guard_expression == __o.guard_expression and self.body_statements == __o.body_statements
         # print(f'm_loops equal? {equal}')
         # print(type(self.block), type(__o.block))
         return equal and self.lineNum == __o.lineNum
@@ -293,7 +285,7 @@ class m_invocation:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.id == __o.id and listsEqual(self.args_expressions, __o.args_expressions) and self.lineNum == __o.lineNum
+        return self.id == __o.id and self.args_expressions == __o.args_expressions and self.lineNum == __o.lineNum
 
 
 # needed whenever using new [struct_id];
@@ -325,5 +317,5 @@ class m_dot:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
-        return self.lineNum == __o.lineNum and listsEqual(self.ids, __o.ids)
+        return self.lineNum == __o.lineNum and self.ids == __o.ids
 
