@@ -1,8 +1,7 @@
 from typing import Dict, Tuple
 from ast_class_definitions import *
-from cfg_generator import *
+from cfg_generator import CFG_Node
 from generateLLVM import getLLVMType
-from test_cfg_generator import *
 
 
 # top_env structure: {str: (bool, m_type)}              where bool == true if global, false if local 
@@ -14,7 +13,7 @@ from test_cfg_generator import *
 
 
 # returns int: lastRegUsed, list[str]: llvm code for statements within currentNode, dict: ssa mappings
-def generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict) -> Tuple[int, list[str], dict]:
+def generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict) -> Tuple[int, list[str]]:
     code = []
     lastRegUsed = currentNode.lastRegUsed
     statements = currentNode.code
@@ -23,7 +22,7 @@ def generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict)
         lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
         code.extend(newCode)
 
-    return lastRegUsed, code, currentNode.mappings
+    return lastRegUsed, code
 
 
 # env maps strings to types {str: bool, str(typeID)}
@@ -150,7 +149,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_read():
             return lastRegUsed+2, 'i32', [f'%{lastRegUsed+2} = alloc i32', f'%{lastRegUsed+1} = call i32 @scanf("%d", %{lastRegUsed+2}*)']
         case m_unary():
-            pass
+            return unaryToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_dot():
             return dotToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_id():
@@ -259,6 +258,19 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
     instructions.append(f'%{targetReg} = {op} %{leftOpReg}, i32 %{rightOpReg}')
 
     return (targetReg, 'i32', instructions)
+
+
+def unaryToSSA(lastRegUsed:int, exp:m_unary, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+    operandReg, operandType, operandCode = expressionToSSA(lastRegUsed, exp.operand_expression, env, types, functions, currentNode)
+
+    match exp.operator:
+        case '!':
+            op = f'xor i32 1'
+        case '-':
+            op = f'mul i32 -1'
+        
+    operandCode.append(f'%{operandReg + 1} = {op}, %{operandReg}')
+    return operandReg+1, 'i32', operandCode
 
 
 def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
