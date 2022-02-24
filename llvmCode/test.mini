@@ -1,0 +1,10 @@
+int i, j, k;
+i = 1;
+
+fun f(int i, struct B j) struct A
+{
+    int i = 0; # this legal? already in global scope
+    i = 2; # if the previous line is allowed, would this change the local or global??
+    # if the first line wasnt allowed, I would assume that this would change the global????
+        # on this topic, can you change the value of a global or is that constant????
+}

@@ -387,3 +387,9 @@ def binaryToLLVM(lastRegUsed:int, exp:m_binop, env, t_env, f_env):
     instructions.append(f'%{targetReg} = {op} {leftOpReg}, {rightOpReg}')
 
     return (targetReg , 'i32', instructions)
+
+# returns (struct member num, member typeID)
+def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[int, str]:
+    for i, decl in enumerate(declarations):
+        if decl.id == id:
+            return (i, decl.type.typeID)

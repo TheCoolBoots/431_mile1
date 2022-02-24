@@ -1,0 +1,22 @@
+fun func(int a) bool
+{
+    int b;
+    b = 1;
+    return True;
+}
+
+
+fun foo(int a) int
+{
+    print 5;
+    return 5;
+}
+
+
+fun main() int
+{
+    int a;
+    bool b;
+    b = func(foo(1));
+    return 0;
+}

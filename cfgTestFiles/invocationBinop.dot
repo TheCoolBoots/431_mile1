@@ -1,0 +1,4 @@
+digraph "invocation binop case" {
+  0 -> 1;
+  1 -> 2;
+}

@@ -1,33 +1,43 @@
 import unittest
 from ast_class_definitions import *
 import test_ast_trees
+from enum import Enum
 
-
-functionBlocks = {}     # A dict to track function names to their FunctionNodes
-blockId = 0             # This will help with numbering CFG_Nodes
-ifOrWhileFlag = 0       # This will tell a function if you are currently in an if or while guard
+functionBlocks = {}  # A dict to track function names to their FunctionNodes
+blockId = 0  # This will help with numbering CFG_Nodes
+ifOrWhileFlag = 0  # This will tell a function if you are currently in an if or while guard
 
 
 class CFG_Node:
     None
 
 
+# 0 is normal, 1 is if-guard, 2 is if-convergence, 3 is while-guard, 4 is while-body
+class IdCodes(Enum):
+    IF_GUARD = 1        # IdCodes.IF_GUARD
+    IF_CONVERGENCE = 2  # IdCodes.IF_CONVERGENCE
+    WHILE_GUARD = 3     # IdCodes.WHILE_GUARD
+    WHILE_BODY = 4      # IdCodes.WHILE_BODY
+
+
 class CFG_Node:
     # def __init__(self, nextBlocks:list, code:list[m_statement], id:int, returnType = None): 
-    def __init__(self, lastRegUsed:int, previousBlocks:list[CFG_Node], nextBlocks:list[CFG_Node], code:list, id:int, idCode:list = None, returnType = None):
-        self.previousBlocks = previousBlocks # can be multiple
-        self.nextBlocks = nextBlocks # could be multiple
-        self.code = code    # is a list of statements
+    def __init__(self, lastRegUsed: int, previousBlocks: list[CFG_Node], nextBlocks: list[CFG_Node], code: list,
+                 id: int, idCode: list = None, returnType=None):
+        self.previousBlocks = previousBlocks  # can be multiple
+        self.nextBlocks = nextBlocks  # could be multiple
+        self.code = code  # is a list of statements
         self.id = id
-        self.returnType = returnType # default is currently None, might wanna do m_type("void") instead, also should probably add a type
+        self.returnType = returnType  # default is currently None, might wanna do m_type("void") instead, also should probably add a type
         self.mappings = {}
-        self.sealed = False
+        self.sealed = True
         self.lastRegUsed = lastRegUsed
         self.idCode = idCode  # 0 is normal, 1 is if-guard, 2 is if-convergence, 3 is while-guard, 4 is while-body
 
 
 class Function_Nodes:
-    def __init__(self, firstNode:CFG_Node, lastNodes:list[CFG_Node], returnType = None, ssaCode = None): # is return type necessary
+    def __init__(self, firstNode: CFG_Node, lastNodes: list[CFG_Node], returnType=None,
+                 ssaCode=None):  # is return type necessary
         self.firstNode = firstNode
         self.lastNodes = lastNodes
         self.returnType = returnType
@@ -35,16 +45,16 @@ class Function_Nodes:
 
 
 # returns a list of all function linked blocks. Previously it only returned the main function.
-def generate_CFG_Prog_Handler(program:m_prog):
+def generate_CFG_Prog_Handler(program: m_prog):
     global blockId
 
-    functionList = []   # This will hold all of the function nodes
+    functionList = []  # This will hold all of the function nodes
 
     # look through the functions and make them into blocks (in order)
     for fun in program.functions:
         # if you get to main, break, we deal with it specially because main should always be last
         # NOTE: dont necessarily need to do this
-        if(fun.id.identifier) == "main":
+        if fun.id.identifier == "main":
             mainFun = fun
             break
 
@@ -57,23 +67,20 @@ def generate_CFG_Prog_Handler(program:m_prog):
         # add the block to the funciton list
         functionList.append(newNode)
 
-
     # create the main function node
     mainNode = generate_CFG_Function_Handler(mainFun.statements, 0)
 
     # add main to the list of functions
     functionList.append(mainNode)
 
-
     # Now we step through each function node and remove empty nodes and then renumber the CFG_Nodes
     for node in functionList:
 
-
         # START OF EMPTY NODE REMOVAL SECTION
 
-        queue = []                      # queue to keep track of which nodes we need to visit
-        nodeReferences = {}             # dict to track which nodes we've visited
-        queue.append(node.firstNode)    # enqueue the node at the front
+        queue = []  # queue to keep track of which nodes we need to visit
+        nodeReferences = {}  # dict to track which nodes we've visited
+        queue.append(node.firstNode)  # enqueue the node at the front
 
         # step through the nodes and delete the empty nodes by patching the others together
         firstFlag = 1
@@ -99,7 +106,6 @@ def generate_CFG_Prog_Handler(program:m_prog):
 
                 # just continue
                 continue
-
 
             # check if any of the next nodes are empty
             i = 0
@@ -129,15 +135,13 @@ def generate_CFG_Prog_Handler(program:m_prog):
 
         # END OF EMPTY NODE REMOVAL SECTION
 
-
-
         # START OF LOGICAL RENUMBERING SECTION
 
         # Step thru the nodes in order and renumber them in a more logical manner
-        queue = []                      # queue to keep track of nodes we need to visit
-        nodeReferences = {}             # tracks which nodes have been visited
-        queue.append(node.firstNode)    # enqueue the node at the front
-        updateId = 0                    # number to update with
+        queue = []  # queue to keep track of nodes we need to visit
+        nodeReferences = {}  # tracks which nodes have been visited
+        queue.append(node.firstNode)  # enqueue the node at the front
+        updateId = 0  # number to update with
 
         # step through the nodes and renumber each node in logical order
         while queue != []:
@@ -161,26 +165,23 @@ def generate_CFG_Prog_Handler(program:m_prog):
 
         # END OF LOGICAL RENUMBERING SECTION
 
-
     return functionList
-
 
 
 # the function flag tells us if we should create a function node or just a node (0 means function, 1 means not function)
 # handle each function uniquely, step through statements and create/connect nodes as needed
-def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
+def generate_CFG_Function_Handler(currStatements: list, functionFlag: int):
     global blockId
-    currNode = CFG_Node(-1 ,[], [], [], blockId)    # Something special that should go into the last used register field?
-    blockId += 1                                    # Keep a blockId so that we can number them as we go
-    currFinalBlocks = []                            # We keep the final blocks so that we can put it into the function node
-    initialNode = currNode                          # We will keep the initial node so that we know what to return
-    initialFlag = 0                                 # This flag will be 0 while we are still on the first node
-    currNodeCount = 0                               # This tracks how many nodes are in the current block
+    currNode = CFG_Node(-1, [], [], [], blockId)  # Something special that should go into the last used register field?
+    blockId += 1  # Keep a blockId so that we can number them as we go
+    currFinalBlocks = []  # We keep the final blocks so that we can put it into the function node
+    initialNode = currNode  # We will keep the initial node so that we know what to return
+    initialFlag = 0  # This flag will be 0 while we are still on the first node
+    currNodeCount = 0  # This tracks how many nodes are in the current block
 
     # If we want to return a Function_Nodes struct, we must create it here.
     if functionFlag == 0:
         functionNode = Function_Nodes(None, [], None)
-
 
     # run this node through the statements until we need a new one
     for statement in currStatements:
@@ -195,9 +196,8 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
         # this is the node we just generated from he statement
         currNode = currTuple[0]
 
-
         # check if we need a new node (if or while)
-        if(currTuple[1] == 2 or currTuple[1] == 3):
+        if (currTuple[1] == 2 or currTuple[1] == 3):
             # if you currently have a node that is not empty ...
             if currNodeCount > 0:
                 # if this is our first node, set it to initial node
@@ -206,17 +206,16 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                     initialNode = tempNode
 
             # keeps track of how many nodes there are, we need this to see when we pass the initial node
-            currNodeCount = 0 # I DONT THINK THIS LINE SHOULD BE HERE, DOUBLE CHECK ME THO
+            currNodeCount = 0  # I DONT THINK THIS LINE SHOULD BE HERE, DOUBLE CHECK ME THO
             newNode = CFG_Node(-1, [], [], [], blockId)
             blockId += 1
 
-
             # m_loop
             # while statement, connect the returned guard node to the new node
-            if(currTuple[1] == 2):
+            if (currTuple[1] == 2):
 
                 # tempNode is the previous node, do we really need this?
-                if(tempNode != None):
+                if (tempNode != None):
                     tempNode.nextBlocks.append(currNode)
 
                 # simply put the newNode as a nextBlock from currNode
@@ -231,12 +230,12 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                 currNode = newNode
 
                 # set the current final block to the guard statement
-                currFinalBlocks = [currNode] # THIS MAY NOT BE THE CORRECT INTERPRETATION. Dont think this even matters
+                currFinalBlocks = [currNode]  # THIS MAY NOT BE THE CORRECT INTERPRETATION. Dont think this even matters
 
 
             # m_conditional
             # if else statement, connect each existing next from the guard block to the new node
-            elif(currTuple[1] == 3):
+            elif (currTuple[1] == 3):
                 # if you are on the first node, set it as the initial node
                 if initialFlag == 0:
                     initialFlag = 1
@@ -245,12 +244,12 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                 # get the if node
                 ifNode = currNode.nextBlocks[0]
 
-                queue = [ifNode]        # make a queue of nodes to visit
-                visitedDict = {}        # keep track of visited nodes (dict)
-                currFinalBlocks = []    # we will remake final blocks. Honestly, probably dont even need this.
+                queue = [ifNode]  # make a queue of nodes to visit
+                visitedDict = {}  # keep track of visited nodes (dict)
+                currFinalBlocks = []  # we will remake final blocks. Honestly, probably dont even need this.
 
                 # search the queue while it isnt empty
-                while(queue != []):
+                while (queue != []):
                     # pop the front
                     curr = queue.pop(0)
 
@@ -261,7 +260,7 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
 
                     # once you hit a node with no next nodes in its list, add the new node
                     # this adds the newNode to the if and else blocks nextBlocks lists
-                    if(curr.nextBlocks == []):
+                    if (curr.nextBlocks == []):
                         curr.nextBlocks.append(newNode)
                         currFinalBlocks.append(curr)
 
@@ -270,19 +269,17 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                         for node in curr.nextBlocks:
                             queue.append(node)
 
-
                 # # if the currFinalBlocks actually matters, you will need to think through this line
                 # currFinalBlocks = [ifNode]
-
 
                 # do all the same for the else node if it exists
                 if len(currNode.nextBlocks) > 1:
                     # get the else node from the currNode
                     elseNode = currNode.nextBlocks[1]
 
-                    queue = [elseNode]      # make a queue of nodes to visit
-                    visitedDict = {}        # keep track of visited nodes (dict)
-                    currFinalBlocks = []    # we will remake final blocks
+                    queue = [elseNode]  # make a queue of nodes to visit
+                    visitedDict = {}  # keep track of visited nodes (dict)
+                    currFinalBlocks = []  # we will remake final blocks
 
                     # search the queue while it isnt empty
                     while (queue != []):
@@ -307,19 +304,18 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
                 else:
                     currNode.nextBlocks.append(newNode)
 
-
                 # update currNode to be newNode
                 if newNode.idCode is None:
-                    newNode.idCode = [2]
+                    newNode.idCode = [IdCodes.IF_CONVERGENCE]
                 else:
-                    newNode.idCode.append(2)  # THIS IS THE CODE FOR AN IF CONVERGENCE BLOCK
+                    newNode.idCode.append(IdCodes.IF_CONVERGENCE)  # THIS IS THE CODE FOR AN IF CONVERGENCE BLOCK
 
                 # update the currNode to be the newNode
                 currNode = newNode
 
 
         # reached return in main block
-        elif(currTuple[1] == 1):
+        elif (currTuple[1] == 1):
             # if you are on the first node, set it as the initial node
             if initialFlag == 0:
                 initialFlag = 1
@@ -331,21 +327,18 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
             # break from the function, no need to go further when you hit a return
             break
 
-            
+
         else:
             # if you are on the first node, set it as the initial node
             if initialFlag == 0:
                 initialFlag = 1
                 initialNode = currNode
 
-
-# I DONT THINK IS THE RIGHT THING TO DO TBH
+            # I DONT THINK IS THE RIGHT THING TO DO TBH
             while currNode.nextBlocks != []:
                 currNode = currNode.nextBlocks[0]
             currNodeCount += 1
-# I DONT THINK IS THE RIGHT THING TO DO TBH
-
-
+    # I DONT THINK IS THE RIGHT THING TO DO TBH
 
     # if this is our first node, set it to initial node
     if initialFlag == 0:
@@ -355,20 +348,19 @@ def generate_CFG_Function_Handler(currStatements:list, functionFlag:int):
     if functionFlag == 0:
         functionNode.firstNode = initialNode
         functionNode.lastNodes = currFinalBlocks
-        return functionNode 
+        return functionNode
 
-    # You've reached the end of the function, return the intial node.
+        # You've reached the end of the function, return the intial node.
     # This is the case where functionFlag == 1.
     # We just return a CFG_Node rather than a function node.
     return initialNode
 
 
-
 # returns a tuple that is (node, int):
-    # 1 if it is a return statement
-    # 2 if it is a while statement 
-    # 3 if it is an if/if else statement
-    # return 0 if it is none of the above
+# 1 if it is a return statement
+# 2 if it is a while statement
+# 3 if it is an if/if else statement
+# return 0 if it is none of the above
 def generate_CFG_Nodes(expression, currNode):
     global blockId
     global ifOrWhileFlag
@@ -382,9 +374,9 @@ def generate_CFG_Nodes(expression, currNode):
 
             # here we add the idCode for an if guard node
             if guardNode.idCode is None:
-                guardNode.idCode = [1]
+                guardNode.idCode = [IdCodes.IF_GUARD]
             else:
-                guardNode.idCode.append(1)  # THIS IS THE CODE FOR AN IF GUARD BLOCK
+                guardNode.idCode.append(IdCodes.IF_GUARD)  # THIS IS THE CODE FOR AN IF GUARD BLOCK
             ifOrWhileFlag = 0
 
             # create a node for the if statements
@@ -407,7 +399,6 @@ def generate_CFG_Nodes(expression, currNode):
             # here we return 3 to indicate that this was an m_conditional
             return (guardNode, 3)
 
-
         case m_loop():
             # call generete_CFG_Nodes on the guard statement, set this to next from the current node
             ifOrWhileFlag = 1
@@ -415,9 +406,9 @@ def generate_CFG_Nodes(expression, currNode):
 
             # here we add the idCode for a guardNode
             if guardNode.idCode is None:
-                guardNode.idCode = [3]
+                guardNode.idCode = [IdCodes.WHILE_GUARD]
             else:
-                guardNode.idCode.append(3)  # THIS IS THE CODE FOR A WHILE GUARD BLOCK
+                guardNode.idCode.append(IdCodes.WHILE_GUARD)  # THIS IS THE CODE FOR A WHILE GUARD BLOCK
             ifOrWhileFlag = 0
 
             # call generete_CFG_Nodes on the statement in the while, this generates the whileNode for us
@@ -425,9 +416,9 @@ def generate_CFG_Nodes(expression, currNode):
 
             # here we add the idCode for a while body node
             if whileNode.idCode is None:
-                whileNode.idCode = [4]
+                whileNode.idCode = [IdCodes.WHILE_BODY]
             else:
-                whileNode.idCode.append(4)  # THIS IS THE CODE FOR A WHILE BODY BLOCK
+                whileNode.idCode.append(IdCodes.WHILE_BODY)  # THIS IS THE CODE FOR A WHILE BODY BLOCK
 
             # set this to next from the guard node, next from this should also be the guard node
             guardNode.nextBlocks.append(whileNode)
@@ -461,7 +452,6 @@ def generate_CFG_Nodes(expression, currNode):
             # here we return 2 to indicate that this was an m_loop
             return (guardNode, 2)
 
-
         case m_ret():
             # If we wanted to set the return type of the current node, this might be a good place to do it
             currNode.code.append(expression)
@@ -486,11 +476,10 @@ def generate_CFG_Nodes(expression, currNode):
             # here we return 1 to indicate that this was an m_ret
             return (currNode, 1)
 
-
         case m_print():
             currNode.code.append(expression)
 
-            temp = checkForInvocation(expression.expression, currNode) 
+            temp = checkForInvocation(expression.expression, currNode)
             currNode = temp[2]
 
             # Previously, this block patched in the invocation node (when I was doing that)
@@ -512,11 +501,10 @@ def generate_CFG_Nodes(expression, currNode):
             # here we return 0 to indicate that this was not a return, loop, or conditional
             return (currNode, 0)
 
-
         case m_assignment():
             # add the assignment code to the node
             currNode.code.append(expression)
-        
+
             # check for invocation inside the sub expression (it would need to be added to code)
             newTuple = checkForInvocation(expression.source_expression, currNode)
             currNode = newTuple[2]
@@ -524,18 +512,15 @@ def generate_CFG_Nodes(expression, currNode):
             # here we return 0 to indicate that this was not a return, loop, or conditional
             return (currNode, 0)
 
-
         # this case will catch the rest of the possible expressions
         case _:
             # this flag indicates that we are in a guard node - the only time when we should be appending these expressions
             # this should only be m_bool, unary, binop
-            if(ifOrWhileFlag == 1):
+            if (ifOrWhileFlag == 1):
                 currNode.code.append(expression)
 
             # here we return 0 to indicate that this was not a return, loop, or conditional
             return (currNode, 0)
-
-
 
 
 # this function is used to check sub expressions.
@@ -558,11 +543,9 @@ def checkForInvocation(expression, currNode):
 
             return (None, 1, currNode)
 
-
         # these expressions should never be appended to the code
         case m_num() | m_new_struct() | m_null() | m_dot() | m_id():
             return (None, 0, currNode)
-
 
         # this case is used for catching stuff that might be in the guard statement and appending the code
         case m_bool() | m_binop() | m_unary():
@@ -571,8 +554,6 @@ def checkForInvocation(expression, currNode):
                 currNode.code.append(expression)
             return (None, 0, currNode)
 
-
         # in case I missed any expressions (there are several I would miss intentionally)
         case _:
             return (None, 0, currNode)
-

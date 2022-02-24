@@ -1,0 +1,7 @@
+fun main() int
+{
+    bool b;
+    b = True;
+    b = !b;
+    return 0;
+}

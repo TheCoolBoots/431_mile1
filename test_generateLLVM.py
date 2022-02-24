@@ -34,7 +34,7 @@ class test_LLVM_generation(unittest.TestCase):
                     '4:']
         actual = statementToLLVM(0, ast, top_env, type_env, fun_env)
 
-        self.assertTrue(listsEqual(expected, actual[2]))
+        self.assertEqual(expected, actual[2])
         self.assertEqual(actual[1], 'i32')
         self.assertEqual(actual[0], 4)
 
@@ -51,7 +51,7 @@ class test_LLVM_generation(unittest.TestCase):
                     '3:']
         actual = statementToLLVM(0, ast, top_env, type_env, fun_env)
 
-        self.assertTrue(listsEqual(expected, actual[2]))
+        self.assertEqual(expected, actual[2])
         self.assertEqual(actual[1], 'i32')
         self.assertEqual(actual[0], 3)
 
@@ -66,7 +66,7 @@ class test_LLVM_generation(unittest.TestCase):
                     '3:']
 
         actual = statementToLLVM(0, ast, {}, {}, {})
-        self.assertTrue(listsEqual(expected, actual[2]))
+        self.assertEqual(expected, actual[2])
         self.assertEqual(actual[1], 'i32')
         self.assertEqual(actual[0], 3)
 
@@ -163,21 +163,25 @@ class test_LLVM_generation(unittest.TestCase):
     def test_unary(self):
         actual = expressionToLLVM(0, m_unary(3, '-', m_num(5)), {}, {}, {})
         expected = ['%1 = mul i32 -1, 5']
-        self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 1 and actual[1] == 'i32')
+        self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
         actual = expressionToLLVM(0, m_unary(3, '!', m_bool(False)), {}, {}, {})
         expected = ['%1 = xor i32 1, 0']
-        self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 1 and actual[1] == 'i32')
+        self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
         env = {'a': m_type('int')}
 
         actual = expressionToLLVM(0, m_unary(3, '-', m_id(2, 'a')), env, {}, {})
         expected = ['%1 = load i32, i32* %a', '%2 = mul i32 -1, %1']
-        self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 2  and actual[1] == 'i32')
+        self.assertTrue(actual[0] == 2  and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected) 
 
         actual = expressionToLLVM(0, m_unary(3, '!', m_id(2, 'a')), env, {}, {})
         expected = ['%1 = load i32, i32* %a', '%2 = xor i32 1, %1']
-        self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 2 and actual[1] == 'i32')
+        self.assertTrue(actual[0] == 2 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
 
     def test_binary(self):
@@ -185,18 +189,21 @@ class test_LLVM_generation(unittest.TestCase):
 
         actual = expressionToLLVM(0, m_binop(2, '==', m_bool(True), m_bool(False)), env, {}, {})
         expected = ['%1 = icmp eq i32 1, 0']
-        self.assertTrue(listsEqual(actual[2], expected) and actual[0] == 1 and actual[1] == 'i32')
+        self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
         actual = expressionToLLVM(0, m_binop(2, '==', m_id(2, 'a'), m_id(2, 'a')), env, {}, {})
         expected = ['%1 = load i32, i32* %a', '%2 = load i32, i32* %a', '%3 = icmp eq i32 %1, %2']
-        self.assertTrue(actual[0] == 3 and actual[1] == 'i32' and listsEqual(actual[2], expected))
+        self.assertTrue(actual[0] == 3 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
 
     def test_invocation(self):
         # function_env structure: {str: (m_type, list[m_type])}     maps funID -> return type
         actual = expressionToLLVM(0, m_invocation(3, m_id(3, 'FOO'), [m_num(3)]), {}, {}, fun_env)
         expected = ['%1 = call i32 @FOO(i32 3)']
-        self.assertTrue(actual[0] == 1 and actual[1] == 'i32' and listsEqual(actual[2], expected))
+        self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
         invocation = m_invocation(3, m_id(3, 'FOO'), [m_id(2, 'a')])
         actual = expressionToLLVM(0, invocation, top_env, type_env, fun_env)
@@ -221,7 +228,8 @@ class test_LLVM_generation(unittest.TestCase):
                     f'%3 = load i32, i32* %2']
 
         actual = expressionToLLVM(0, dot, env, t_env, {})
-        self.assertTrue(listsEqual(actual[0] == 3 and actual[1] == 'i32' and actual[2], expected))
+        self.assertTrue(actual[0] == 3 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
 
     def test_dot_2(self):
@@ -229,7 +237,8 @@ class test_LLVM_generation(unittest.TestCase):
         ast = m_dot(1, [m_id(1, 'a')])
         expected = [f'%1 = load i32, i32* %a']
         actual = expressionToLLVM(0, ast, env, {}, {})
-        self.assertTrue(actual[0] == 1 and actual[1] == 'i32' and listsEqual(actual[2], expected))
+        self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
+        self.assertEqual(actual[2], expected)
 
 
     def test_ret(self):
