@@ -167,7 +167,7 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
                 # br i32 [guard reg], label %[lastRegUsed+1], label %[lastRegUsed+2]
                 # lastRegUsed += 2
             # add "{lastRegUsed+1}:" to code list (label)
-            newTuple = ifElseCodeHelper(ifBlock, nodeDict)
+            newTuple = whileOrIfHelper(ifBlock, None, nodeDict, 1, 0)
             newCode = newTuple[0]
             convergenceNode = newTuple[1]  # this may be None if it ended in Return
             nodeDict = newTuple[2]
@@ -188,7 +188,7 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
                 currCode.append("ELSE BLOCK START PLACEHOLDER {")
 
                 # use the ifElseCodeHelper on the else statement
-                newTuple = ifElseCodeHelper(elseBlock, nodeDict)
+                newTuple = whileOrIfHelper(elseBlock, None, nodeDict, 1, 0)
                 newCode = newTuple[0]
 
                 # if the if block ended in a return, we will have a None here
@@ -251,7 +251,7 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
                 if IdCodes.WHILE_BODY in tempNode.idCode:
 
                     # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
-                    newTuple = whileCodeHelper(tempNode, currNode, nodeDict)
+                    newTuple = whileOrIfHelper(tempNode, currNode, nodeDict, 0, 1)
                     newCode = newTuple[0]
                     nodeDict = newTuple[1]
 
@@ -293,15 +293,12 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
     return currCode
 
 
-# idea is that the helper will walk through body node until it reaches:
-    # the while guard
-    # a dead end (likely the return block)
-    # anything else?
-# and then it will return the block of code that it generated
-# what should we do if we reach another while? another if?
 
-# returns llvm code between guardNode (inclusive) and exit node (exclusive), visited nodes
-def whileCodeHelper(head:CFG_Node, guardNode:CFG_Node, nodeDict:dict) -> Tuple[list[str], dict]:
+
+# if the whileFlag == 1 the helper will walk through body node until it reaches the while guard or a dead end (likely the return block) and then it will return the block of code that it generated
+# if the ifFlag == 1, step thru the if/else nodes until you find a convergence block, another if guard, another while guard, or a dead end (return)
+# ifFlag and whileFlag will be 1 if you are in that kind of loop
+def whileOrIfHelper(head: CFG_Node, guardNode: CFG_Node, nodeDict: dict, ifFlag: int, whileFlag: int) -> Tuple:
     # nodeDict = {}  # make dict of traversed nodes
     queue = []  # make queue for traversing nodes
     queue.append(head)  # start off the queue
@@ -315,169 +312,9 @@ def whileCodeHelper(head:CFG_Node, guardNode:CFG_Node, nodeDict:dict) -> Tuple[l
         if currNode in nodeDict:
             continue
 
-        # if guard block case (code 1) - this encompasses if-else and just plain if
-        if currNode.idCode is not None and IdCodes.IF_GUARD in currNode.idCode:
-
-            # potential bug here where the guard appears to be a convergence
-            if IdCodes.IF_CONVERGENCE in currNode.idCode:
-                currNode.idCode.remove(IdCodes.IF_CONVERGENCE)
-
-            # may want to check if you have an else block first
-            elseFlag = 1  # 1 indicates that there IS an else block
-            ifBlock = None  # ifBlock initially None
-            elseBlock = None  # elseBlock initially None
-            for tempNode in currNode.nextBlocks:
-                # this is the convergence, there is no else
-                if tempNode.idCode != None and IdCodes.IF_CONVERGENCE in tempNode.idCode:
-                    elseFlag = 0  # 0 indicates no else
-
-                # save the if block for later (this will catch if and else blocks if they both exist)
-                else:
-                    # IMPORTANT: We are assuming that the if node comes before the else block (fairly certain this will always be true)
-                    if ifBlock == None:
-                        ifBlock = tempNode
-                    # if there are two blocks, this will catch the else block
-                    else:
-                        elseBlock = tempNode
-
-            # add code for if block start
-            currCode.append("IF BLOCK START PLACEHOLDER {")
-
-            # use the ifElseCodeHelper on the if statement
-            newTuple = ifElseCodeHelper(ifBlock, nodeDict)
-            newCode = newTuple[0]
-            convergenceNode = newTuple[1]  # this may be None if it ended in Return
-            nodeDict = newTuple[2]
-
-            # add the code to the currCode
-            currCode.extend(newCode)
-
-            # add code for if block end
-            currCode.append("IF BLOCK END PLACEHOLDER }")
-
-            # if there is an else block
-            if elseFlag == 1:
-                # add code for else block start
-                currCode.append("ELSE BLOCK START PLACEHOLDER {")
-
-                # use the ifElseCodeHelper on the else statement
-                newTuple = ifElseCodeHelper(elseBlock, nodeDict)
-                newCode = newTuple[0]
-
-                # if the if block ended in a return, we will have a None here
-                if convergenceNode == None:
-                    convergenceNode = newTuple[1]  # technically this should be the same as above
-
-                nodeDict = newTuple[2]
-
-                # add the code to the currCode
-                currCode.extend(newCode)
-
-                # add code for else block end
-                currCode.append("ELSE BLOCK END PLACEHOLDER }")
-
-            # if there is no else block
-            else:
-                # add code for no else block ?
-                currCode.append("NO ELSE BLOCK PLACEHOLDER")
-                # possibly need to link guard to not if somehow
-
-            nodeDict[currNode] = True
-
-            # it is possible that all paths ended in return
-            if convergenceNode != None:
-                queue.append(
-                    convergenceNode)  # append the convergence node so that you will traverse it (we ignore the if branches we already searched)
-
-            continue  # we don't add the currNode to the dict here since a convergence node can also be other things
-
-        # while guard block case (code 3) - the one that you passed in
-        elif currNode.idCode != None and IdCodes.WHILE_GUARD in currNode.idCode and currNode.id == guardNode.id:
-
-            # anything we need to do here????
-
-            # THIS IS AN IMPORTANT SPECIAL CASE WHERE YOU FIND THE ORIGINAL GUARD BLOCK.
-            # YOU WILL RETURN BACK WITH ALL THE CODE YOU'VE ACCUMULATED SO THAT THE UPPER LEVEL FUNCTION CAN DEAL WITH IT.
-
-            return (currCode, nodeDict)
-
-        # while guard block case (code 3)
-        elif currNode.idCode != None and IdCodes.WHILE_GUARD in currNode.idCode:
-
-            # potential bug here where the guard appears to be a convergence
-            if IdCodes.IF_CONVERGENCE in currNode.idCode:
-                currNode.idCode.remove(IdCodes.IF_CONVERGENCE)
-
-            # add the code for start of while: while (statement) {
-                # what exactly does this look like in SSA-LLVM ??
-            currCode.append("START OF WHILE (PLACEHOLDER STATEMENT) {")  # THIS IS OBVIOUSLY NOT CORRECT
-
-            # NOTE: THIS IS ALSO WHERE WE CAN DEAL WITH THE m_bool, m_unary, m_binop IN THE GUARD STATEMENT
-                # could also do it in _ssaGenerator if we want
-
-            # traverse the while body using whileCodeHelper
-            for tempNode in currNode.nextBlocks:
-                # if you are looking at the body, traverse with whileCodeHelper
-                if IdCodes.WHILE_BODY in tempNode.idCode:
-
-                    # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
-                    newTuple = whileCodeHelper(tempNode, currNode, nodeDict)
-                    newCode = newTuple[0]
-                    nodeDict = newTuple[1]
-
-                    # add this new code to the currCode string
-                    currCode.extend(newCode)
-
-                # add the next (not body) node to the queue
-                else:
-                    queue.append(tempNode)
-
-            # add the code for end of while: }
-                # what exactly does this look like in SSA-LLVM ??
-            currCode.append("END OF WHILE }")  # THIS IS OBVIOUSLY NOT CORRECT
-
-            # add currNode to dict
-            nodeDict[currNode] = True
-
-            continue
-
-        # body is typical (not an if or while component)
-        else:
-            for currLine in currNode.code:
-                currCode.append(currLine)
-
-        # check if there are any next nodes, add them if so
-        for tempNode in currNode.nextBlocks:
-            queue.append(tempNode)
-
-        # add the current node to the visited dict
-        nodeDict[currNode] = True
-
-    # this return signifies that we finished the queue without finding the original while guard (reached a return statement)
-    return currCode, nodeDict
-
-
-# step thru the if/else nodes until you find a convergence block, another if guard, another while guard, or a dead end (return)
-# each of these is a special case
-# ONE MAIN DIFFERENCE FROM A WHILE STATEMENT IS THAT YOU MAY NEED TO RETURN THE CONVERGENCE BLOCK SO THAT YOU CAN CONTINUE WALKING THE NODES
-
-# returns llvm code of one branch of an if statement, convergence node, nodes visited dict
-def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node, dict]:
-    # nodeDict = {}  # make dict of traversed nodes
-    queue = []  # make queue for traversing nodes
-    queue.append(head)  # start off the queue
-    currCode = []  # this is the code from the current function
-
-    # step through each block of current tree and find the if and while statements
-    while queue != []:
-        currNode = queue.pop(0)  # take first item from the queue
-
-        # check if youve already looked at this node
-        if currNode in nodeDict:
-            continue
-
+        # NEED TO INCORPERATE NEW ifFlag IN THIS STATEMENT
         # if convergence block case (code 2)
-        if currNode.idCode is not None and IdCodes.IF_CONVERGENCE in currNode.idCode:
+        if ifFlag == 1 and currNode.idCode is not None and IdCodes.IF_CONVERGENCE in currNode.idCode:
 
             # SPECIAL CASE!
             # YOU FOUND THE CONVERGENCE BLOCK, THIS MEANS THAT YOU CAN RETURN THE CODE YOU HAVE SO FAR
@@ -492,6 +329,8 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
             # Will need to do some testing on this.
 
             return currCode, currNode, nodeDict
+
+
 
         # if guard block case (code 1) - this encompasses if-else and just plain if
         elif currNode.idCode is not None and IdCodes.IF_GUARD in currNode.idCode:
@@ -522,7 +361,8 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
             currCode.append("IF BLOCK START PLACEHOLDER {")
 
             # use the ifElseCodeHelper on the if statement
-            newTuple = ifElseCodeHelper(ifBlock, nodeDict)
+            newTuple = whileOrIfHelper(ifBlock, None, nodeDict, 1, 0)
+
             newCode = newTuple[0]
             convergenceNode = newTuple[1]  # this may be None if it ended in Return
             nodeDict = newTuple[2]
@@ -539,7 +379,7 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
                 currCode.append("ELSE BLOCK START PLACEHOLDER {")
 
                 # use the ifElseCodeHelper on the else statement
-                newTuple = ifElseCodeHelper(elseBlock, nodeDict)
+                newTuple = ifElseCodeHelper(elseBlock, None, nodeDict, 1, 0)
                 newCode = newTuple[0]
 
                 # if the if block ended in a return, we will have a None here
@@ -569,6 +409,22 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
 
             continue  # we don't add the currNode to the dict here since a convergence node can also be other things
 
+
+
+        # THIS NEEDS TO INCORPERATE THE NEW whileFlag IN THIS STATMENT
+        # while guard block case (code 3) - the one that you passed in
+        elif whileFlag == 1 and currNode.idCode != None and IdCodes.WHILE_GUARD in currNode.idCode and currNode.id == guardNode.id:
+
+            # anything we need to do here????
+
+            # THIS IS AN IMPORTANT SPECIAL CASE WHERE YOU FIND THE ORIGINAL GUARD BLOCK.
+            # YOU WILL RETURN BACK WITH ALL THE CODE YOU'VE ACCUMULATED SO THAT THE UPPER LEVEL FUNCTION CAN DEAL WITH IT.
+
+            return (currCode, nodeDict)
+
+
+
+
         # while guard block case (code 3)
         elif currNode.idCode != None and IdCodes.WHILE_GUARD in currNode.idCode:
 
@@ -577,11 +433,11 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
                 currNode.idCode.remove(IdCodes.IF_CONVERGENCE)
 
             # add the code for start of while: while (statement) {
-                # what exactly does this look like in SSA-LLVM ??
+            # what exactly does this look like in SSA-LLVM ??
             currCode.append("START OF WHILE (PLACEHOLDER STATEMENT) {")  # THIS IS OBVIOUSLY NOT CORRECT
 
             # NOTE: THIS IS ALSO WHERE WE CAN DEAL WITH THE m_bool, m_unary, m_binop IN THE GUARD STATEMENT
-                # could also do it in _ssaGenerator if we want
+            # could also do it in _ssaGenerator if we want
 
             # traverse the while body using whileCodeHelper
             for tempNode in currNode.nextBlocks:
@@ -589,7 +445,7 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
                 if IdCodes.WHILE_BODY in tempNode.idCode:
 
                     # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
-                    newTuple = whileCodeHelper(tempNode, currNode, nodeDict)
+                    newTuple = whileOrIfHelper(tempNode, currNode, nodeDict, 0, 1)
                     newCode = newTuple[0]
                     nodeDict = newTuple[1]
 
@@ -601,7 +457,7 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
                     queue.append(tempNode)
 
             # add the code for end of while: }
-                # what exactly does this look like in SSA-LLVM ??
+            # what exactly does this look like in SSA-LLVM ??
             currCode.append("END OF WHILE }")  # THIS IS OBVIOUSLY NOT CORRECT
 
             # add currNode to dict
@@ -609,7 +465,7 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
 
             continue
 
-        # body is typical (not an if or while component)
+            # body is typical (not an if or while component)
         else:
             for currLine in currNode.code:
                 currCode.append(currLine)
@@ -621,8 +477,23 @@ def ifElseCodeHelper(head:CFG_Node, nodeDict:dict) -> Tuple[list[str], CFG_Node,
         # add the current node to the visited dict
         nodeDict[currNode] = True
 
-    # this will be the code for each function (same order)
-    return currCode, None, nodeDict
+        # this is the return for an if branch
+        if whileFlag == 1:
+            # this return signifies that we finished the queue without finding the original while guard (reached a return statement)
+            return currCode, nodeDict
+
+        # this is the return for a while branch
+        elif ifFlag == 1:
+            # this will be the code for each function (same order)
+            return currCode, None, nodeDict
+
+        else:
+            print("Entered the forbidden case D:\n")
+            return None
+
+
+
+
 
 def generateFunctionTypes(prog:m_prog) -> dict:
     # create initial function dictionary
@@ -698,10 +569,10 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
 
 
         # if convergence block case (code 2)
-        if currNode.idCode is not None and 2 in currNode.idCode:
+        if currNode.idCode is not None and IdCodes.IF_CONVERGENCE in currNode.idCode:
             # print("entered if convergence")
 
-            currNode.idCode.remove(2)
+            currNode.idCode.remove(IdCodes.IF_CONVERGENCE)
 
             newPrevNode = CFG_Node(-1, [], [], [], emptyBlockId)
             emptyBlockId -= 1
@@ -725,8 +596,8 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
 
 
         # while guard block case (code 3)
-        elif currNode.idCode is not None and 3 in currNode.idCode:
-            currNode.idCode.remove(3)
+        elif currNode.idCode is not None and IdCodes.WHILE_GUARD in currNode.idCode:
+            currNode.idCode.remove(IdCodes.WHILE_GUARD)
 
             newPrevNode = CFG_Node(-1, [], [], [], emptyBlockId)
             newPrevNode.nextBlocks = [currNode]
@@ -769,8 +640,8 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
 
 
         # if guard block case (code 1) - this encompasses if-else and just plain if
-        elif currNode.idCode is not None and 1 in currNode.idCode:
-            currNode.idCode.remove(1)
+        elif currNode.idCode is not None and IdCodes.IF_GUARD in currNode.idCode:
+            currNode.idCode.remove(IdCodes.IF_GUARD)
 
             newPrevNode = CFG_Node(-1, [], [], [], emptyBlockId)
             emptyBlockId -= 1
