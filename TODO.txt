@@ -11,3 +11,5 @@
 MERGE whileCodeHelper and ifElseCodeHelper into one function
     get rid of magic numbers (using the enum)
     break each case in combined function into their own functions
+
+CHANGE ALL FLAGS TO BOOLEANS

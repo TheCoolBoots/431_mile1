@@ -13,7 +13,7 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
     # printCFG(functionList[len(functionList) - 1].firstNode)
 
     # generate globals, generate top_env, generate types
-    lastReg = 0
+    lastRegUsed = 0
     globalDeclarations = []
     for dec in prog.global_declarations:
         # get the list of code from the current declaration
@@ -35,11 +35,11 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
     # get the dictionary of string to type in the global environment
     globalTopEnv = prog.getTopEnv(False)
 
-    globalReg = lastReg
+    globalReg = lastRegUsed
 
     # will need to step through each statement in each block in each function
     for fun in functionList:
-        lastReg = globalReg
+        lastRegUsed = globalReg
         currBlock = fun.firstNode # get the first block in a function
 
         # make dict of traversed nodes
@@ -60,7 +60,7 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
             if currBlock in nodeDict:
                 continue
 
-            currBlock.lastRegUsed = lastReg
+            currBlock.lastRegUsed = lastRegUsed
 
             # add the current node to the visited dict
             nodeDict[currBlock] = True
@@ -75,12 +75,14 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
                     exit()
 
                 # lastReg, tempCode, mappings = generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog))
-                lastReg, garbage, tempCode = expressionToSSA(lastReg, currBlock.code[0], globalTopEnv, prog.getTypes(), generateFunctionTypes(prog), currBlock)
+                lastRegUsed, garbage, tempCode = expressionToSSA(lastRegUsed, currBlock.code[0], globalTopEnv, prog.getTypes(), generateFunctionTypes(prog), currBlock)
+                currBlock.lastRegUsed = lastRegUsed
                 # DOUBLE CHECK THAT IT WILL ACTUALLY ALWAYS BE .CODE[0]
 
 
             else:
-                lastReg, tempCode = generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog)) # _generateSSA(currBlock, prog.getTypes(), generateFunctionTypes(prog), globalTopEnv)
+                lastRegUsed, tempCode = generateSSA(currBlock, globalTopEnv, prog.getTypes(), generateFunctionTypes(prog)) # _generateSSA(currBlock, prog.getTypes(), generateFunctionTypes(prog), globalTopEnv)
+
 
 
             # update the ast code to be replaced with SSA LLVM code
@@ -100,7 +102,7 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
     length = len(functionList)
     i = 0
     while i < length:
-        currSSACode = branchesToSSA(functionList[i].firstNode)
+        currSSACode = branchesToSSA(lastRegUsed, functionList[i].firstNode)
         # codeList.append(ssaCode)
         functionList[i].ssaCode = currSSACode
         i += 1
@@ -111,7 +113,7 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
 # compiles if and while structures into SSA code
 # body statements are already compiled and stored inside CFG_Node.code
 # returns list of llvm SSA instructions that includes body statements
-def branchesToSSA(head:CFG_Node) -> list[str]:
+def branchesToSSA(lastRegUsed, head:CFG_Node) -> list[str]:
     nodeDict = {}               # make dict of traversed nodes
     queue = []                  # make queue for traversing nodes
     queue.append(head)          # start off the queue
@@ -153,72 +155,43 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
                     else:
                         elseBlock = tempNode
 
-            # add code for if block start
-            # evaluate guard expression
-            # lastRegUsed, code, mappings = generateSSA(...)
-            # currCode += code # "\nIF BLOCK START PLACEHOLDER {\n"
-            currCode.append("IF BLOCK START PLACEHOLDER {")
+            # IF STATEMENT HANDLING
+            currCode.append(f'br i32 %{currNode.lastRegUsed}, label %{lastRegUsed + 1}, label %{lastRegUsed + 2}')
+            currCode.extend(currNode.code)
+            currCode.append(f'{lastRegUsed + 1}:')
 
-            # use the ifElseCodeHelper on the if statement
-            # if statement has else block:
-                # br i32 [guard reg], label %[lastRegUsed+1], label %[lastRegUsed+2]
-                # lastRegUsed += 3
-            # else:
-                # br i32 [guard reg], label %[lastRegUsed+1], label %[lastRegUsed+2]
-                # lastRegUsed += 2
-            # add "{lastRegUsed+1}:" to code list (label)
-            newTuple = whileOrIfHelper(ifBlock, None, nodeDict, 1, 0)
-            newCode = newTuple[0]
-            convergenceNode = newTuple[1]  # this may be None if it ended in Return
-            nodeDict = newTuple[2]
+            newCode, convergenceNode, nodeDict = whileOrIfHelper(lastRegUsed + 2 + int(elseFlag), ifBlock, None, nodeDict, 1, 0)
 
-            # add the code to the currCode
             currCode.extend(newCode)
+            if elseFlag == 1:
+                currCode.append(f'br label %{lastRegUsed + 3}')
+            currCode.append(f'{lastRegUsed + 2}:')
 
-            # evaluate if block statements, add to code list
-            # if statement has else block, add jump to label %{lastRegUsed+3
-            #   if it doesnt, add jump to label %{lastRegUsed + 2}
-            # add "{lastRegUsed+2}:" to code list ()
-            
-            currCode.append("IF BLOCK END PLACEHOLDER }")
-
-            # if there is an else block
             if elseFlag == 1:
                 # add code for else block start
-                currCode.append("ELSE BLOCK START PLACEHOLDER {")
-
                 # use the ifElseCodeHelper on the else statement
-                newTuple = whileOrIfHelper(elseBlock, None, nodeDict, 1, 0)
-                newCode = newTuple[0]
+                newCode, tmp, nodeDict = whileOrIfHelper(lastRegUsed + 3, elseBlock, None, nodeDict, 1, 0)
 
                 # if the if block ended in a return, we will have a None here
                 if convergenceNode == None:
-                    convergenceNode = newTuple[1]  # technically this should be the same as above
-
-                nodeDict = newTuple[2]
+                    convergenceNode = tmp  # technically this should be the same as above
 
                 # add the code to the currCode
                 currCode.extend(newCode)
 
                 # add code for else block end
-                currCode.append("ELSE BLOCK END PLACEHOLDER }")
-                # if statement has else block:
-                    # evaluate else block statements and add to code list
-                    # add jump to %{lastRegUsed+3}
-                    # add "{lastRegUsed+3}:"
-
-            # if there is no else block
-            else:
-                # add code for no else block ?
-                currCode.append("NO ELSE BLOCK PLACEHOLDER")
-                # possibly need to link guard to not if somehow
+                currCode.append(f'{lastRegUsed + 3}:')
 
             nodeDict[currNode] = True
 
+            if elseFlag == 1:
+                lastRegUsed += 3
+            else:
+                lastRegUsed += 2
+
             # it is possible that all paths ended in return
             if convergenceNode != None:
-                queue.append(
-                    convergenceNode)  # append the convergence node so that you will traverse it (we ignore the if branches we already searched)
+                queue.append(convergenceNode)  # append the convergence node so that you will traverse it (we ignore the if branches we already searched)
 
             continue  # we don't add the currNode to the dict here since a convergence node can also be other things
 
@@ -229,21 +202,11 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
             if IdCodes.IF_CONVERGENCE in currNode.idCode:
                 currNode.idCode.remove(IdCodes.IF_CONVERGENCE)
 
-            # add the code for start of while: while (statement) {
-                # what exactly does this look like in SSA-LLVM ??
-            
-            #evaluate guard statement, add code to codelist
-            # reserve 3 register slots for labels (lastRegUsed+1, +2, +3)
-            # add entry label {lastRegUsed + 1}
-            # add branch instruction br i32 [guardreg], label %{lastRegUsed+2}, label %{lastRegUsed+3}
-            currCode.append("START OF WHILE (PLACEHOLDER STATEMENT) {")  # THIS IS OBVIOUSLY NOT CORRECT
-            # add body entry label to codelist {lastRegUsed+2}:
-            # evaluate while body statements and add code to codelist
-
-            # NOTE: THIS IS ALSO WHERE WE CAN DEAL WITH THE m_bool, m_unary, m_binop IN THE GUARD STATEMENT
-                # could also do it in _ssaGenerator if we want
-                # expression to SSA for guard statements
-                # THINK ABOUT GETTING LAST REGISTER USED FROM PREVIOUS NODE
+            # WHILE STATEMENT HANDLING
+            currCode.extend(currNode.code)
+            currCode.extend([f'{lastRegUsed + 1}:', 
+                        f'br i32 %{currNode.lastRegUsed}, label %{lastRegUsed+2}, label %{lastRegUsed+3}', 
+                        f'{lastRegUsed + 2}:'])
 
             # traverse the while body using whileCodeHelper
             for tempNode in currNode.nextBlocks:
@@ -251,25 +214,18 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
                 if IdCodes.WHILE_BODY in tempNode.idCode:
 
                     # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
-                    newTuple = whileOrIfHelper(tempNode, currNode, nodeDict, 0, 1)
-                    newCode = newTuple[0]
-                    nodeDict = newTuple[1]
-
-                    # add this new code to the currCode string
+                    newCode, nodeDict = whileOrIfHelper(lastRegUsed + 3, tempNode, currNode, nodeDict, 0, 1)
                     currCode.extend(newCode)
 
                 # add the next (not body) node to the queue
                 else:
                     queue.append(tempNode)
 
-            # br %{lastRegUsed + 1}
-            # add exit label {lastRegUsed+3}:
+            currCode.append(f'br %{lastRegUsed + 1}')
+            currCode.append(f'{lastRegUsed+3}:')
 
-            # add the code for end of while: }
-                # what exactly does this look like in SSA-LLVM ??
-            currCode.append("END OF WHILE }")  # THIS IS OBVIOUSLY NOT CORRECT
+            lastRegUsed += 3
 
-            # add currNode to dict
             nodeDict[currNode] = True
             continue
 
@@ -298,7 +254,7 @@ def branchesToSSA(head:CFG_Node) -> list[str]:
 # if the whileFlag == 1 the helper will walk through body node until it reaches the while guard or a dead end (likely the return block) and then it will return the block of code that it generated
 # if the ifFlag == 1, step thru the if/else nodes until you find a convergence block, another if guard, another while guard, or a dead end (return)
 # ifFlag and whileFlag will be 1 if you are in that kind of loop
-def whileOrIfHelper(head: CFG_Node, guardNode: CFG_Node, nodeDict: dict, ifFlag: int, whileFlag: int) -> Tuple:
+def whileOrIfHelper(lastRegUsed, head: CFG_Node, guardNode: CFG_Node, nodeDict: dict, ifFlag: int, whileFlag: int) -> Tuple:
     # nodeDict = {}  # make dict of traversed nodes
     queue = []  # make queue for traversing nodes
     queue.append(head)  # start off the queue
@@ -361,11 +317,7 @@ def whileOrIfHelper(head: CFG_Node, guardNode: CFG_Node, nodeDict: dict, ifFlag:
             currCode.append("IF BLOCK START PLACEHOLDER {")
 
             # use the ifElseCodeHelper on the if statement
-            newTuple = whileOrIfHelper(ifBlock, None, nodeDict, 1, 0)
-
-            newCode = newTuple[0]
-            convergenceNode = newTuple[1]  # this may be None if it ended in Return
-            nodeDict = newTuple[2]
+            newCode, convergenceNode, nodeDict = whileOrIfHelper(lastRegUsed, ifBlock, None, nodeDict, 1, 0)
 
             # add the code to the currCode
             currCode.extend(newCode)
@@ -379,7 +331,7 @@ def whileOrIfHelper(head: CFG_Node, guardNode: CFG_Node, nodeDict: dict, ifFlag:
                 currCode.append("ELSE BLOCK START PLACEHOLDER {")
 
                 # use the ifElseCodeHelper on the else statement
-                newTuple = ifElseCodeHelper(elseBlock, None, nodeDict, 1, 0)
+                newTuple = whileOrIfHelper(lastRegUsed, elseBlock, None, nodeDict, 1, 0)
                 newCode = newTuple[0]
 
                 # if the if block ended in a return, we will have a None here
@@ -445,7 +397,7 @@ def whileOrIfHelper(head: CFG_Node, guardNode: CFG_Node, nodeDict: dict, ifFlag:
                 if IdCodes.WHILE_BODY in tempNode.idCode:
 
                     # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
-                    newTuple = whileOrIfHelper(tempNode, currNode, nodeDict, 0, 1)
+                    newTuple = whileOrIfHelper(lastRegUsed, tempNode, currNode, nodeDict, 0, 1)
                     newCode = newTuple[0]
                     nodeDict = newTuple[1]
 
