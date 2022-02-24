@@ -56,7 +56,7 @@ def addWhileIfCode(head):
 
             # add code for if block start
             # evaluate guard expression
-             lastRegUsed, code, mappings = _generateSSA(...)
+            lastRegUsed, code, mappings = _generateSSA(...)
             currCode += code # "\nIF BLOCK START PLACEHOLDER {\n"
 
             # use the ifElseCodeHelper on the if statement
@@ -67,10 +67,7 @@ def addWhileIfCode(head):
                 # br i32 [guard reg], label %[lastRegUsed+1], label %[lastRegUsed+2]
                 # lastRegUsed += 2
             # add "{lastRegUsed+1}:" to code list (label)
-            newTuple = ifElseCodeHelper(ifBlock, nodeDict)
-            newCode = newTuple[0]
-            convergenceNode = newTuple[1]  # this may be None if it ended in Return
-            nodeDict = newTuple[2]
+            newCode, convergenceNode, nodeDict = ifElseCodeHelper(ifBlock, nodeDict)
 
             # add the code to the currCode
             currCode += newCode
@@ -89,14 +86,11 @@ def addWhileIfCode(head):
                 currCode += "\nELSE BLOCK START PLACEHOLDER {\n"
 
                 # use the ifElseCodeHelper on the else statement
-                newTuple = ifElseCodeHelper(elseBlock, nodeDict)
-                newCode = newTuple[0]
+                newCode, tmpConvergenceNode, nodeDict = ifElseCodeHelper(elseBlock, nodeDict)
 
                 # if the if block ended in a return, we will have a None here
                 if convergenceNode == None:
-                    convergenceNode = newTuple[1]  # technically this should be the same as above
-
-                nodeDict = newTuple[2]
+                    convergenceNode = tmpConvergenceNode  # technically this should be the same as above
 
                 # add the code to the currCode
                 currCode += newCode
@@ -119,8 +113,8 @@ def addWhileIfCode(head):
 
             # it is possible that all paths ended in return
             if convergenceNode != None:
-                queue.append(
-                    convergenceNode)  # append the convergence node so that you will traverse it (we ignore the if branches we already searched)
+                queue.append(convergenceNode)  
+                # append the convergence node so that you will traverse it (we ignore the if branches we already searched)
 
             continue  # we don't add the currNode to the dict here since a convergence node can also be other things
 
@@ -150,9 +144,7 @@ def addWhileIfCode(head):
                 if 4 in tempNode.idCode:
 
                     # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
-                    newTuple = whileCodeHelper(tempNode, currNode, nodeDict)
-                    newCode = newTuple[0]
-                    nodeDict = newTuple[1]
+                    newCode, nodeDict = whileCodeHelper(tempNode, currNode, nodeDict)
 
                     # add this new code to the currCode string
                     currCode += newCode
@@ -254,10 +246,9 @@ def whileCodeHelper(head, guardNode, nodeDict):
             currCode += "\nIF BLOCK START PLACEHOLDER {\n"
 
             # use the ifElseCodeHelper on the if statement
-            newTuple = ifElseCodeHelper(ifBlock, nodeDict)
-            newCode = newTuple[0]
-            convergenceNode = newTuple[1]  # this may be None if it ended in Return
-            nodeDict = newTuple[2]
+            newCode, convergenceNode, nodeDict = ifElseCodeHelper(ifBlock, nodeDict)
+            # convergenceNode may be None if it ended in Return
+
 
             # add the code to the currCode
             currCode += newCode
@@ -271,14 +262,11 @@ def whileCodeHelper(head, guardNode, nodeDict):
                 currCode += "\nELSE BLOCK START PLACEHOLDER {\n"
 
                 # use the ifElseCodeHelper on the else statement
-                newTuple = ifElseCodeHelper(elseBlock, nodeDict)
-                newCode = newTuple[0]
+                newCode, tmpConvergenceNode, nodeDict = ifElseCodeHelper(elseBlock, nodeDict)
 
                 # if the if block ended in a return, we will have a None here
                 if convergenceNode == None:
-                    convergenceNode = newTuple[1]  # technically this should be the same as above
-
-                nodeDict = newTuple[2]
+                    convergenceNode = tmpConvergenceNode  # technically this should be the same as above
 
                 # add the code to the currCode
                 currCode += newCode
@@ -297,8 +285,8 @@ def whileCodeHelper(head, guardNode, nodeDict):
 
             # it is possible that all paths ended in return
             if convergenceNode != None:
-                queue.append(
-                    convergenceNode)  # append the convergence node so that you will traverse it (we ignore the if branches we already searched)
+                queue.append(convergenceNode)  
+                # append the convergence node so that you will traverse it (we ignore the if branches we already searched)
 
             continue  # we don't add the currNode to the dict here since a convergence node can also be other things
 
@@ -683,10 +671,8 @@ def generateSSA(rootNode:CFG_Node, env, types, functions):
 
 # top_env structure: {str: (bool, m_type)}              where bool == true if global, false if local 
 # types structure: {str: list[m_declaration]}
-# functions structure: {str: (m_type, list[m_type])}    maps funID -> return type, param types
 # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
-# functions structure: {str: (m_type, list[m_type])}     maps funID -> return type, param types
-# {str funName: (m_type returnType, list[m_type] paramTypes)}
+# functions structure {str funName: (m_type returnType, list[m_type] paramTypes)}
 def generateFunctionTypes(prog:m_prog):
     # create initial function dictionary
     funDict = {}
@@ -796,7 +782,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
         # if it is not in top_env, it is a local variable and is dealt with through SSA form
         currentNode.mappings[targetStrings[0]] = (exprType, exprReg, 'placeholder')
         return exprReg, exprType, exprCode
-    else:
+    else:   # target expression is a struct (A.a.b)
         currentID = assign.target_ids[0].identifier
         currentIDTypeID = env[currentID][1].typeID
         
@@ -830,7 +816,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
                 return lastRegUsed, getLLVMType(currentIDTypeID), exprCode
     
 
-# returns a tuple containing (resultReg, llvmType, mappings within block, SSA LLVM code)
+# returns a tuple containing (resultReg, llvmType, SSA LLVM code)
 def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     match expr:
         case m_binop():
@@ -838,7 +824,6 @@ def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict
         case m_num() | m_bool():
             return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = i32 {expr.val}']
         case m_new_struct():
-            # ASK PROFESSOR ABOUT THIS ON TUESDAY
             code = [f'%{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
                  f'%{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
             return lastRegUsed+1, f'%struct.{expr.struct_id.identifier}*', code
@@ -859,9 +844,11 @@ def expressionToLLVM(lastRegUsed:int, expr, env:dict, types:dict, functions:dict
                 if env[expr.identifier][0]:
                     llvmType = getLLVMType(env[expr.identifier][1].typeID)
                     return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = load {llvmType}* @{expr.identifier}']
+                # id is a local struct
                 else:
                     llvmType = getLLVMType(env[expr.identifier][1].typeID)
                     return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = load {llvmType}* %{expr.identifier}']
+            # handle with SSA form
             return readVariable(lastRegUsed, expr.identifier, currentNode)
         case other:
             print(f'ERROR: unrecognized expression: {other}')

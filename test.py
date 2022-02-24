@@ -1,10 +1,4 @@
-from cfg_generator import CFG_Node
-import pandas as pd
-
-def modify(node:CFG_Node):
-    node.mappings[1] = "HELLO"
-
-node = CFG_Node([], [], [], None)
-print(node.mappings)
-modify(node)
-print(node.mappings)
+a = sorted([86, 90, 72, 100, 62, 75, 99, 
+            85, 70, 80, 89, 82, 95, 92, 
+            95, 66, 71, 71, 96, 88, 70, 85])
+print(a)
