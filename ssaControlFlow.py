@@ -1,3 +1,5 @@
+
+# UPDATED VERSION THAT HAS BUG
 from typing import Dict, Tuple
 from ast_class_definitions import *
 from cfg_generator import *
@@ -647,7 +649,6 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
             # update all of the previous blocks
             for tempNode in currNode.previousBlocks:
                 newPrevNode.previousBlocks.append(tempNode)
-                # tempNode.nextBlocks = [newPrevNode]
 
                 tempNode.nextBlocks.append(newPrevNode)
                 tempNode.nextBlocks.remove(currNode)
