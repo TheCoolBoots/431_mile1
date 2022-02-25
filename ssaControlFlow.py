@@ -8,34 +8,6 @@ from ssaGenerator import expressionToSSA
 import copy
 
 
-def tempFunc(prog: m_prog):
-    # create a function node for each function
-    functionList = generate_CFG_Prog_Handler(prog)  # this is a list of function nodes
-
-    # printCFG(functionList[len(functionList) - 1].firstNode)
-
-    # generate globals, generate top_env, generate types
-    lastRegUsed = 0
-    globalDeclarations = []
-    for dec in prog.global_declarations:
-        # get the list of code from the current declaration
-        declarationList = dec.getSSAGlobals()
-
-        # extend the globalDeclarations list of code
-        globalDeclarations.extend(declarationList)
-
-    # add the empty and previous blocks for each function
-    length = len(functionList)
-    i = 0
-    while i < length:
-        functionList[i].firstNode = addPreviousBlocks(functionList[i].firstNode)
-        functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
-        i += 1
-
-    return functionList
-
-
-
 def astToSSA(prog:m_prog) -> list[CFG_Node]:
     # create a function node for each function
     functionList = generate_CFG_Prog_Handler(prog) # this is a list of function nodes
