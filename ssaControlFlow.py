@@ -106,7 +106,7 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
     while i < length:
         currSSACode, garb1, garb2 = branchesToSSA(lastRegUsed, functionList[i].firstNode, None, {}, 0, 0)
         # codeList.append(ssaCode)
-        functionList[i].ssaCode = currSSACode[0]
+        functionList[i].ssaCode = currSSACode
         i += 1
 
     return functionList
@@ -272,8 +272,9 @@ def branchesToSSA(lastRegUsed: int, head: CFG_Node, guardNode: CFG_Node, nodeDic
             # if currNode.idCode != None and (IdCodes.IF_CONVERGENCE in currNode.idCode or IdCodes.WHILE_BODY in currNode.idCode):
             #     print("\nWHY IS THIS HAPPENING\n\n")
 
-            for currLine in currNode.code:
-                currCode.append(currLine)
+            # for currLine in currNode.code:
+            #     currCode.append(currLine)
+            currCode.extend(currNode.code)
 
         # check if there are any next nodes, add them if so
         for tempNode in currNode.nextBlocks:
@@ -650,6 +651,7 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
             for tempNode in currNode.previousBlocks:
                 newPrevNode.previousBlocks.append(tempNode)
 
+                # tempNode.nextBlocks = [newPrevNode]
                 tempNode.nextBlocks.append(newPrevNode)
                 tempNode.nextBlocks.remove(currNode)
 
