@@ -7,6 +7,7 @@ import test_ast_trees
 import json
 from ssaGenerator import *
 from ssaControlFlow import astToSSA
+from top_compiler import importMiniFile
 
 # NOTE: YOU WILL WANT TO HAVE A NODE AT THE START OF THE CFG FOR INITIALIZATION PURPOSES LATER
 
@@ -467,9 +468,8 @@ def test18(dotFlag):
 # HAS AN EXTRA EMPTY BLOCK (node #6 and #9) seems pretty harmless tho
 # triple nested if (no else) case
 def test19(dotFlag):
-    with open('json_parser_tests/nested_if_no_else.json') as file19:
-        contents = json.load(file19)
-    ast = parse(contents)
+    ast = importMiniFile("miniFiles/while_triple_nest.mini")
+
     # functionList = generate_CFG_Prog_Handler(ast)
     functionList = astToSSA(ast)
     length = len(functionList)
@@ -541,7 +541,7 @@ def main():
             # test1(True)
 
 
-    test18(False)
+    test19(False)
 
 
 
