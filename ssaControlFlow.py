@@ -102,7 +102,7 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
     length = len(functionList)
     i = 0
     while i < length:
-        currSSACode = branchesToSSA(lastRegUsed, functionList[i].firstNode, None, {}, 0, 0)
+        currSSACode, garb1, garb2 = branchesToSSA(lastRegUsed, functionList[i].firstNode, None, {}, 0, 0)
         # codeList.append(ssaCode)
         functionList[i].ssaCode = currSSACode[0]
         i += 1
@@ -189,7 +189,7 @@ def branchesToSSA(lastRegUsed: int, head: CFG_Node, guardNode: CFG_Node, nodeDic
             if elseFlag == 1:
                 # add code for else block start
                 # use the ifElseCodeHelper on the else statement
-                newCode, tmp, nodeDict = branchesToSSA(lastRegUsed + 3, elseBlock, None, nodeDict, 1, 0)
+                newCode, garb, nodeDict = branchesToSSA(lastRegUsed + 3, elseBlock, None, nodeDict, 1, 0)
 
                 # if the if block ended in a return, we will have a None here
                 if convergenceNode == None:
@@ -246,10 +246,10 @@ def branchesToSSA(lastRegUsed: int, head: CFG_Node, guardNode: CFG_Node, nodeDic
             # traverse the while body using whileCodeHelper
             for tempNode in currNode.nextBlocks:
                 # if you are looking at the body, traverse with whileCodeHelper
-                if IdCodes.WHILE_BODY in tempNode.idCode:
+                if tempNode.idCode != None and IdCodes.WHILE_BODY in tempNode.idCode:
 
                     # THINKING I SHOULD PASS IN THE currNode and tempNode SO WE KNOW WHEN WE'VE REACHED THE ORIGINAL WHILE GUARD?
-                    newCode, nodeDict = branchesToSSA(lastRegUsed + 3, tempNode, currNode, nodeDict, 0, 1)
+                    newCode, garb, nodeDict = branchesToSSA(lastRegUsed + 3, tempNode, currNode, nodeDict, 0, 1)
                     currCode.extend(newCode)
 
                 # add the next (not body) node to the queue
