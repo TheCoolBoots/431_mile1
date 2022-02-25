@@ -648,7 +648,12 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
             # update all of the previous blocks
             for tempNode in currNode.previousBlocks:
                 newPrevNode.previousBlocks.append(tempNode)
-                tempNode.nextBlocks = [newPrevNode]
+                # tempNode.nextBlocks = [newPrevNode]
+
+                tempNode.nextBlocks.append(newPrevNode)
+                tempNode.nextBlocks.remove(currNode)
+
+                currNode.previousBlocks.remove(tempNode)
 
             currNode.previousBlocks.append(newPrevNode)
 

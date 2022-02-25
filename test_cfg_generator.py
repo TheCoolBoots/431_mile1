@@ -182,8 +182,8 @@ def test1(dotFlag):
     # if(dotFlag):
     #     dotToCFG(testCFG1.firstNode, "simple if else case")
     # else:
-    #     printCFG(testCFG1.firstNode)
-    print("\n".join(testCFG1.ssaCode))
+    printCFG(testCFG1.firstNode)
+    # print("\n".join(testCFG1.ssaCode))
 
 
 
@@ -436,10 +436,13 @@ def test17(dotFlag):
     functionList = astToSSA(ast)
     length = len(functionList)
     testCFG17 = functionList[length - 1]
-    if(dotFlag):
-        dotToCFG(testCFG17.firstNode, "nested while case")
-    else:
-        printCFG(testCFG17.firstNode)
+    # if(dotFlag):
+    #     dotToCFG(testCFG17.firstNode, "nested while case")
+    # else:
+    #     printCFG(testCFG17.firstNode)
+
+    print(testCFG17.ssaCode)
+    # print("\n".join(testCFG17.ssaCode))
 
 
 
@@ -469,11 +472,12 @@ def test19(dotFlag):
     functionList = astToSSA(ast)
     length = len(functionList)
     testCFG19 = functionList[length-1]
-    if(dotFlag):
-        dotToCFG(testCFG19.firstNode, "triple nested if (no else) case")
-    else:
-        printCFG(testCFG19.firstNode)
+    # if(dotFlag):
+    #     dotToCFG(testCFG19.firstNode, "triple nested if (no else) case")
+    # else:
+    #     printCFG(testCFG19.firstNode)
 
+    print(testCFG19.ssaCode)
 
 
 # 2 return case
@@ -535,7 +539,7 @@ def main():
             # test1(True)
 
 
-    test17(False)
+    test1(False)
 
 
 
