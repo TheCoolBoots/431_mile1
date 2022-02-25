@@ -1,15 +1,5 @@
-1. finish up expression to llvm
-2. finish up statement to llvm
-3. mappings of parameters to registers in functions
-4. return node @ end of if statement 
-    will have to save a register in the top of if statements
-    will happen in generation of nodes
-5. change format of global variables to @
-6. method that steps through all the nodes and generates SSA code with phi nodes
-7. stepping through again and removing all phi nodes
-
-MERGE whileCodeHelper and ifElseCodeHelper into one function
-    get rid of magic numbers (using the enum)
-    break each case in combined function into their own functions
-
 CHANGE ALL FLAGS TO BOOLEANS
+create function def SSA
+    handle parameters
+    function declaration
+    entry statement

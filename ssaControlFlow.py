@@ -12,8 +12,6 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
     # create a function node for each function
     functionList = generate_CFG_Prog_Handler(prog) # this is a list of function nodes
 
-    # printCFG(functionList[len(functionList) - 1].firstNode)
-
     # generate globals, generate top_env, generate types
     lastRegUsed = 0
     globalDeclarations = []
@@ -38,6 +36,9 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
     globalTopEnv = prog.getTopEnv(False)
 
     globalReg = lastRegUsed
+
+    dotToCFG(functionList[-1].firstNode, 'digraphFiles/loopGraph.g', 'loop')
+    return
 
     # will need to step through each statement in each block in each function
     for fun in functionList:
@@ -195,7 +196,7 @@ def branchesToSSA(lastRegUsed: int, head: CFG_Node, guardNode: CFG_Node, nodeDic
 
                 # if the if block ended in a return, we will have a None here
                 if convergenceNode == None:
-                    convergenceNode = tmp  # technically this should be the same as above
+                    convergenceNode = garb  # technically this should be the same as above
 
                 # add the code to the currCode
                 currCode.extend(newCode)
@@ -751,3 +752,47 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
 
     # return the initial block as if its the head
     return initialBlock
+
+
+# step through the node tree and print a formatted dot file
+def dotToCFG(head:CFG_Node, outputFilepath:str, name:str) -> str:
+
+# HERE I NEED TO WRITE CODE THAT WILL ADD CODE FROM EACH NODE INTO ITS RESPECTIVE CFG NODE.
+# IF IM NOT MISTAKEN, THE CODE WILL ALREADY BE IN SSA-LLVM WHEN THIS FUNCTION IS CALLED.
+# MAY NEED TO REFERENCE RESPECTIVE NOTES TO REMEMBER HOW THIS SHOULD BE FORMATTE
+
+
+    # print out the header of the file
+    output = 'digraph "' + name + '" {\n' 
+
+    # initialize dict for nodes
+    nodeReferences = {}
+
+    # initialize queue with head node
+    queue = []
+    queue.append(head)
+
+    # loop through the nodes and print a line for each connection
+    while queue != []:
+        currNode = queue.pop(0)
+
+        # only print and add the new nodes to the queue if the node hasnt been traversed
+        if currNode in nodeReferences:
+            continue
+        # log each node/connection so that you dont traverse twice
+        else:
+            nodeReferences[currNode] = True
+
+        # print each path from the current node
+        for node in currNode.nextBlocks:
+            output += ("  " + str(currNode.id) + " -> " + str(node.id) + ";\n")
+            queue.append(node)
+            # nodeId += 1
+    
+    # print out the footer of the file
+    output += '}\n'
+
+    with open(outputFilepath, 'w+') as file:
+        file.write(output)
+
+    return output

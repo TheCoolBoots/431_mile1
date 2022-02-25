@@ -8,60 +8,13 @@ import json
 from ssaGenerator import *
 from ssaControlFlow import astToSSA
 from top_compiler import importMiniFile
+from ssaControlFlow import dotToCFG
 
 # NOTE: YOU WILL WANT TO HAVE A NODE AT THE START OF THE CFG FOR INITIALIZATION PURPOSES LATER
 
 # YOU WILL NEED  A WAY TO PASS ALONG ALL OF THE FUNCTIONS HEAD NODES IN A LIST SO THAT THEY ARE EASY TO GRAB
 
 # FOR EACH ONE YOU WILL NEED TO CREATE A MAPPING FOR EACH PARAMETER OF THE FUNCTION
-
-
-
-# step through the node tree and print a formatted dot file
-def dotToCFG(head, name):
-
-
-
-
-# HERE I NEED TO WRITE CODE THAT WILL ADD CODE FROM EACH NODE INTO ITS RESPECTIVE CFG NODE.
-# IF IM NOT MISTAKEN, THE CODE WILL ALREADY BE IN SSA-LLVM WHEN THIS FUNCTION IS CALLED.
-# MAY NEED TO REFERENCE RESPECTIVE NOTES TO REMEMBER HOW THIS SHOULD BE FORMATTED
-
-
-
-
-    # print out the header of the file
-    print("digraph \"" + name + "\" {" )
-
-    # initialize dict for nodes
-    nodeReferences = {}
-
-    # initialize queue with head node
-    queue = []
-    queue.append(head)
-
-    # loop through the nodes and print a line for each connection
-    while queue != []:
-        currNode = queue.pop(0)
-
-        # only print and add the new nodes to the queue if the node hasnt been traversed
-        if currNode in nodeReferences:
-            continue
-        # log each node/connection so that you dont traverse twice
-        else:
-            nodeReferences[currNode] = True
-
-        # print each path from the current node
-        for node in currNode.nextBlocks:
-            print("  " + str(currNode.id) + " -> " + str(node.id) + ";")
-            queue.append(node)
-            # nodeId += 1
-    
-    # print out the footer of the file
-    print("}")
-
-    # return empty
-    return
 
 
 

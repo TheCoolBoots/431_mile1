@@ -1,6 +1,6 @@
 fun main() int
 {
-    bool a;
+    int a;
     a = 1;
     while (a == 1)
     {
