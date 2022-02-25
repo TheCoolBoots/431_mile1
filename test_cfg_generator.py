@@ -457,6 +457,8 @@ def test18(dotFlag):
     else:
         printCFG(testCFG18.firstNode)
 
+    print(testCFG18.ssaCode)
+
 
 
 # HAS AN EXTRA EMPTY BLOCK (node #6 and #9) seems pretty harmless tho
@@ -535,7 +537,7 @@ def main():
             # test1(True)
 
 
-    test1(False)
+    test18(False)
 
 
 
