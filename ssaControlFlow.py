@@ -175,12 +175,11 @@ def branchesToSSA(lastRegUsed: int, head: CFG_Node, guardNode: CFG_Node, nodeDic
                         elseBlock = tempNode
 
             # IF STATEMENT HANDLING
-            currCode.append(f'br i32 %{currNode.lastRegUsed}, label %{lastRegUsed + 1}, label %{lastRegUsed + 2}')
             currCode.extend(currNode.code)
+            currCode.append(f'br i32 %{currNode.lastRegUsed}, label %{lastRegUsed + 1}, label %{lastRegUsed + 2}')
             currCode.append(f'{lastRegUsed + 1}:')
 
-            newCode, convergenceNode, nodeDict = branchesToSSA(lastRegUsed + 2 + int(elseFlag), ifBlock, None, nodeDict,
-                                                               1, 0)
+            newCode, convergenceNode, nodeDict = branchesToSSA(lastRegUsed + 2 + int(elseFlag), ifBlock, None, nodeDict, 1, 0)
 
             currCode.extend(newCode)
             if elseFlag == 1:
