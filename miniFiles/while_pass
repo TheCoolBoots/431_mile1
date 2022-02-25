@@ -1,0 +1,7 @@
+fun main() int
+{
+    while (true)
+    {
+        print 5;
+    }
+}

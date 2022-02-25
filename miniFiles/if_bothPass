@@ -1,0 +1,11 @@
+fun main() int
+{
+    if (true)
+    {
+        print 7;
+    }
+    else
+    {
+        print 5;
+    }
+}

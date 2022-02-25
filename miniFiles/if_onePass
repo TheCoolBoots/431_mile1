@@ -1,0 +1,7 @@
+fun main() int
+{
+    if (true)
+    {
+        print 7;
+    }
+}
