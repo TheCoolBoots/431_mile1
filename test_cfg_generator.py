@@ -183,7 +183,7 @@ def test1(dotFlag):
     #     dotToCFG(testCFG1.firstNode, "simple if else case")
     # else:
     #     printCFG(testCFG1.firstNode)
-    print(testCFG1.ssaCode)
+    print("\n".join(testCFG1.ssaCode))
 
 
 
