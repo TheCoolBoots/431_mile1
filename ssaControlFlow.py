@@ -31,6 +31,8 @@ def astToSSA(prog:m_prog) -> list[CFG_Node]:
         functionList[i].firstNode = addEmptyBlocks(functionList[i].firstNode)
         i += 1
 
+
+
     # getTopEnv(self, includeLineNum=True)
     # get the dictionary of string to type in the global environment
     globalTopEnv = prog.getTopEnv(False)
@@ -625,7 +627,7 @@ def addEmptyBlocks(head:CFG_Node) -> CFG_Node:
             # want to put the new next between the guard and node that isnt the body
             for tempNode in currNode.nextBlocks:
                 # this is NOT the body
-                if tempNode.idCode == None or 4 not in tempNode.idCode:
+                if tempNode.idCode == None or IdCodes.WHILE_BODY not in tempNode.idCode:
                     # print("guard to next (not body)")
                     newNextNode.nextBlocks.append(tempNode)
                     tempNode.previousBlocks.remove(currNode)
