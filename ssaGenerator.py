@@ -197,7 +197,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
     else:
         if not currentNode.sealed:
             currentNode.mappings[identifier] = ('?', lastRegUsed+1)
-            return lastRegUsed+1, '?', [f'%{lastRegUsed + 1} = phi(_)']
+            return lastRegUsed+1, '?', [f'{lastRegUsed + 1}-{currentNode.id}-{identifier}-*']
         elif len(currentNode.prevNodes) == 0:
             # val is undefined
             # should never encounter this case
@@ -216,6 +216,17 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # map variable to phi node
             currentNode.mappings[identifier] = (llvmType, lastRegUsed+1)
             return (lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = phi({phiParams})'])
+
+def readUnsealedBlock(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
+    # create phi node with values in prev blocks
+    possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
+    llvmType = possibleRegisters[0][1]
+    phiParams = [f'{reg[1]} %{reg[0]}' for reg in possibleRegisters]
+    phiParams = ', '.join(phiParams)
+
+    # map variable to phi node
+    currentNode.mappings[identifier] = (llvmType, lastRegUsed+1)
+    return (lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = phi({phiParams})'])
 
 
 # == != <= < > >= - + * / || &&

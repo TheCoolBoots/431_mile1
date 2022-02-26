@@ -1,7 +1,9 @@
+from pyclbr import Function
 from re import L
-from ssaGenerator import expressionToSSA, generateSSA, statementToSSA
+from ssaGenerator import expressionToSSA, generateSSA, readUnsealedBlock, statementToSSA
 from cfg_generator import generateProgCFGs
 from ast_class_definitions import *
+from ssaGenerator import readVariable
 
 
 # converts an m_prog into an SSA LLVM program
@@ -18,6 +20,8 @@ def topSSACompile(prog:m_prog) -> list[str]:
     code.extend(globalDeclarations)
 
     for fnode in functionNodes:
+        functionCode = []
+
         functionDef = fnode.ast
         top_env = prog.getTopEnv(False)
 
@@ -31,25 +35,49 @@ def topSSACompile(prog:m_prog) -> list[str]:
         if len(params) == 0:
             params = ''
     
-        code.append(f'define {getLLVMType(functionDef.return_type.typeID)} @{functionDef.id.identifier}({params})' + ' {')
+        functionCode.append(f'define {getLLVMType(functionDef.return_type.typeID)} @{functionDef.id.identifier}({params})' + ' {')
         if functionDef.id.identifier == 'main':
-            code.append('entry:')
+            functionCode.append('entry:')
 
         for declaration in functionDef.body_declarations:
             if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
                 top_env[declaration.id.identifier] = declaration.type
-                code.append(declaration.getSSALocals(typeSizes))
+                functionCode.append(declaration.getSSALocals(typeSizes))
 
         functions[functionDef.id.identifier] = (functionDef.return_type, paramTypes)
 
         # register 0 will be reserved for the return value
         lastRegUsed, bodyCode, exitNode = cfgToSSA(0, fnode.rootNode, top_env, types, functions)
-        code.extend(bodyCode)
-        code.append(f'retLabel:')
-        code.append(f'ret {getLLVMType(functionDef.return_type.typeID)} %0')
-        code.append('}')
+        functionCode.extend(bodyCode)
+        functionCode.append(f'retLabel:')
+        functionCode.append(f'ret {getLLVMType(functionDef.return_type.typeID)} %0')
+        functionCode.append('}')
+
+        functionCode = sealUnsealedBlocks(fnode, functionCode)
+
+        code.extend(functionCode)
 
     return code
+
+
+def sealUnsealedBlocks(functionNode:Function_CFG, functionCode:list[str]) -> list[str]:
+    unsealedNodes = functionNode.getUnsealedNodes()
+    if len(unsealedNodes.values()) == 0:
+        return functionCode 
+
+    for i, line in enumerate(functionCode):
+        if line[-1] == '*':
+            parts = line.split('-')
+            targetReg = int(parts[0])
+            nodeID = int(parts[1])
+            targetID = parts[2]
+            unsealedNodes[nodeID].sealed = True
+            targetReg, llvmType, newLine = readUnsealedBlock(targetReg-1, targetID, unsealedNodes[nodeID])
+            functionCode[i] = newLine[0]
+    
+    return functionCode
+
+
 
 
 # converts a CFG_Node into SSA LLVM code (phi nodes incomplete)

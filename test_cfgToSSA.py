@@ -150,7 +150,7 @@ class test_cfg_generator(unittest.TestCase):
                     'entry:', 
                     '%1 = i32 3', 
                     '2:', 
-                    '%5 = phi(_)', 
+                    '%5 = phi(i32 %9, i32 %1)', 
                     '%6 = i32 2', 
                     '%7 = icmp sgt i32 %5, i32 %6', 
                     'br i32 %7, label %3, label %4', 

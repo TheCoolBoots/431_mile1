@@ -389,3 +389,20 @@ class Function_CFG():
             for node in currNode.nextNodes:
                 queue.append(node)
         return list(nodeReferences.values())
+
+    def getUnsealedNodes(self) -> dict:
+        unsealedNodes = {}
+        nodeReferences = {}
+        queue = []
+        queue.append(self.rootNode)
+        while queue != []:
+            currNode = queue.pop(0)
+            if currNode.id in nodeReferences:
+                continue
+            else:
+                nodeReferences[currNode.id] = currNode
+                if not currNode.sealed:
+                    unsealedNodes[currNode.id] = currNode
+            for node in currNode.nextNodes:
+                queue.append(node)
+        return unsealedNodes
