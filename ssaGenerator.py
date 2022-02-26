@@ -12,12 +12,10 @@ from generateLLVM import getLLVMType
 
 
 # returns int: lastRegUsed, list[str]: llvm code for statements within currentNode, dict: ssa mappings
-def generateSSA(currentNode: CFG_Node, top_env:dict, types:dict, functions:dict) -> Tuple[int, list[str]]:
+def generateSSA(lastRegUsed, currentNode: CFG_Node, top_env:dict, types:dict, functions:dict) -> Tuple[int, list[str]]:
     code = []
-    lastRegUsed = currentNode.lastRegUsed
-    statements = currentNode.code
 
-    for statement in statements:
+    for statement in currentNode.ast_statements:
         lastRegUsed, llvmType, newCode = statementToSSA(lastRegUsed, statement, top_env, types, functions, currentNode)
         code.extend(newCode)
 
@@ -55,20 +53,21 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
 
 def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if ret.expression == None:
-        return (lastRegUsed, 'void', [f'ret void'])
+        return (lastRegUsed, 'void', [f'%0 = void', f'br label %retLabel'])
 
     returnReg, retType, returnCode = expressionToSSA(lastRegUsed, ret.expression, env, types, functions, currentNode)
     if(retType == 'void'):
-        returnCode.append(f'ret {retType}')
+        returnCode.append(f'%0 = void')
     else:
-        returnCode.append(f'ret {retType} %{returnReg}')
+        returnCode.append(f'%0 = {retType} %{returnReg}')
+    returnCode.append(f'br label %retLabel')
 
     return (returnReg, retType, returnCode)
 
 
 def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, assign.source_expression, env, types, functions, currentNode)
-    if type(exprReg) == int:
+    if type(exprReg) == int and exprReg > lastRegUsed:
         lastRegUsed = exprReg
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
@@ -199,17 +198,17 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         if not currentNode.sealed:
             currentNode.mappings[identifier] = ('?', lastRegUsed+1)
             return lastRegUsed+1, '?', [f'%{lastRegUsed + 1} = phi(_)']
-        elif len(currentNode.previousBlocks) == 0:
+        elif len(currentNode.prevNodes) == 0:
             # val is undefined
             # should never encounter this case
             pass
-        elif len(currentNode.previousBlocks) == 1:
+        elif len(currentNode.prevNodes) == 1:
             # call expressionToLLVM with expr and prev block's mappings
-            prevNode = currentNode.previousBlocks[0]
+            prevNode = currentNode.prevNodes[0]
             return readVariable(lastRegUsed, identifier, prevNode)
         else:
             # create phi node with values in prev blocks
-            possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.previousBlocks]
+            possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
             llvmType = possibleRegisters[0][1]
             phiParams = [f'{reg[1]} %{reg[0]}' for reg in possibleRegisters]
             phiParams = ', '.join(phiParams)
@@ -222,7 +221,9 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
 # == != <= < > >= - + * / || &&
 def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     leftOpReg, leftLLVMType, leftOpCode = expressionToSSA(lastRegUsed, binop.left_expression, env, types, functions, currentNode)
-    rightOpReg, rightLLVMType, rightOpCode = expressionToSSA(leftOpReg, binop.right_expression, env, types, functions, currentNode)
+    if leftOpReg > lastRegUsed:
+        lastRegUsed = leftOpReg
+    rightOpReg, rightLLVMType, rightOpCode = expressionToSSA(lastRegUsed, binop.right_expression, env, types, functions, currentNode)
 
     # == != <= < > >= - + * / || &&
     match binop.operator:

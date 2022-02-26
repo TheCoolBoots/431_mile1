@@ -19,11 +19,13 @@ class m_bool:
             return False
         return not (self.val ^ __o.val)
 
+
 class m_null:
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
         return 
+
 
 class m_num:
     def __init__(self, val:int):
@@ -32,6 +34,7 @@ class m_num:
         if type(__o) != type(self):
             return False
         return self.val == __o.val
+
 
 class m_id:
     def __init__(self, lineNum:int, identifier:str):
@@ -88,7 +91,6 @@ class m_declaration:
             raise AttributeError('THERE SHOULD NEVER BE A LOCAL DEFINITION OF A PRIMITIVE TYPE IN SSA FORM')
         else:
             return f'%{self.id.identifier} = alloca %struct.A*'
-
 
 
 # type declaration → struct id { nested decl } ;
@@ -251,7 +253,6 @@ class m_read:
         return self.lineNum == __o.lineNum    
 
 
-
 # ret → return {expression}opt;
 class m_ret:
     def __init__(self, lineNum:int, expression = None):
@@ -261,6 +262,7 @@ class m_ret:
         if type(__o) != type(self):
             return False
         return self.expression == __o.expression and self.lineNum == __o.lineNum
+
 
 # == != <= < > >= - + * / || &&
 class m_binop:
@@ -274,6 +276,7 @@ class m_binop:
             return False
         return self.operator == __o.operator and self.left_expression == __o.left_expression and self.right_expression == __o.right_expression and self.lineNum == __o.lineNum
             
+
 # invocation → id arguments ;
 class m_invocation:
     # not yet sure what type arguments will be
@@ -319,3 +322,70 @@ class m_dot:
             return False
         return self.lineNum == __o.lineNum and self.ids == __o.ids
 
+
+class CFG_Node():
+    None
+
+
+class CFG_Node():
+    def __init__(self, id:int, label:str, sealed = True, guardExpression = None) -> None:
+        self.id = id
+        self.label = label
+        self.ast_statements = []
+        self.guardExpression = guardExpression
+        self.prevNodes = []
+        self.nextNodes = []
+        self.sealed = sealed
+        self.mappings = {}
+        self.visited = False
+
+    def addPrevNode(self, node:CFG_Node):
+        self.prevNodes.append(node)
+
+    def addNextNode(self, node:CFG_Node):
+        self.nextNodes.append(node)
+
+    def extendStatements(self, statements:list):
+        self.ast_statements.extend(statements)
+
+
+class Function_CFG():
+    def __init__(self, rootNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node, ast:m_function):
+        self.rootNode = rootNode
+        self.exitNode = exitNode
+        self.returnNode = returnNode
+        self.ast = ast
+
+    def serialize(self):
+        output = ['digraph "cfg" {']
+        nodeReferences = {}
+        queue = []
+        queue.append(self.rootNode)
+
+        while queue != []:
+            currNode = queue.pop(0)
+
+            if currNode.id in nodeReferences:
+                continue
+            else:
+                nodeReferences[currNode.id] = True
+            for node in currNode.nextNodes:
+                output.append("  " + str(currNode.id) + " -> " + str(node.id) + ";")
+                queue.append(node)
+        
+        output.append('}')
+        return output
+
+    def getAllNodes(self) -> list:
+        nodeReferences = {}
+        queue = []
+        queue.append(self.rootNode)
+        while queue != []:
+            currNode = queue.pop(0)
+            if currNode.id in nodeReferences:
+                continue
+            else:
+                nodeReferences[currNode.id] = currNode
+            for node in currNode.nextNodes:
+                queue.append(node)
+        return list(nodeReferences.values())
