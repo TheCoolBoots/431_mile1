@@ -13,5 +13,6 @@ fun main() int
         num2 = 2;
     }
 
+    num = 3;
     return 2;
 }

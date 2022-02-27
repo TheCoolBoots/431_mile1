@@ -18,7 +18,7 @@ class test_cfg_generator(unittest.TestCase):
                                 '  3 -> 0;',
                                 '}']
         self.assertEqual(serialized, expectedSerialized)
-                            
+
         nodes = functions[0].getAllNodes()
         labels = [f'{node.id}: {node.label}' for node in nodes]
         expectedLabels = ['1: statement block node',
