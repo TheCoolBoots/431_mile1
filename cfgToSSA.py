@@ -55,6 +55,13 @@ def topSSACompile(prog:m_prog) -> list[str]:
 
         functionCode = sealUnsealedBlocks(fnode, functionCode)
 
+        phiNodeIndices = []
+        for i, line in enumerate(functionCode):
+            if line[-1] == ']':
+                phiNodeIndices.append(i)
+
+        functionCode = fillPhiPlaceholderLabels(functionCode, phiNodeIndices)
+
         code.extend(functionCode)
 
     return code
@@ -63,7 +70,7 @@ def topSSACompile(prog:m_prog) -> list[str]:
 def sealUnsealedBlocks(functionNode:Function_CFG, functionCode:list[str]) -> list[str]:
     unsealedNodes = functionNode.getUnsealedNodes()
     if len(unsealedNodes.values()) == 0:
-        return functionCode 
+        return functionCode
 
     for i, line in enumerate(functionCode):
         if line[-1] == '*':
@@ -72,12 +79,54 @@ def sealUnsealedBlocks(functionNode:Function_CFG, functionCode:list[str]) -> lis
             nodeID = int(parts[1])
             targetID = parts[2]
             unsealedNodes[nodeID].sealed = True
-            targetReg, llvmType, newLine = readUnsealedBlock(targetReg-1, targetID, unsealedNodes[nodeID])
+            targetReg, llvmType, newLine, lastLabel = readUnsealedBlock(targetReg-1, targetID, unsealedNodes[nodeID])
             functionCode[i] = newLine[0]
     
     return functionCode
 
 
+def fillPhiPlaceholderLabels(functionCode:list[str], phiNodeIndices:list[int]) -> list[str]:
+    for i in phiNodeIndices:
+        # %5 = phi i32 [%9, %PLACEHOLDER], [%1, %PLACEHOLDER]
+        line = functionCode[i]
+
+        # [%9, %PLACEHOLDER], [%1, %PLACEHOLDER]
+        registers = line[line.find('['):]
+        registers = registers.replace(',', '')
+        registers = registers.replace('[', '')
+        registers = registers.replace(']', '')
+
+        # %9 %PLACEHOLDER %1 %PLACEHOLDER
+        registers = registers.split(' ')
+
+        # %9, %1 
+        src1 = registers[0]
+        src2 = registers[2]
+        
+        for j in range(0, len(functionCode)):
+            if src1 in functionCode[j] and j != i:
+                start1 = j
+                break
+        label1 = 'entry'
+        for j in range(start1, 0, -1):
+            if functionCode[j][-1] == ':':
+                label1 = functionCode[j][:-1]
+                break
+
+        for j in range(0, len(functionCode)):
+            if src2 in functionCode[j] and j != i:
+                start2 = j
+                break
+        label2 = 'entry'
+        for j in range(start2, 0, -1):
+            if functionCode[j][-1] == ':':
+                label2 = functionCode[j][:-1]
+                break
+
+        newLine = line[:line.find('[')] + f'[{src1}, %{label1}], [{src2}, %{label2}]'
+        functionCode[i] = newLine
+
+    return functionCode
 
 
 # converts a CFG_Node into SSA LLVM code (phi nodes incomplete)

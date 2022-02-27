@@ -133,15 +133,15 @@ class test_ssa_generator(unittest.TestCase):
         currentNode.ast_statements = [m_ret(0, m_id(1, 'a'))]
         leftNode = CFG_Node(0, 'doesnt matter')
         rightNode = CFG_Node(0, 'doesnt matter')
-        leftNode.mappings['a'] = ('i32', 4, 'int')
-        rightNode.mappings['a'] = ('i32', 5, 'int')
+        leftNode.mappings['a'] = ('i32', 4, 'PLACEHOLDER')
+        rightNode.mappings['a'] = ('i32', 5, 'PLACEHOLDER')
 
         currentNode.prevNodes=[leftNode, rightNode]
         currentNode.sealed = True
 
         lastRegUsed, code = generateSSA(0, currentNode, {}, {}, {})
-        self.assertEqual(currentNode.mappings, {'a': ('i32', 1)})
-        self.assertEqual(code, ['%1 = phi(i32 %4, i32 %5)', 
+        self.assertEqual(currentNode.mappings, {'a': ('i32', 1, 'PLACEHOLDER')})
+        self.assertEqual(code, ['%1 = phi i32 [%4, %PLACEHOLDER], [%5, %PLACEHOLDER]', 
                                 '%0 = i32 %1',
                                 'br label %retLabel'])
         

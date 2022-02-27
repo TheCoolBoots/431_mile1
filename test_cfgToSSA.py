@@ -1,7 +1,7 @@
 import unittest
 import json
 from ast_class_definitions import *
-from cfgToSSA import topSSACompile
+from cfgToSSA import fillPhiPlaceholderLabels, topSSACompile
 from top_compiler import importMiniFile
 
 class test_cfg_generator(unittest.TestCase):
@@ -83,6 +83,7 @@ class test_cfg_generator(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
+
     def test_while_ret(self):
         ast = importMiniFile('miniFiles/while_ret.mini')
         actual = topSSACompile(ast)
@@ -101,6 +102,7 @@ class test_cfg_generator(unittest.TestCase):
                     '}']
         self.assertEqual(actual, expected)
         # print(actual)
+
 
     def test_while_pass(self):
         ast = importMiniFile('miniFiles/while_pass.mini')
@@ -121,6 +123,7 @@ class test_cfg_generator(unittest.TestCase):
         self.assertEqual(actual, expected)
         # print('\n'.join(actual))
 
+
     def test_phiBasic(self):
         ast = importMiniFile('miniFiles/phiBasic.mini')
         actual = topSSACompile(ast)
@@ -133,7 +136,7 @@ class test_cfg_generator(unittest.TestCase):
                     '4:', 
                     '%6 = i32 5', 
                     '5:', 
-                    '%7 = phi(i32 %1, i32 %6)', 
+                    '%7 = phi i32 [%1, %entry], [%6, %4]', 
                     '%0 = i32 %7', 
                     'br label %retLabel', 
                     'retLabel:', 
@@ -150,7 +153,7 @@ class test_cfg_generator(unittest.TestCase):
                     'entry:', 
                     '%1 = i32 3', 
                     '2:', 
-                    '%5 = phi(i32 %9, i32 %1)', 
+                    '%5 = phi i32 [%9, %3], [%1, %entry]', 
                     '%6 = i32 2', 
                     '%7 = icmp sgt i32 %5, i32 %6', 
                     'br i32 %7, label %3, label %4', 
@@ -163,6 +166,29 @@ class test_cfg_generator(unittest.TestCase):
                     'ret i32 %0', 
                     '}']
         self.assertEqual(actual, expected)
+
+
+    def test_phiFilling(self):
+        functionCode = ['entry:', 
+                    '%1 = i32 3', 
+                    '2:', 
+                    '%5 = phi i32 [%9, %PLACEHOLDER], [%1, %PLACEHOLDER]', 
+                    '3:', 
+                    '%8 = i32 5', 
+                    '%9 = add i32 %5, i32 %8', ]
+        phiIndices = [3]
+
+        expected = ['entry:', 
+                    '%1 = i32 3', 
+                    '2:', 
+                    '%5 = phi i32 [%9, %3], [%1, %entry]', 
+                    '3:', 
+                    '%8 = i32 5', 
+                    '%9 = add i32 %5, i32 %8']
+
+        actual = fillPhiPlaceholderLabels(functionCode, phiIndices)
+
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':
