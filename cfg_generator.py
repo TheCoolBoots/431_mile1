@@ -86,7 +86,7 @@ def generateIfCFG(lastNodeIDUsed:int, cond:m_conditional, returnNode:CFG_Node) -
 
     elseReturnNode = -1
     if cond.else_statements != [None]:
-        lastNodeIDUsed, elseBlockEntry, elseBlockExit, elseReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.if_statements, returnNode)
+        lastNodeIDUsed, elseBlockEntry, elseBlockExit, elseReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.else_statements, returnNode)
         elseBlockEntry.addPrevNode(guardNode)
         guardNode.addNextNode(elseBlockEntry)
 

@@ -1,21 +1,15 @@
 fun main() int
 {
-    int num;
-    int num2;
-    print 1;
-
     if (true) {
         if (true) {
             print 4;
         }
         else {
-            num = 2;
+            print 10;
         }
     }
-
     else {
-        num2 = 1;
+        print 13;
     }
-
     return 2;
 }

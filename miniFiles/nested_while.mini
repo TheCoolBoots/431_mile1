@@ -1,18 +1,9 @@
 fun main() int
 {
-    int num;
-    int num2;
-    print 1;
-
     while (true) {
-        num = 1;
-
         while (true) {
             print 2;
         }
-        num2 = 2;
     }
-
-    num = 3;
     return 2;
 }

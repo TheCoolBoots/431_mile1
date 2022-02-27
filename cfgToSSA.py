@@ -64,22 +64,6 @@ def topSSACompile(prog:m_prog) -> list[str]:
 
         code.extend(functionCode)
 
-        # These can change a lot depending on how its compiled
-        code.insert(0, "; ModuleID = 'PLACEHOLDER_NAME.bc'")
-        code.insert(0, 'source_filename = "PLACEHOLDER_NAME.c"') # This could probably be changed to .mini if that doesnt cause a problem
-        code.insert(0, 'target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"')
-        code.insert(0, 'target triple = "x86_64-pc-linux-gnu"')
-
-        # This string will often come before functions in llvm, not sure if it is needed, may need to parse thru and add it.
-        # code.insert(index, "; Function Attrs: noinline nounwind optnone ssp uwtable")
-
-        code.append('attributes  # 0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }')
-        # These last 4 lines can change a lot depending how its compiled, not sure how important it actually is
-        code.append('!llvm.module.flags = !{!0}')
-        code.append('!llvm.ident = !{!1}')
-        code.append('!0 = !{i32 1, !"wchar_size", i32 4}')
-        code.append('!1 = !{!"clang version 10.0.0-4ubuntu1 "}')
-
     return code
 
 
@@ -152,7 +136,7 @@ def cfgToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[int
             lastRegUsed, code = generateSSA(lastRegUsed, node, top_env, types, functions)
             exitNode = node
             node.visited = True
-            if len(node.nextNodes) >= 1:
+            if len(node.nextNodes) >= 1: # and not node.nextNodes[0].visited:
                 lastRegUsed, subsequentCode, exitNode = cfgToSSA(lastRegUsed, node.nextNodes[0], top_env, types, functions)
                 code.extend(subsequentCode)
             return lastRegUsed, code, exitNode
@@ -174,9 +158,10 @@ def cfgToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[int
             lastRegUsed, code = generateSSA(lastRegUsed, node, top_env, types, functions)
             node.visited = True
             return lastRegUsed, code, node
-        case 'if exit node':
+        case 'if exit node' | 'while exit node':
             node.visited = True
             return lastRegUsed, [], node
+
 
 
 def whileNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[int, list[str], CFG_Node]:
@@ -191,27 +176,25 @@ def whileNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tup
     if expressionReg > lastRegUsed:
         lastRegUsed = expressionReg
     
-
-
     # every while gard node will have only 2 nodes after it
     # the node at index 0 will always be the body node
     # the node at index 1 will always be the exit node
     whileBody = node.nextNodes[0]
     whileExit = node.nextNodes[1]
 
-    while whileBody.label != 'while guard node' and whileBody.label != 'return node':
-        lastRegUsed, code, exitNode = cfgToSSA(lastRegUsed, whileBody, top_env, types, functions)
-        outputCode.extend(code)
-        whileBody = exitNode
+    lastRegUsed, whileBodyCode, bodyExitNode = cfgToSSA(lastRegUsed, whileBody, top_env, types, functions)
+    outputCode.extend(whileBodyCode)
 
-    if whileBody.label == 'return node':
-        lastRegUsed, code, exitNode = cfgToSSA(lastRegUsed, whileBody, top_env, types, functions)
-        outputCode.extend(code)
-        whileBody = exitNode
+    if bodyExitNode.label == 'return node':
+        lastRegUsed, retNode, retExitNode = cfgToSSA(lastRegUsed, bodyExitNode, top_env, types, functions)
+        outputCode.extend(retNode)
     else:
         outputCode.append(f'br label %{saveReg + 1}')
 
     outputCode.append(f'{saveReg + 3}:')
+
+    lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, whileExit, top_env, types, functions)
+    outputCode.extend(exitNodeCode)
 
     return lastRegUsed, outputCode, whileExit
 
@@ -233,41 +216,38 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
     else:
         lastRegUsed += 3
 
-    while ifBlock.label != 'if exit node' and ifBlock.label != 'return node':
-        lastRegUsed, code, exitNode = cfgToSSA(lastRegUsed, ifBlock, top_env, types, functions)
-        outputCode.extend(code)
-        ifBlock = exitNode
+    lastRegUsed, ifBlockCode, ifBlockExitNode = cfgToSSA(lastRegUsed, ifBlock, top_env, types, functions)
+    outputCode.extend(ifBlockCode)
 
-    if ifBlock.label == 'return node':
-        lastRegUsed, code, exitNode = cfgToSSA(lastRegUsed, ifBlock, top_env, types, functions)
-        outputCode.extend(code)
 
-    exitNode = ifBlock
+    if ifBlockExitNode.label == 'return node':
+        lastRegUsed, retNodeCode, ifBlockExitNode = cfgToSSA(lastRegUsed, ifBlockExitNode, top_env, types, functions)
+        outputCode.extend(retNodeCode)
 
-    if elseBlock.label != 'if exit node' and ifBlock.label != 'return node':
+    # there exists an else block, thus need to add jump to bypass it
+    if elseBlock.label != 'if exit node' and ifBlockExitNode.label != 'return node':
         outputCode.append(f'br label %{regStore + 3}')  
 
+    # label for else block or exit label (if no else block exists)
     outputCode.append(f'{regStore + 2}:')
 
     if elseBlock.label == 'if exit node':
         exitNode = elseBlock
     else:
-        while elseBlock.label != 'if exit node' and elseBlock.label != 'return node':
-            lastRegUsed, code, exitNode = cfgToSSA(lastRegUsed, elseBlock, top_env, types, functions)
-            outputCode.extend(code)
-            elseBlock = exitNode
+        lastRegUsed, elseBlockCode, elseBlockExitNode = cfgToSSA(lastRegUsed, elseBlock, top_env, types, functions)
+        outputCode.extend(elseBlockCode)
 
-        if elseBlock.label == 'return node':
-            lastRegUsed, code, exitNode = cfgToSSA(lastRegUsed, elseBlock, top_env, types, functions)
-            outputCode.extend(code)
-            exitNode = elseBlock
+        if elseBlockExitNode.label == 'return node':
+            lastRegUsed, returnNodeCode, elseBlockExitNode = cfgToSSA(lastRegUsed, elseBlockExitNode, top_env, types, functions)
+            outputCode.extend(returnNodeCode)
         else:
             outputCode.append(f'{regStore + 3}:')
+
         
-    lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, exitNode, top_env, types, functions)
+    lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, ifBlockExitNode, top_env, types, functions)
     outputCode.extend(exitNodeCode)
 
-    return lastRegUsed, outputCode, exitNode
+    return lastRegUsed, outputCode, ifBlockExitNode
 
 
 def getLLVMType(typeID:str) -> str:

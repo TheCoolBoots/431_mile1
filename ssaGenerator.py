@@ -133,7 +133,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
         case m_num() | m_bool():
-            return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = i32 {expr.val}']
+            return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = i32 {int(expr.val)}']
         case m_new_struct():
             code = [f'%{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
                  f'%{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
@@ -197,7 +197,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], [], currentNode.mappings[identifier][2]
     else:
         if not currentNode.sealed:
-            currentNode.mappings[identifier] = ('?', lastRegUsed+1, 'PLACEHOLDER')
+            currentNode.mappings[identifier] = ('i32', lastRegUsed+1, 'PLACEHOLDER')
             return lastRegUsed+1, '?', [f'{lastRegUsed + 1}-{currentNode.id}-{identifier}-*'], 'PLACEHOLDER'
         elif len(currentNode.prevNodes) == 0:
             # val is undefined
