@@ -319,22 +319,32 @@ class test_cfg_generator(unittest.TestCase):
 
 
 
+    def test_singleInvocation(self):
+        ast = importMiniFile('miniFiles/myFunctionCall.mini')
+        actual = topSSACompile(ast)
+        expected = ['define i32 @foo(i32 %a) {',
+                    '%1 = i32 5',
+                    '%2 = call i32 @printf("%d", %1)',
+                    '%3 = i32 6',
+                    '%0 = i32 %3',
+                    'br label %retLabel',
+                    'retLabel:',
+                    'ret i32 %0',
+                    '}',
+                    'define i32 @main() {',
+                    'entry:',
+                    '%1 = i32 1',
+                    '%2 = call i32 @foo(i32 %1)',
+                    '%0 = i32 %2',
+                    'br label %retLabel',
+                    'retLabel:',
+                    'ret i32 %0',
+                    '}']
 
-    # def test_uselessFunction(self):
-    #     # WRITE CODE HERE
-    #     pass
+        # print('\n'.join(actual))
 
+        self.assertEqual(actual, expected)
 
-
-    # def test_singleInvocation(self):
-    #     # WRITE CODE HERE
-    #     pass
-
-
-
-    # def test_nestedInvocation(self):
-    #     # WRITE CODE HERE
-    #     pass
 
 
 if __name__ == '__main__':
