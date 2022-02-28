@@ -2,19 +2,21 @@ fun main() int
 {
     int num;
     int num2;
-    print 1;
+    print(1);
 
     if(true) {
-        print(1);
+        print(2);
         while (true) {
             num2 = 2;
         }
-        print(2);
+        print(3);
     }
 
     else {
         num2 = 3;
+        num = 42;
     }
 
+    num = 100;
     return 4;
 }

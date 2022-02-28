@@ -261,10 +261,62 @@ class test_cfg_generator(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
+        # print('\n'.join(actual))
 
-    # def test_nestedMixed(self):
-    #     # WRITE CODE HERE
-    #     pass
+
+
+    def test_nestedMixed(self):
+        ast = importMiniFile('miniFiles/if_while_nested.mini')
+        actual = topSSACompile(ast)
+        expected = ['define i32 @main() {',
+                    'entry:',
+                    '%1 = i32 1',
+                    '%2 = call i32 @printf("%d", %1)',
+
+
+                    # '3:',    # if guard doesnt get a unique label
+                    '%3 = i32 1',
+                    'br i32 %3, label %4, label %5',
+
+
+                    '4:',    # if body start
+                    '%7 = i32 2',
+                    '%8 = call i32 @printf("%d", %7)',
+                    # 'br label %11', # break not necessary
+
+                    '9:',    # while guard
+                    '%12 = i32 1',
+                    'br i32 %12, label %10, label %11',
+
+                    '10:',    # while body start
+                    '%13 = i32 2',
+                    'br label %9',
+
+                    '11:',    # if body end
+                    '%14 = i32 3',
+                    '%15 = call i32 @printf("%d", %14)',
+                    'br label %6',
+
+
+                    '5:',    # else body
+                    '%16 = i32 3',
+                    # 'br label %6', # dont necessarily need the branch here
+
+
+
+
+                    '6:',    # if convergence block
+                    '%0 = i32 4',
+                    # 'br label %retLabel', # May not need this line
+
+                    'retLabel:',
+                    'ret i32 %0',
+                    '}']
+
+        print('\n'.join(actual))
+
+        self.assertEqual(actual, expected)
+
 
 
 
