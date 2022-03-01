@@ -231,9 +231,8 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
     # label for else block or exit label (if no else block exists)
     outputCode.append(f'{regStore + 2}:')
 
-    if elseBlock.label == 'if exit node':
-        exitNode = elseBlock
-    else:
+    elseBlockExitNode = None
+    if elseBlock.label != 'if exit node':
         lastRegUsed, elseBlockCode, elseBlockExitNode = cfgToSSA(lastRegUsed, elseBlock, top_env, types, functions)
         outputCode.extend(elseBlockCode)
 
@@ -243,8 +242,10 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
         else:
             outputCode.append(f'{regStore + 3}:')
 
-        
-    lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, ifBlockExitNode, top_env, types, functions)
+    if elseBlockExitNode == None:
+        lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, ifBlockExitNode, top_env, types, functions)
+    else:
+        lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, elseBlockExitNode, top_env, types, functions)
     outputCode.extend(exitNodeCode)
 
     return lastRegUsed, outputCode, ifBlockExitNode
