@@ -21,7 +21,10 @@ class test_ssa_generator(unittest.TestCase):
         # %4 = add i32 %2, i32 %3
 
         lastRegUsed, code = generateSSA(0, node, {}, {}, {})
-        expected = ["%1 = i32 42","%2 = add i32 %1, i32 %1","%3 = i32 23","%4 = add i32 %2, i32 %3"]
+        expected = ["%t1 = add i32 42, 0",
+                    "%t2 = add i32 %t1, i32 %t1",
+                    "%t3 = add i32 23, 0",
+                    "%t4 = add i32 %t2, i32 %t3"]
         self.assertEqual(code, expected)
 
 
@@ -38,15 +41,15 @@ class test_ssa_generator(unittest.TestCase):
         env = {'varHolder': (False, m_type('A'))}
 
         lastRegUsed, code = generateSSA(0, node, env, types, {})
-        expected = ['%1 = i32 1', 
-        '%2 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
-        'store i32 %1, i32* %2', 
-        '%3 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
-        '%4 = load i32, i32* %3', 
-        '%5 = call i32 @printf("%d", %4)', 
-        '%6 = load %struct.A** %varHolder', 
-        '%7 = bitcast %struct.A* %6 to i8*', 
-        'call void @free(%7)']
+        expected = ['%t1 = add i32 1, 0', 
+                    '%t2 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
+                    'store i32 %t1, i32* %t2', 
+                    '%t3 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
+                    '%t4 = load i32, i32* %t3', 
+                    '%t5 = call i32 @printf("%d", %t4)', 
+                    '%t6 = load %struct.A** %varHolder', 
+                    '%t7 = bitcast %struct.A* %t6 to i8*', 
+                    'call void @free(%t7)']
 
         self.assertEqual(code, expected)
 
@@ -57,10 +60,10 @@ class test_ssa_generator(unittest.TestCase):
         node.ast_statements = statementList
         functions = {'foo':(m_type('void'), [m_type('int')])}
 
-        expected = ['%1 = i32 5',
-                '%2 = call void @foo(i32 %1)',
-                '%0 = void',
-                'br label %retLabel']
+        expected = ['%t1 = add i32 5, 0',
+                    '%t2 = call void @foo(i32 %t1)',
+                    '%t0 = void',
+                    'br label %retLabel']
 
         lastRegUsed, code = generateSSA(0, node, {}, {}, functions)
         self.assertEqual(code, expected)
@@ -75,14 +78,14 @@ class test_ssa_generator(unittest.TestCase):
         top_env = ast.getTopEnv(includeLineNum=False)
         types = ast.getTypes()
 
-        expected = ['%1 = i32 5', 
-                    'store i32 %1, i32* @a', 
-                    '%2 = i32 4', 
-                    'store i32 %2, i32* @b', 
-                    '%3 = load i32* @a', 
-                    '%4 = load i32* @b', 
-                    '%5 = add i32 %3, i32 %4', 
-                    '%0 = i32 %5',
+        expected = ['%t1 = add i32 5, 0', 
+                    'store i32 %t1, i32* @a', 
+                    '%t2 = add i32 4, 0', 
+                    'store i32 %t2, i32* @b', 
+                    '%t3 = load i32* @a', 
+                    '%t4 = load i32* @b', 
+                    '%t5 = add i32 %t3, i32 %t4', 
+                    '%t0 = add i32 %t5, 0',
                     'br label %retLabel']
 
         lastRegUsed, code = generateSSA(0, node, top_env, types, {})
@@ -105,16 +108,16 @@ class test_ssa_generator(unittest.TestCase):
 
         lastRegUsed, code = generateSSA(0, node, top_env, types, {})
 
-        expected =['%1 = call i8* @malloc(8)', 
-                '%1 = bitcast i8* %1 to %struct.A*', 
-                'store %struct.A* %1, %struct.A** %redacted', 
-                '%2 = call i8* @malloc(8)', 
-                '%2 = bitcast i8* %2 to %struct.A*',
-                'store %struct.A* %2, %struct.A** @beoch', 
-                '%3 = getelementptr %struct.A, %struct.A* @beoch, i32 0, i32 0', 
-                '%4 = load i32, i32* %3', 
-                '%0 = i32 %4',
-                'br label %retLabel']
+        expected =['%t1 = call i8* @malloc(8)', 
+                    '%t1 = bitcast i8* %t1 to %struct.A*', 
+                    'store %struct.A* %t1, %struct.A** %redacted', 
+                    '%t2 = call i8* @malloc(8)', 
+                    '%t2 = bitcast i8* %t2 to %struct.A*',
+                    'store %struct.A* %t2, %struct.A** @beoch', 
+                    '%t3 = getelementptr %struct.A, %struct.A* @beoch, i32 0, i32 0', 
+                    '%t4 = load i32, i32* %t3', 
+                    '%t0 = add i32 %t4, 0',
+                    'br label %retLabel']
 
         self.assertEqual(code, expected)
 
@@ -141,8 +144,8 @@ class test_ssa_generator(unittest.TestCase):
 
         lastRegUsed, code = generateSSA(0, currentNode, {}, {}, {})
         self.assertEqual(currentNode.mappings, {'a': ('i32', 1, 'PLACEHOLDER')})
-        self.assertEqual(code, ['%1 = phi i32 [%4, %PLACEHOLDER], [%5, %PLACEHOLDER]', 
-                                '%0 = i32 %1',
+        self.assertEqual(code, ['%t1 = phi i32 [%t4, %PLACEHOLDER], [%t5, %PLACEHOLDER]', 
+                                '%t0 = add i32 %t1, 0',
                                 'br label %retLabel'])
         
 

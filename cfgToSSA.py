@@ -37,7 +37,7 @@ def topSSACompile(prog:m_prog) -> list[str]:
     
         functionCode.append(f'define {getLLVMType(functionDef.return_type.typeID)} @{functionDef.id.identifier}({params})' + ' {')
         if functionDef.id.identifier == 'main':
-            functionCode.append('entry:')
+            functionCode.append(f'l{fnode.rootNode.id}:')
 
         for declaration in functionDef.body_declarations:
             if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
@@ -60,8 +60,6 @@ def topSSACompile(prog:m_prog) -> list[str]:
             if line[-1] == ']':
                 phiNodeIndices.append(i)
 
-        functionCode = fillPhiPlaceholderLabels(functionCode, phiNodeIndices)
-
         code.extend(functionCode)
 
     return code
@@ -82,50 +80,6 @@ def sealUnsealedBlocks(functionNode:Function_CFG, functionCode:list[str]) -> lis
             targetReg, llvmType, newLine, lastLabel = readUnsealedBlock(targetReg-1, targetID, unsealedNodes[nodeID])
             functionCode[i] = newLine[0]
     
-    return functionCode
-
-
-def fillPhiPlaceholderLabels(functionCode:list[str], phiNodeIndices:list[int]) -> list[str]:
-    for i in phiNodeIndices:
-        # %5 = phi i32 [%9, %PLACEHOLDER], [%1, %PLACEHOLDER]
-        line = functionCode[i]
-
-        # [%9, %PLACEHOLDER], [%1, %PLACEHOLDER]
-        registers = line[line.find('['):]
-        registers = registers.replace(',', '')
-        registers = registers.replace('[', '')
-        registers = registers.replace(']', '')
-
-        # %9 %PLACEHOLDER %1 %PLACEHOLDER
-        registers = registers.split(' ')
-
-        # %9, %1 
-        src1 = registers[0]
-        src2 = registers[2]
-        
-        for j in range(0, len(functionCode)):
-            if src1 in functionCode[j] and j != i:
-                start1 = j
-                break
-        label1 = 'entry'
-        for j in range(start1, 0, -1):
-            if functionCode[j][-1] == ':':
-                label1 = functionCode[j][:-1]
-                break
-
-        for j in range(0, len(functionCode)):
-            if src2 in functionCode[j] and j != i:
-                start2 = j
-                break
-        label2 = 'entry'
-        for j in range(start2, 0, -1):
-            if functionCode[j][-1] == ':':
-                label2 = functionCode[j][:-1]
-                break
-
-        newLine = line[:line.find('[')] + f'[{src1}, %{label1}], [{src2}, %{label2}]'
-        functionCode[i] = newLine
-
     return functionCode
 
 
@@ -165,22 +119,28 @@ def cfgToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[int
 
 
 def whileNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[int, list[str], CFG_Node]:
-    saveReg = lastRegUsed
-    lastRegUsed += 3
-    outputCode = [f'{saveReg + 1}:']
-    expressionReg, retType, expressionCode = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
-    outputCode.extend(expressionCode)
-    outputCode.extend([f'br i32 %{expressionReg}, label %{saveReg + 2}, label %{saveReg + 3}',
-                        f'{saveReg + 2}:'])
+
+    outputCode = [f'l{node.id}:']
+    exprReg, exprType, expressionCode = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
     
-    if expressionReg > lastRegUsed:
-        lastRegUsed = expressionReg
+    if 'immediate' not in exprType:
+        lastRegUsed = exprReg
+        exprReg = f'%t{exprReg}'
+    else:
+        exprType = exprType.split('_')[0]
+            
+    
+    outputCode.extend(expressionCode)
+    
     
     # every while gard node will have only 2 nodes after it
     # the node at index 0 will always be the body node
     # the node at index 1 will always be the exit node
     whileBody = node.nextNodes[0]
     whileExit = node.nextNodes[1]
+
+    outputCode.extend([f'br i32 {exprReg}, label %l{whileBody.id}, label %l{whileExit.id}',
+                    f'l{whileBody.id}:'])
 
     lastRegUsed, whileBodyCode, bodyExitNode = cfgToSSA(lastRegUsed, whileBody, top_env, types, functions)
     outputCode.extend(whileBodyCode)
@@ -189,9 +149,9 @@ def whileNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tup
         lastRegUsed, retNode, retExitNode = cfgToSSA(lastRegUsed, bodyExitNode, top_env, types, functions)
         outputCode.extend(retNode)
     else:
-        outputCode.append(f'br label %{saveReg + 1}')
+        outputCode.append(f'br label %l{node.id}')
 
-    outputCode.append(f'{saveReg + 3}:')
+    outputCode.append(f'l{whileExit.id}:')
 
     lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, whileExit, top_env, types, functions)
     outputCode.extend(exitNodeCode)
@@ -200,21 +160,23 @@ def whileNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tup
 
 
 def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[int, list[str], CFG_Node]:
-    lastRegUsed, retType, outputCode = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
-    regStore = lastRegUsed
-    
-    outputCode.extend([f'br i32 %{regStore}, label %{regStore + 1}, label %{regStore + 2}',
-                        f'{regStore + 1}:'])
+    exprReg, exprType, outputCode = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
+
+    if 'immediate' not in exprType:
+        exprReg = f'%t{exprReg}'
+        lastRegUsed = exprReg
+    else:
+        exprType = exprType.split('_')[0]
+            
 
     # every if gard node will have only 2 nodes after it
     # the node at index 0 will always be the body node
     # the node at index 1 will always be the else/exit node
     ifBlock = node.nextNodes[0]
     elseBlock = node.nextNodes[1]
-    if elseBlock.label == 'if exit node':
-        lastRegUsed += 2
-    else:
-        lastRegUsed += 3
+
+    outputCode.extend([f'br i32 {exprReg}, label %l{ifBlock.id}, label %l{elseBlock.id}',
+                        f'l{ifBlock.id}:'])
 
     lastRegUsed, ifBlockCode, ifBlockExitNode = cfgToSSA(lastRegUsed, ifBlock, top_env, types, functions)
     outputCode.extend(ifBlockCode)
@@ -226,10 +188,10 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
 
     # there exists an else block, thus need to add jump to bypass it
     if elseBlock.label != 'if exit node' and ifBlockExitNode.label != 'return node':
-        outputCode.append(f'br label %{regStore + 3}')  
+        outputCode.append(f'br label %l{ifBlockExitNode.id}')  
 
     # label for else block or exit label (if no else block exists)
-    outputCode.append(f'{regStore + 2}:')
+    outputCode.append(f'l{elseBlock.id}:')
 
     elseBlockExitNode = None
     if elseBlock.label != 'if exit node':
@@ -240,7 +202,7 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
             lastRegUsed, returnNodeCode, elseBlockExitNode = cfgToSSA(lastRegUsed, elseBlockExitNode, top_env, types, functions)
             outputCode.extend(returnNodeCode)
         else:
-            outputCode.append(f'{regStore + 3}:')
+            outputCode.append(f'l{elseBlockExitNode.id}:')
 
     if elseBlockExitNode == None:
         lastRegUsed, exitNodeCode = generateSSA(lastRegUsed, ifBlockExitNode, top_env, types, functions)

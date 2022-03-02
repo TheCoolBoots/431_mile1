@@ -20,6 +20,9 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
     code.append('target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"')
     code.append('target triple = "x86_64-pc-linux-gnu"')
 
+    code.extend(['declare i8* @malloc(i32)', 'declare void @free(i8*)', 
+                'declare i32 @printf(i8*, i32)', 'declare i32 @scanf(i8*, i32*)'])
+
     if useMemory:
         if retType != -1:
             code.extend(toLLVM(ast))
@@ -37,6 +40,9 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
     code.append('!0 = !{i32 1, !"wchar_size", i32 4}')
     code.append('!1 = !{!"clang version 10.0.0-4ubuntu1 "}')
 
+    print('\n'.join(code))
+
+    return '\n'.join(code)
 
 
     

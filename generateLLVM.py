@@ -6,6 +6,7 @@ from ast_class_definitions import *
 # f_env structure: {str: (m_type, list[m_type])}     maps funID -> return type, param types
 # t_env structure: {str: list[m_declaration]}
 
+
 def toLLVM(ast:m_prog):
     output = ['declare i8* @malloc(i32)', 'declare void @free(i8*)', 
                 'declare i32 @printf(i8*, i32)', 'declare i32 @scanf(i8*, i32*)']

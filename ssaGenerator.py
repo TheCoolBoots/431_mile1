@@ -32,16 +32,29 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             return assignToSSA(lastRegUsed, stmt, env, types, functions, currentNode)
         case m_print():
             exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, stmt.expression, env, types, functions, currentNode)
-            if type(exprCode) == list:
-                instruction = f'%{exprReg + 1} = call i32 @printf("%d", %{exprReg})'
-                exprCode.append(instruction)
-                return exprReg + 1, 'i32', exprCode
+            
+            if 'immediate' not in exprType:
+                lastRegUsed = exprReg
+                exprReg = f'%t{exprReg}'
+            else:
+                exprType = exprType.split('_')[0]
+            
+            instruction = f'%t{lastRegUsed + 1} = call i32 @printf("%d", {exprReg})'
+            exprCode.append(instruction)
+            return exprReg + 1, 'i32', exprCode
         case m_delete():
             exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, stmt.expression, env, types, functions, currentNode)
+            
+            if 'immediate' not in exprType:
+                lastRegUsed = exprReg
+                exprReg = f'%t{exprReg}'
+            else:
+                exprType = exprType.split('_')[0]
+            
             if type(exprReg) != str:
                 lastRegUsed = exprReg
-            exprCode.extend([f'%{lastRegUsed + 1} = bitcast {exprType} %{exprReg} to i8*',
-                            f'call void @free(%{lastRegUsed + 1})'])
+            exprCode.extend([f'%t{lastRegUsed + 1} = bitcast {exprType} %t{exprReg} to i8*',
+                            f'call void @free(%t{lastRegUsed + 1})'])
             # env.pop(exprReg)
             return lastRegUsed + 1, 'void', exprCode
         case m_ret():
@@ -53,13 +66,19 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
 
 def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if ret.expression == None:
-        return (lastRegUsed, 'void', [f'%0 = void', f'br label %retLabel'])
+        return (lastRegUsed, 'void', [f'%t0 = void', f'br label %retLabel'])
 
     returnReg, retType, returnCode = expressionToSSA(lastRegUsed, ret.expression, env, types, functions, currentNode)
-    if(retType == 'void'):
-        returnCode.append(f'%0 = void')
+
+    if 'immediate' not in retType:
+        returnReg = f'%t{returnReg}'
     else:
-        returnCode.append(f'%0 = {retType} %{returnReg}')
+        retType = retType.split('_')[0]
+
+    if(retType == 'void'):
+        returnCode.append(f'%t0 = void')
+    else:
+        returnCode.append(f'%t0 = add {retType} {returnReg}, 0')
     returnCode.append(f'br label %retLabel')
 
     return (returnReg, retType, returnCode)
@@ -67,8 +86,13 @@ def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, c
 
 def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, assign.source_expression, env, types, functions, currentNode)
-    if type(exprReg) == int and exprReg > lastRegUsed:
+
+    if 'immediate' not in exprType:
         lastRegUsed = exprReg
+        exprReg = f'%t{exprReg}'
+    else:
+        exprType = exprType.split('_')[0]
+
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
     if len(targetStrings) == 1:
@@ -77,22 +101,23 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
         #       if local struct, use normal
         if targetStrings[0] in env:
             if env[targetStrings[0]] == m_type('int') or env[targetStrings[0]] == m_type('bool'):
-                exprCode.append(f'store {exprType} %{exprReg}, i32* @{targetStrings[0]}')
+                exprCode.append(f'store {exprType} {exprReg}, i32* @{targetStrings[0]}')
                 return lastRegUsed, env[targetStrings[0]], exprCode
             # if struct is a global struct
             elif env[targetStrings[0]][0]:
                 typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
-                exprCode.append(f'store {exprType} %{exprReg}, {typeStr}* @{targetStrings[0]}')
+                exprCode.append(f'store {exprType} {exprReg}, {typeStr}* @{targetStrings[0]}')
                 return lastRegUsed, env[targetStrings[0]], exprCode
             # struct is a locally defined struct
             else:
                 typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
-                exprCode.append(f'store {exprType} %{exprReg}, {typeStr}* %{targetStrings[0]}')
+                exprCode.append(f'store {exprType} {exprReg}, {typeStr}* %{targetStrings[0]}')
                 return lastRegUsed, env[targetStrings[0]], exprCode
 
         # if it is not in top_env, it is a local variable and is dealt with through SSA form
-        currentNode.mappings[targetStrings[0]] = (exprType, exprReg, 'placeholder')
-        return exprReg, exprType, exprCode
+
+        currentNode.mappings[targetStrings[0]] = (exprType, lastRegUsed, currentNode.id)
+        return lastRegUsed, exprType, exprCode
     else:   # target expression is a struct (A.a.b)
         currentID = assign.target_ids[0].identifier
         currentIDTypeID = env[currentID][1].typeID
@@ -103,9 +128,9 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
             accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
 
             if currentID in env and env[currentID][0]:
-                instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
+                instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
             else:
-                instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
+                instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
             exprCode.append(instruction)
 
             currentID = lastRegUsed + 1
@@ -114,16 +139,17 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
 
 
         if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
-            exprCode.append(f'store i32 %{exprReg}, i32* %{currentID}')
+            exprCode.append(f'store i32 {exprReg}, i32* %t{currentID}')
             return lastRegUsed, 'i32', exprCode
         #(f'store %struct.s1* %1, %struct.s1** %2')
         else:
             if nested:
                 llvmType = getLLVMType(currentIDTypeID)
-                exprCode.append(f'store {llvmType} %{exprReg}, {llvmType}* %{currentID}')
+                exprCode.append(f'store {llvmType} {exprReg}, {llvmType}* %t{currentID}')
                 return lastRegUsed, llvmType, exprCode
             else:
-                exprCode.append(f'%{currentID} = %{exprReg}')
+                # TODO can't assign registers to registers in llvm
+                exprCode.append(f'%t{currentID} = add i32 {exprReg}, 0')
                 return lastRegUsed, getLLVMType(currentIDTypeID), exprCode
     
 
@@ -133,18 +159,18 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
         case m_num() | m_bool():
-            return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = i32 {int(expr.val)}']
+            return lastRegUsed+1, 'i32_immediate', []
         case m_new_struct():
-            code = [f'%{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
-                 f'%{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
+            code = [f'%t{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
+                 f'%t{lastRegUsed + 1} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
             return lastRegUsed+1, f'%struct.{expr.struct_id.identifier}*', code
         case m_null():
             # keeping it like this ensures functionality for rest of compiler
-            return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = i32 0']
+            return lastRegUsed+1, 'i32', [f'%t{lastRegUsed+1} = add i32 0, 0']
         case m_invocation():
             return invocationToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_read():
-            return lastRegUsed+2, 'i32', [f'%{lastRegUsed+2} = alloc i32', f'%{lastRegUsed+1} = call i32 @scanf("%d", %{lastRegUsed+2}*)']
+            return lastRegUsed+2, 'i32', [f'%t{lastRegUsed+2} = alloc i32', f'%t{lastRegUsed+1} = call i32 @scanf("%d", %t{lastRegUsed+2}*)']
         case m_unary():
             return unaryToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_dot():
@@ -154,11 +180,11 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
                 # if id is a global variable
                 if env[expr.identifier][0]:
                     llvmType = getLLVMType(env[expr.identifier][1].typeID)
-                    return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = load {llvmType}* @{expr.identifier}']
+                    return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = load {llvmType}* @{expr.identifier}']
                 # id is a local struct
                 else:
                     llvmType = getLLVMType(env[expr.identifier][1].typeID)
-                    return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = load {llvmType}* %{expr.identifier}']
+                    return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = load {llvmType}* %{expr.identifier}']
             # handle with SSA form
             exprReg, llvmType, code, lastLabel = readVariable(lastRegUsed, expr.identifier, currentNode)
             return exprReg, llvmType, code
@@ -176,9 +202,9 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
 
         if currentID in env and env[currentID][0]:
-            instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
+            instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
         else:
-            instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
+            instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
         outputCode.append(instruction)
 
         currentID = lastRegUsed + 1
@@ -186,19 +212,21 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         lastRegUsed += 1
 
     currentIDTypeID = getLLVMType(currentIDTypeID)  # returns i32 or %struct.__*
-    outputCode.append(f'%{lastRegUsed + 1} = load {currentIDTypeID}, {currentIDTypeID}* %{currentID}')
+    outputCode.append(f'%t{lastRegUsed + 1} = load {currentIDTypeID}, {currentIDTypeID}* %t{currentID}')
 
     return (lastRegUsed + 1, currentIDTypeID, outputCode)
 
 
-# mappings structure = {str id: (str llvmType, int regNum, str prevBlock)}
-def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], str]:
+# mappings structure = {str id: (str llvmType, int regNum, int prevBlock)}
+# returns lastRegUsed, llvmType, code, preceeding label
+def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], int]:
     if identifier in currentNode.mappings:
-        return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], [], currentNode.mappings[identifier][2]
+        return f'%t{currentNode.mappings[identifier][1]}', f'{currentNode.mappings[identifier][0]}_immediate', [], currentNode.mappings[identifier][2]
     else:
         if not currentNode.sealed:
-            currentNode.mappings[identifier] = ('i32', lastRegUsed+1, 'PLACEHOLDER')
-            return lastRegUsed+1, '?', [f'{lastRegUsed + 1}-{currentNode.id}-{identifier}-*'], 'PLACEHOLDER'
+            # guard block isnt sealed yet, therefore it goes into this one
+            currentNode.mappings[identifier] = ('?', lastRegUsed+1, currentNode.id)
+            return lastRegUsed+1, '?', [f'{lastRegUsed + 1}-{currentNode.id}-{identifier}-*'], currentNode.id
         elif len(currentNode.prevNodes) == 0:
             # val is undefined
             # should never encounter this case
@@ -211,31 +239,43 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # create phi node with values in prev blocks
             possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
             llvmType = possibleRegisters[0][1]
-            phiParams = [f'[%{reg[0]}, %{reg[3]}]' for reg in possibleRegisters]
+            phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
             phiParams = ', '.join(phiParams)
 
             # map variable to phi node
-            currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, "PLACEHOLDER")
-            return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = phi {llvmType} {phiParams}'], 'PLACEHOLDER'
+            currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, currentNode.id)
+            return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
 
 def readUnsealedBlock(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], str]:
     # create phi node with values in prev blocks
     possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
-    llvmType = possibleRegisters[0][1]
-    phiParams = [f'[%{reg[0]}, %{reg[3]}]' for reg in possibleRegisters]
+    if 'immediate' in possibleRegisters[0][1]:
+        llvmType = possibleRegisters[0][1].split('_')[0]
+    else:
+        llvmType = possibleRegisters[0][1]
+    phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
     phiParams = ', '.join(phiParams)
 
     # map variable to phi node
-    currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, "PLACEHOLDER")
-    return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = phi {llvmType} {phiParams}'], 'PLACEHOLDER'
+    currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, currentNode.id)
+    return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
 
 
 # == != <= < > >= - + * / || &&
 def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     leftOpReg, leftLLVMType, leftOpCode = expressionToSSA(lastRegUsed, binop.left_expression, env, types, functions, currentNode)
-    if leftOpReg > lastRegUsed:
-        lastRegUsed = leftOpReg
     rightOpReg, rightLLVMType, rightOpCode = expressionToSSA(lastRegUsed, binop.right_expression, env, types, functions, currentNode)
+
+    if 'immediate' not in leftLLVMType:
+        lastRegUsed = leftOpReg
+        leftOpReg = f'%t{leftOpReg}'
+    else:
+        leftLLVMType = leftLLVMType.split('_')[0]
+    if 'immediate' not in rightLLVMType:
+        lastRegUsed = rightOpReg
+        rightOpReg = f'%t{rightOpReg}'
+    else:
+        rightLLVMType = rightLLVMType.split('_')[0]
 
     # == != <= < > >= - + * / || &&
     match binop.operator:
@@ -268,7 +308,7 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
     targetReg = rightOpReg + 1
     instructions.extend(leftOpCode)
     instructions.extend(rightOpCode)
-    instructions.append(f'%{targetReg} = {op} %{leftOpReg}, i32 %{rightOpReg}')
+    instructions.append(f'%t{targetReg} = {op} {leftOpReg}, i32 {rightOpReg}')
 
     return (targetReg, 'i32', instructions)
 
@@ -276,37 +316,43 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
 def unaryToSSA(lastRegUsed:int, exp:m_unary, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     operandReg, operandType, operandCode = expressionToSSA(lastRegUsed, exp.operand_expression, env, types, functions, currentNode)
 
+    if 'immediate' not in operandType:
+        lastRegUsed = operandReg
+        operandReg = f'%t{operandReg}'
+    else:
+        operandType = operandType.split('_')[0]
+
     match exp.operator:
         case '!':
             op = f'xor i32 1'
         case '-':
             op = f'mul i32 -1'
         
-    operandCode.append(f'%{operandReg + 1} = {op}, %{operandReg}')
+    operandCode.append(f'%t{operandReg + 1} = {op}, {operandReg}')
     return operandReg+1, 'i32', operandCode
 
 
 def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
-    params = []
-    for expression in exp.args_expressions:
-        params.append(expressionToSSA(lastRegUsed, expression, env, types, functions, currentNode))
-        lastRegUsed = params[-1][0]
-
-    targetReg = params[-1][0] + 1
-    returnTypeID = getLLVMType(functions[exp.id.identifier][0].typeID)
-    funID = exp.id.identifier
-
     parameters = []
     instructions = []
+    for expression in exp.args_expressions:
+        paramReg, paramType, paramCode = expressionToSSA(lastRegUsed, expression, env, types, functions, currentNode)
+        if 'immediate' in paramType:
+            tp = paramType.split('_')[0]
+            parameters.append(f'{tp} {paramReg}')
+        else:
+            parameters.append(f'{paramType} %t{paramReg}')
+            instructions.extend(paramCode)  
+            lastRegUsed = paramReg
 
-    for paramReg, paramType, paramCode in params:
-        parameters.append(f'{paramType} %{paramReg}')
-        instructions.extend(paramCode)
+    targetReg = lastRegUsed + 1
+    returnTypeID = getLLVMType(functions[exp.id.identifier][0].typeID)
+    funID = exp.id.identifier        
     
     # join them into TYPE REG, TYPE REG, TYPE REG format
     parameters = ', '.join(parameters)
             
-    instructions.append(f'%{targetReg} = call {returnTypeID} @{funID}({parameters})')
+    instructions.append(f'%t{targetReg} = call {returnTypeID} @{funID}({parameters})')
 
     return targetReg, returnTypeID, instructions
 
