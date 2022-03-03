@@ -21,11 +21,10 @@ class test_ssa_generator(unittest.TestCase):
         # %4 = add i32 %2, i32 %3
 
         lastRegUsed, code = generateSSA(0, node, {}, {}, {})
-        expected = ["%t1 = add i32 42, 0",
-                    "%t2 = add i32 %t1, i32 %t1",
-                    "%t3 = add i32 23, 0",
-                    "%t4 = add i32 %t2, i32 %t3"]
+        expectedMappings = {'a': ('i32', 2, 0), 'b': ('i32_immediate', 42, 0), 'c': ('i32', 1, 0)}
+        expected = ['%t1 = add i32 42, 42', '%t2 = add i32 %t1, 23']
         self.assertEqual(code, expected)
+        self.assertEqual(expectedMappings, node.mappings)
 
 
     # t_env structure: {str: list[m_declaration]}
@@ -41,15 +40,14 @@ class test_ssa_generator(unittest.TestCase):
         env = {'varHolder': (False, m_type('A'))}
 
         lastRegUsed, code = generateSSA(0, node, env, types, {})
-        expected = ['%t1 = add i32 1, 0', 
+        expected = ['%t1 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
+                    'store i32 1, i32* %t1', 
                     '%t2 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
-                    'store i32 %t1, i32* %t2', 
-                    '%t3 = getelementptr %struct.A, %struct.A* %varHolder, i32 0, i32 0', 
-                    '%t4 = load i32, i32* %t3', 
-                    '%t5 = call i32 @printf("%d", %t4)', 
-                    '%t6 = load %struct.A** %varHolder', 
-                    '%t7 = bitcast %struct.A* %t6 to i8*', 
-                    'call void @free(%t7)']
+                    '%t3 = load i32, i32* %t2', 
+                    '%t4 = call i32 @printf("%d", %t3)', 
+                    '%t5 = load %struct.A** %varHolder', 
+                    '%t6 = bitcast %struct.A* %t5 to i8*', 
+                    'call void @free(%t6)']
 
         self.assertEqual(code, expected)
 
@@ -60,15 +58,13 @@ class test_ssa_generator(unittest.TestCase):
         node.ast_statements = statementList
         functions = {'foo':(m_type('void'), [m_type('int')])}
 
-        expected = ['%t1 = add i32 5, 0',
-                    '%t2 = call void @foo(i32 %t1)',
+        expected = ['%t1 = call void @foo(i32 5)',
                     '%t0 = void',
                     'br label %retLabel']
 
         lastRegUsed, code = generateSSA(0, node, {}, {}, functions)
         self.assertEqual(code, expected)
         # mappings structure = {str id: (str llvmType, int regNum, str m_typeID)}
-        self.assertEqual({'a': ('void', 2, 'placeholder')}, node.mappings)
 
     def test_globals(self):
         ast = importMiniFile('ssaFormFiles/globals.mini')
@@ -78,20 +74,20 @@ class test_ssa_generator(unittest.TestCase):
         top_env = ast.getTopEnv(includeLineNum=False)
         types = ast.getTypes()
 
-        expected = ['%t1 = add i32 5, 0', 
-                    'store i32 %t1, i32* @a', 
-                    '%t2 = add i32 4, 0', 
-                    'store i32 %t2, i32* @b', 
-                    '%t3 = load i32* @a', 
-                    '%t4 = load i32* @b', 
-                    '%t5 = add i32 %t3, i32 %t4', 
-                    '%t0 = add i32 %t5, 0',
+        expected = ['store i32 5, i32* @a', 
+                    'store i32 4, i32* @b', 
+                    '%t1 = load i32* @a', 
+                    '%t2 = load i32* @b', 
+                    '%t3 = add i32 %t1, %t2', 
+                    '%t0 = add i32 %t3, 0',
                     'br label %retLabel']
 
         lastRegUsed, code = generateSSA(0, node, top_env, types, {})
 
+        # print('\n'.join(code))
+
         self.assertEqual(expected,code)
-        self.assertEqual(node.mappings, {})
+        # self.assertEqual(node.mappings, {})
 
     def test_structs(self):
         ast = importMiniFile('ssaFormFiles/structs.mini')
@@ -131,22 +127,6 @@ class test_ssa_generator(unittest.TestCase):
         expectedDecls = ['@beoch = common dso_local global %struct.A* null', '%redacted = alloca %struct.A*']
         self.assertEqual(declarationCode, expectedDecls)
 
-    def test_basicPhi(self):
-        currentNode = CFG_Node(0, 'doesnt matter')
-        currentNode.ast_statements = [m_ret(0, m_id(1, 'a'))]
-        leftNode = CFG_Node(0, 'doesnt matter')
-        rightNode = CFG_Node(0, 'doesnt matter')
-        leftNode.mappings['a'] = ('i32', 4, 'PLACEHOLDER')
-        rightNode.mappings['a'] = ('i32', 5, 'PLACEHOLDER')
-
-        currentNode.prevNodes=[leftNode, rightNode]
-        currentNode.sealed = True
-
-        lastRegUsed, code = generateSSA(0, currentNode, {}, {}, {})
-        self.assertEqual(currentNode.mappings, {'a': ('i32', 1, 'PLACEHOLDER')})
-        self.assertEqual(code, ['%t1 = phi i32 [%t4, %PLACEHOLDER], [%t5, %PLACEHOLDER]', 
-                                '%t0 = add i32 %t1, 0',
-                                'br label %retLabel'])
         
 
 if __name__ == '__main__':

@@ -50,7 +50,7 @@ def topSSACompile(prog:m_prog) -> list[str]:
         lastRegUsed, bodyCode, exitNode = cfgToSSA(0, fnode.rootNode, top_env, types, functions)
         functionCode.extend(bodyCode)
         functionCode.append(f'retLabel:')
-        functionCode.append(f'ret {getLLVMType(functionDef.return_type.typeID)} %0')
+        functionCode.append(f'ret {getLLVMType(functionDef.return_type.typeID)} %t0')
         functionCode.append('}')
 
         functionCode = sealUnsealedBlocks(fnode, functionCode)
@@ -163,8 +163,8 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
     exprReg, exprType, outputCode = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
 
     if 'immediate' not in exprType:
-        exprReg = f'%t{exprReg}'
         lastRegUsed = exprReg
+        exprReg = f'%t{exprReg}'
     else:
         exprType = exprType.split('_')[0]
             

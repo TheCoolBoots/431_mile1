@@ -1,7 +1,6 @@
 from ast_class_definitions import *
 
 
-
 # returns list of control flow graphs
 def generateProgCFGs(prog:m_prog) -> list[Function_CFG]:
     graphs = []
@@ -11,7 +10,6 @@ def generateProgCFGs(prog:m_prog) -> list[Function_CFG]:
         lastIDUsed, entryNode, exitNode, funReturnNode = generateStatementsCFG(lastIDUsed, fun.statements, returnNode)
         graphs.append(Function_CFG(entryNode, exitNode, returnNode, fun))
     return graphs
-
 
 
 # returns a cfg with a single entry and exit node built from a list of statements
@@ -70,8 +68,6 @@ def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_No
     currentStatements = []
     return lastNodeIDUsed, entryNode, prevNode, None
 
-    
-
 
 # returns a cfg with a single entry and (exit node or return node) built from a conditional
 # returns (lastIDUsed:int, entryNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node)
@@ -116,7 +112,6 @@ def generateIfCFG(lastNodeIDUsed:int, cond:m_conditional, returnNode:CFG_Node) -
         # both branches of the if statement return
         ifReturnNode = elseReturnNode
         return lastNodeIDUsed, guardNode, None, ifReturnNode
-
 
 
 # returns a cfg with a single entry and exit node built from a loop

@@ -41,13 +41,13 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             
             instruction = f'%t{lastRegUsed + 1} = call i32 @printf("%d", {exprReg})'
             exprCode.append(instruction)
-            return exprReg + 1, 'i32', exprCode
+            return lastRegUsed + 1, 'i32', exprCode
         case m_delete():
             exprReg, exprType, exprCode = expressionToSSA(lastRegUsed, stmt.expression, env, types, functions, currentNode)
             
             if 'immediate' not in exprType:
                 lastRegUsed = exprReg
-                exprReg = f'%t{exprReg}'
+                # exprReg = f'%t{exprReg}'
             else:
                 exprType = exprType.split('_')[0]
             
@@ -90,8 +90,10 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
     if 'immediate' not in exprType:
         lastRegUsed = exprReg
         exprReg = f'%t{exprReg}'
+        immediate = False
     else:
         exprType = exprType.split('_')[0]
+        immediate = True
 
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
@@ -116,7 +118,11 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
 
         # if it is not in top_env, it is a local variable and is dealt with through SSA form
 
-        currentNode.mappings[targetStrings[0]] = (exprType, lastRegUsed, currentNode.id)
+        if immediate:
+            exprType = exprType + '_immediate'
+        if type(exprReg) == str:
+            exprReg = int(exprReg[2:])
+        currentNode.mappings[targetStrings[0]] = (exprType, exprReg, currentNode.id)
         return lastRegUsed, exprType, exprCode
     else:   # target expression is a struct (A.a.b)
         currentID = assign.target_ids[0].identifier
@@ -137,6 +143,8 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
             currentIDTypeID = accessedTypeID
             lastRegUsed += 1
 
+        # if type(exprReg) == int:
+        #     exprReg = f'%t{exprReg}'
 
         if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
             exprCode.append(f'store i32 {exprReg}, i32* %t{currentID}')
@@ -159,7 +167,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
         case m_num() | m_bool():
-            return lastRegUsed+1, 'i32_immediate', []
+            return expr.val, 'i32_immediate', []
         case m_new_struct():
             code = [f'%t{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
                  f'%t{lastRegUsed + 1} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
@@ -192,6 +200,55 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
             print(f'ERROR: unrecognized expression: {other}')
 
 
+# mappings structure = {str id: (str llvmType, int regNum, int prevBlock)}
+# returns lastRegUsed, llvmType, code, preceeding label
+def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], int]:
+    if identifier in currentNode.mappings:
+        if 'immediate' in currentNode.mappings[identifier][0]:
+            return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], [], currentNode.mappings[identifier][2]
+        else:
+            return f'%t{currentNode.mappings[identifier][1]}', f'{currentNode.mappings[identifier][0]}_immediate', [], currentNode.mappings[identifier][2]
+    else:
+        if not currentNode.sealed:
+            # guard block isnt sealed yet, therefore it goes into this one
+            # structs will never go into mappings so hard coding i32 is fine here
+            currentNode.mappings[identifier] = ('i32', lastRegUsed+1, currentNode.id)
+            return lastRegUsed+1, 'i32', [f'{lastRegUsed + 1}-{currentNode.id}-{identifier}-*'], currentNode.id
+        elif len(currentNode.prevNodes) == 0:
+            # val is undefined
+            # should never encounter this case
+            pass
+        elif len(currentNode.prevNodes) == 1:
+            # call expressionToLLVM with expr and prev block's mappings
+            prevNode = currentNode.prevNodes[0]
+            return readVariable(lastRegUsed, identifier, prevNode)
+        else:
+            # create phi node with values in prev blocks
+            possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
+            llvmType = possibleRegisters[0][1]
+            phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
+            phiParams = ', '.join(phiParams)
+
+            # map variable to phi node
+            currentNode.mappings[identifier] = (llvmType, f'{lastRegUsed+1}', currentNode.id)
+            return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
+
+
+def readUnsealedBlock(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], str]:
+    # create phi node with values in prev blocks
+    possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
+    if 'immediate' in possibleRegisters[0][1]:
+        llvmType = possibleRegisters[0][1].split('_')[0]
+    else:
+        llvmType = possibleRegisters[0][1]
+    phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
+    phiParams = ', '.join(phiParams)
+
+    # map variable to phi node
+    currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, currentNode.id)
+    return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
+
+
 def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     currentID = expression.ids[0].identifier
     currentIDTypeID = env[currentID][1].typeID
@@ -217,63 +274,23 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
     return (lastRegUsed + 1, currentIDTypeID, outputCode)
 
 
-# mappings structure = {str id: (str llvmType, int regNum, int prevBlock)}
-# returns lastRegUsed, llvmType, code, preceeding label
-def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], int]:
-    if identifier in currentNode.mappings:
-        return f'%t{currentNode.mappings[identifier][1]}', f'{currentNode.mappings[identifier][0]}_immediate', [], currentNode.mappings[identifier][2]
-    else:
-        if not currentNode.sealed:
-            # guard block isnt sealed yet, therefore it goes into this one
-            currentNode.mappings[identifier] = ('?', lastRegUsed+1, currentNode.id)
-            return lastRegUsed+1, '?', [f'{lastRegUsed + 1}-{currentNode.id}-{identifier}-*'], currentNode.id
-        elif len(currentNode.prevNodes) == 0:
-            # val is undefined
-            # should never encounter this case
-            pass
-        elif len(currentNode.prevNodes) == 1:
-            # call expressionToLLVM with expr and prev block's mappings
-            prevNode = currentNode.prevNodes[0]
-            return readVariable(lastRegUsed, identifier, prevNode)
-        else:
-            # create phi node with values in prev blocks
-            possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
-            llvmType = possibleRegisters[0][1]
-            phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
-            phiParams = ', '.join(phiParams)
-
-            # map variable to phi node
-            currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, currentNode.id)
-            return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
-
-def readUnsealedBlock(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], str]:
-    # create phi node with values in prev blocks
-    possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
-    if 'immediate' in possibleRegisters[0][1]:
-        llvmType = possibleRegisters[0][1].split('_')[0]
-    else:
-        llvmType = possibleRegisters[0][1]
-    phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
-    phiParams = ', '.join(phiParams)
-
-    # map variable to phi node
-    currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, currentNode.id)
-    return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
-
-
 # == != <= < > >= - + * / || &&
 def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     leftOpReg, leftLLVMType, leftOpCode = expressionToSSA(lastRegUsed, binop.left_expression, env, types, functions, currentNode)
-    rightOpReg, rightLLVMType, rightOpCode = expressionToSSA(lastRegUsed, binop.right_expression, env, types, functions, currentNode)
 
     if 'immediate' not in leftLLVMType:
         lastRegUsed = leftOpReg
-        leftOpReg = f'%t{leftOpReg}'
+        if type(leftOpReg) == int: # '%t' not in leftOpReg:
+            leftOpReg = f'%t{leftOpReg}'  
     else:
         leftLLVMType = leftLLVMType.split('_')[0]
+
+    rightOpReg, rightLLVMType, rightOpCode = expressionToSSA(lastRegUsed, binop.right_expression, env, types, functions, currentNode)
+
     if 'immediate' not in rightLLVMType:
         lastRegUsed = rightOpReg
-        rightOpReg = f'%t{rightOpReg}'
+        if type(rightOpReg) == int:  # '%t' not in rightOpReg 
+            rightOpReg = f'%t{rightOpReg}'
     else:
         rightLLVMType = rightLLVMType.split('_')[0]
 
@@ -305,10 +322,10 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
             op = 'and i32'
 
     instructions = []
-    targetReg = rightOpReg + 1
+    targetReg = lastRegUsed + 1
     instructions.extend(leftOpCode)
     instructions.extend(rightOpCode)
-    instructions.append(f'%t{targetReg} = {op} {leftOpReg}, i32 {rightOpReg}')
+    instructions.append(f'%t{targetReg} = {op} {leftOpReg}, {rightOpReg}')
 
     return (targetReg, 'i32', instructions)
 
@@ -318,7 +335,8 @@ def unaryToSSA(lastRegUsed:int, exp:m_unary, env:dict, types:dict, functions:dic
 
     if 'immediate' not in operandType:
         lastRegUsed = operandReg
-        operandReg = f'%t{operandReg}'
+        if type(operandReg) == int:  # '%t' not in rightOpReg 
+            operandReg = f'%t{operandReg}'
     else:
         operandType = operandType.split('_')[0]
 
@@ -341,7 +359,11 @@ def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, fun
             tp = paramType.split('_')[0]
             parameters.append(f'{tp} {paramReg}')
         else:
-            parameters.append(f'{paramType} %t{paramReg}')
+            if type(paramReg) != int:
+                parameters.append(f'{paramType} {paramReg}')
+            else:
+                parameters.append(f'{paramType} %t{paramReg}')
+
             instructions.extend(paramCode)  
             lastRegUsed = paramReg
 
