@@ -1,5 +1,3 @@
-from cmath import exp
-from re import T
 from ast_class_definitions import *
 
 # env structure : {str: m_type}
@@ -31,7 +29,7 @@ def toLLVM(ast:m_prog):
         lastRegUsed, fun_env, funCode = functionToLLVM(lastRegUsed, function, top_env, type_env, fun_env, type_sizes)
         output.extend(funCode)
 
-    return '\n'.join(output)
+    return join(output)
 
 
 def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env, type_sizes):
