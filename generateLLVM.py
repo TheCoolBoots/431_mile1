@@ -8,8 +8,7 @@ from ast_class_definitions import *
 
 
 def toLLVM(ast:m_prog):
-    output = ['declare i8* @malloc(i32)', 'declare void @free(i8*)', 
-                'declare i32 @printf(i8*, i32)', 'declare i32 @scanf(i8*, i32*)']
+    output = []
 
     # add the llvm code to define struct types
     for typeDecl in ast.types:
