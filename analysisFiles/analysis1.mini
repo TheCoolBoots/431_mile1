@@ -1,16 +1,20 @@
 fun main() int
 {
     int check;
+    int val1;
+    int val2;
     check = 0;
+    val1 = 0;
+    val2 = 0;
 
     while (check < 100000) {
 
         if(check < 50000) {
-            print(1);
+            val1 = val1 + 1;
         }
 
         else {
-            print(2);
+            val2 = val2 + 1;
         }
 
        check = check + 1;
