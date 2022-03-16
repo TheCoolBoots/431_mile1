@@ -90,9 +90,12 @@ def cfgToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[int
             lastRegUsed, code = generateSSA(lastRegUsed, node, top_env, types, functions)
             exitNode = node
             node.visited = True
+            if len(node.nextNodes) > 0 and node.nextNodes[0].label == 'while guard node' and node.nextNodes[0].id > node.id:
+                code.append(f'br label %l{node.nextNodes[0].id}')
             if len(node.nextNodes) >= 1: # and not node.nextNodes[0].visited:
                 lastRegUsed, subsequentCode, exitNode = cfgToSSA(lastRegUsed, node.nextNodes[0], top_env, types, functions)
                 code.extend(subsequentCode)
+            # code.append(f'br label %l{exitNode.id+1}')
             return lastRegUsed, code, exitNode
         case 'while guard node':
             if not node.visited:
@@ -139,7 +142,7 @@ def whileNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tup
     whileBody = node.nextNodes[0]
     whileExit = node.nextNodes[1]
 
-    outputCode.extend([f'br i32 {exprReg}, label %l{whileBody.id}, label %l{whileExit.id}',
+    outputCode.extend([f'br i1 {exprReg}, label %l{whileBody.id}, label %l{whileExit.id}',
                     f'l{whileBody.id}:'])
 
     lastRegUsed, whileBodyCode, bodyExitNode = cfgToSSA(lastRegUsed, whileBody, top_env, types, functions)
@@ -175,7 +178,7 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
     ifBlock = node.nextNodes[0]
     elseBlock = node.nextNodes[1]
 
-    outputCode.extend([f'br i32 {exprReg}, label %l{ifBlock.id}, label %l{elseBlock.id}',
+    outputCode.extend([f'br i1 {exprReg}, label %l{ifBlock.id}, label %l{elseBlock.id}',
                         f'l{ifBlock.id}:'])
 
     lastRegUsed, ifBlockCode, ifBlockExitNode = cfgToSSA(lastRegUsed, ifBlock, top_env, types, functions)
@@ -187,8 +190,7 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
         outputCode.extend(retNodeCode)
 
     # there exists an else block, thus need to add jump to bypass it
-    if elseBlock.label != 'if exit node' and ifBlockExitNode.label != 'return node':
-        outputCode.append(f'br label %l{ifBlockExitNode.id}')  
+    outputCode.append(f'br label %l{ifBlockExitNode.id}')  
 
     # label for else block or exit label (if no else block exists)
     outputCode.append(f'l{elseBlock.id}:')
@@ -197,7 +199,7 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
     if elseBlock.label != 'if exit node':
         lastRegUsed, elseBlockCode, elseBlockExitNode = cfgToSSA(lastRegUsed, elseBlock, top_env, types, functions)
         outputCode.extend(elseBlockCode)
-
+        outputCode.append(f'br label %l{elseBlockExitNode.id}')
         if elseBlockExitNode.label == 'return node':
             lastRegUsed, returnNodeCode, elseBlockExitNode = cfgToSSA(lastRegUsed, elseBlockExitNode, top_env, types, functions)
             outputCode.extend(returnNodeCode)

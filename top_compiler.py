@@ -33,8 +33,9 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
     # This string will often come before functions in llvm, not sure if it is needed, may need to parse thru and add it.
     # code.insert(index, "; Function Attrs: noinline nounwind optnone ssp uwtable")
 
-    code.append('attributes  # 0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }')
+    # code.append('attributes  # 0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }')
     # These last 4 lines can change a lot depending how its compiled, not sure how important it actually is
+    code.append('attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }')
     code.append('!llvm.module.flags = !{!0}')
     code.append('!llvm.ident = !{!1}')
     code.append('!0 = !{i32 1, !"wchar_size", i32 4}')
@@ -63,11 +64,11 @@ if __name__ == "__main__":
     match sys.argv:
         case [pythonFile, miniFile]:
             top_compile(*sys.argv[1:])
+        case[pythonFile, miniFile, '-stack']:
+            top_compile(*sys.argv[1:-1], useMemory=True)
         case [pythonFile, miniFile, outputFile]:
             top_compile(*sys.argv[1:])
         case [pythonFile, miniFile, outputFile, '-stack']:
-            top_compile(*sys.argv[1:-1], useMemory=True)
-        case [pythonFile, miniFile, '-stack']:
             top_compile(*sys.argv[1:-1], useMemory=True)
 
     # top_compile('miniFiles/dot.mini')
