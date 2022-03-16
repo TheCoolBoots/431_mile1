@@ -1,0 +1,20 @@
+fun main() int
+{
+    int check;
+    check = 0;
+
+    while (check < 100000) {
+
+        if(check < 50000) {
+            print(1);
+        }
+
+        else {
+            print(2);
+        }
+
+       check = check + 1;
+    }
+
+    return check;
+}

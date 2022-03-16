@@ -63,11 +63,11 @@ if __name__ == "__main__":
     match sys.argv:
         case [pythonFile, miniFile]:
             top_compile(*sys.argv[1:])
+        case[pythonFile, miniFile, '-stack']:
+            top_compile(*sys.argv[1:-1], useMemory=True)
         case [pythonFile, miniFile, outputFile]:
             top_compile(*sys.argv[1:])
         case [pythonFile, miniFile, outputFile, '-stack']:
-            top_compile(*sys.argv[1:-1], useMemory=True)
-        case [pythonFile, miniFile, '-stack']:
             top_compile(*sys.argv[1:-1], useMemory=True)
 
     # top_compile('miniFiles/dot.mini')

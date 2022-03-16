@@ -1,5 +1,5 @@
 import re
-
+import copy
 
 class GraphNode:
     None
@@ -23,43 +23,47 @@ class Graph:
 def allocateRegisters(armCode: list[str], numRegisters: int) -> list[str]:
 
 
-    # compute live ranges for each temporary value
-        # make a range of line numbers that each register is used
-    liveRange = computeLiveRange(armCode)
-    print(str(liveRange))
+    while ____: # while you havent found a valid coloring of the graph
+        # compute live ranges for each temporary value
+            # make a range of line numbers that each register is used
+        liveRange = computeLiveRange(armCode)
+        print(str(liveRange))
 
 
 
 
 
-    # construct interference graph
-        # edges represent interference
-    # nodeGraph = createGraph(liveRange)
+        # construct interference graph
+            # edges represent interference
+        # nodeGraph = createGraph(liveRange)
 
-    # liveRange = {'%t3': [(1, 2)], '%t4': [(1, 1), (4, 5)], '%t1': [(6, 7)], '%t2': [(4, 7)]}
+        # liveRange = {'%t3': [(1, 2)], '%t4': [(1, 1), (4, 5)], '%t1': [(6, 7)], '%t2': [(4, 7)]}
 
-# PLEASE NOTE: IN ORDER TO MAKE THIS FUNCTION WORK, YOU WILL NEED TO MAKE THE LIVE RANGE TUPLE INTO A LIST
-# YOU WILL ALSO EVENTUALLY NEED TO CONSIDER store AND load FOR THE END OF ONE RANGE AND START OF ANOTHER
-    nodeGraph, nodeDict = createGraphV2(liveRange, len(armCode))
-
-
-    # print(str(nodeGraph.nodes))
-
-    # for node in nodeGraph.nodes:
-    #     print("currNode is " + str(node.id))
-    #     for nodeId in node.edges:
-    #         print('\tedge node id: ' + str(nodeId))
-    #
-    #     print('\n')
+    # PLEASE NOTE: IN ORDER TO MAKE THIS FUNCTION WORK, YOU WILL NEED TO MAKE THE LIVE RANGE TUPLE INTO A LIST
+    # YOU WILL ALSO EVENTUALLY NEED TO CONSIDER store AND load FOR THE END OF ONE RANGE AND START OF ANOTHER
+        nodeGraph, nodeDict = createGraphV2(liveRange, len(armCode))
 
 
+        # print(str(nodeGraph.nodes))
+
+        # for node in nodeGraph.nodes:
+        #     print("currNode is " + str(node.id))
+        #     for nodeId in node.edges:
+        #         print('\tedge node id: ' + str(nodeId))
+        #
+        #     print('\n')
 
 
-    # color the graph with n colors
-        # each color is a register
-        # no adjacent nodes may hold the same color
-        # prioritize the lower 'number' colors
-    coloredGraph = colorizeGraph(nodeGraph, numRegisters, nodeDict)
+
+
+        # color the graph with n colors
+            # each color is a register
+            # no adjacent nodes may hold the same color
+            # prioritize the lower 'number' colors
+        coloredGraph, newArmCode = colorizeGraph(nodeGraph, numRegisters, nodeDict, armCode)
+
+
+
 
 
     for node in coloredGraph.nodes:
@@ -68,15 +72,29 @@ def allocateRegisters(armCode: list[str], numRegisters: int) -> list[str]:
         print('\n')
 
 
+
     # finally, step back through the arm code and change all the registers to the colors
 
+    # first lets make a dictionary based on the nodes in the graph
+    # map the original register numbers to the new ones
+    registerDict = {}
+    for node in coloredGraph.nodes:
+        registerDict[node.id] = node.color
 
-    # WRITE CODE HERE
+    count = 0
+    length = len(armCode)
+    while count < length:
+        # print("Line #" + str(count + 1))
+        armCode[count] = updateRegisters(armCode[count], registerDict)
+        count += 1
 
+
+    for line in armCode:
+        print(line)
 
 
 # GARBAGE RETURN
-    return None
+    return armCode
 
 
 
@@ -248,7 +266,7 @@ def createGraphV2(nodes: dict[str : list[tuple[int, int]]], numberOfLines: int) 
 
 
 
-def colorizeGraph(graph: Graph, numColors: int, nodeDict: dict[str : GraphNode]) -> Graph:
+def colorizeGraph(graph: Graph, numColors: int, nodeDict: dict[str : GraphNode], armCode: list[str]) -> Graph:
 
     mostEdges = -1
     initialNode = None
@@ -260,8 +278,14 @@ def colorizeGraph(graph: Graph, numColors: int, nodeDict: dict[str : GraphNode])
 
     nodeStack = [initialNode]
 
+    # loop until all the nodes have been colored
     while(True):
-        graph = colorHelper(graph, nodeStack, numColors, nodeDict)
+        graph, newArmCode = colorHelper(graph, nodeStack, numColors, nodeDict, armCode)
+
+        # somehow check if you need to recompute, return the newArmCode with the added load and stores
+        if newArmCode != armCode:
+            return graph, newArmCode
+
 
         # if all nodes have been colored, we can return
         coloredFlag = True
@@ -272,11 +296,11 @@ def colorizeGraph(graph: Graph, numColors: int, nodeDict: dict[str : GraphNode])
                 break
 
         if(coloredFlag):
-            return graph
+            return graph, armCode
 
 
 
-def colorHelper(graph: Graph, nodeStack: list[GraphNode], numColors: int, nodeDict: dict[str : GraphNode]) -> Graph:
+def colorHelper(graph: Graph, nodeStack: list[GraphNode], numColors: int, nodeDict: dict[str : GraphNode], armCode: list[str]) -> Graph:
 
     nodeDict = {}
 
@@ -307,7 +331,13 @@ def colorHelper(graph: Graph, nodeStack: list[GraphNode], numColors: int, nodeDi
             print("YOU HIT THE SPECIAL CASE, YOU'VE RUN OUT OF COLORS.")
 
 
-            # WRITE CODE
+            # WRITE CODE TO ADD CODE TO armCode
+            newArmCode = updateLoadStore(copy.copy(armCode), graph, currNode.id, numColors)
+
+
+
+
+            return graph, newArmCode
 
 
         else:
@@ -317,7 +347,7 @@ def colorHelper(graph: Graph, nodeStack: list[GraphNode], numColors: int, nodeDi
         # put the current node into a dictionary so that you dont try to color it again
         nodeDict[currNode] = True
 
-    return graph
+    return graph, armCode
 
 
 
@@ -331,6 +361,123 @@ def colorHelper(graph: Graph, nodeStack: list[GraphNode], numColors: int, nodeDi
 
 
     return graph
+
+
+
+# find any instances of %t# => r# (different #)
+def updateRegisters(line: str, registerDict: dict[str: str]) -> str:
+
+    # find and replace all instances of %t# in the str
+
+    p = re.compile('%t\d+')
+
+    newString = copy.copy(line)
+
+
+    while '%t' in newString:
+
+        # changeFlag = False
+
+        # find the index of the %t
+        match = p.search(newString) # MAKE SURE THIS IS RIGHT
+        currIndex = match.start()
+        currIndex += 2
+
+        tempString = '%t'
+
+        # get the register number
+        while currIndex < len(newString) and newString[currIndex] != ' ' and newString[currIndex] != ',':
+
+            tempString += newString[currIndex]
+            currIndex += 1
+
+        # error check
+        if tempString == '%t':
+            print("THE NUMBER WAS GARBAGE, YOU ARE PROBABLY LOOKING AT A COMMENT.")
+
+        newRegister = registerDict[tempString]
+        newRegister = "r" + str(newRegister)
+
+        newString = newString.replace(tempString, newRegister)
+
+
+
+        # # step through the node graph to find the label
+        # for node in coloredGraph:
+        #     # if you have found the node with this id, replace the register with r#
+        #     if node.id == tempString:
+        #         changeFlag = True
+        #         newRegister = "r" + node.color
+        #         newString = newString.replace(tempString, newRegister)
+        #         break
+        #
+        # if changeFlag == False:
+        #     print("YOU HAVE NOT UPDATED THE LINE.")
+
+
+    return newString
+
+
+
+
+    # # regular expression for 1 or more numbers prepended by %t
+    # p = re.compile('%t\d+')
+    #
+    # # split the expression on spaces
+    # exps = line.split(' ')
+    #
+    # # step through each expression to see if it has a register at the start
+    # for exp in exps:
+    #     # check if we have a match, should return a list of matches (the actual numbers)
+    #     currMatch = p.findall(exp)
+    #
+    #     # step through each item in the matched register list
+    #     for num in currMatch:
+    #         registerDict = extendLiveRange(num, registerDict, lineNum)
+    #
+
+
+
+# this function should take in the armCode and add a load before any instance of nodeId
+def updateLoadStore(armCode: list[str], graph: Graph, nodeId: str, numColors: int):
+
+    # regex we use to see if the nodeId is in the line
+    p = re.compile(nodeId)
+
+
+    # insert alloca (??)
+    armCode.insert(0, ____)
+
+    # counter = 0
+    counter = 1
+
+    length = len(armCode)
+
+    while counter < length:
+
+        # # dont need this if we are gonna start 1
+        # if counter == 0:
+        #     armCode.insert(0, ____)
+
+
+        if(p.search(armCode[counter])): # MAKE SURE THIS WORKS PROPERLY
+
+
+            # insert load
+            armCode.insert(counter - 1, ____)
+            counter += 1
+
+
+            # insert store
+            armCode.insert(counter + 1, ____)
+            counter += 1
+
+
+            length = len(armCode)
+
+
+        counter += 1
+
 
 
 
@@ -357,3 +504,23 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+# Questions:
+# 1. Can you use a different register for the two (or more) live ranges that an SSA register initially has?
+#    If so, should the graph represent each live range that an SSA register has as a seperate node for colorization?
+    #   The way to think about it is that SSA registers cant have several live ranges, once you need to move it to
+    #   have multiple live ranges, it isnt SSA anymore, so you should split it into multiple different registers.
+    #   Maybe carry a global so that you know what 'number' node you are on.
+
+# 2. The spill 'labels' before he called it "spill1" is it just a label that you set equal to an alloca and then use later?
+    #   this is correct, as you thought, you only need 2 registers reserved to do these spills. It also sounds
+    #   like the spill labels are at the top of the function (Im thinking the armCode variable should be the contents
+    #   of the function rather than the file)
+
+
+# 3. Ask more about the loading and storing of values when we need to spill, should you just load before (any use) and store after (any update)?
+#    Specific syntax here?
+    #
