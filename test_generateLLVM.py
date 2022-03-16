@@ -12,26 +12,27 @@ class test_LLVM_generation(unittest.TestCase):
 
     def test_print(self):
         prnt = m_print(0, m_id(1, 'a'))
-        expected = ['%1 = load i32, i32* %a', '%2 = call i32 @printf("%d", %1)']
+        expected = ['%t1 = load i32, i32* %a', 
+                    '%t2 = call i32 @printf("%d", %t1)']
         actual = statementToLLVM(0, prnt, top_env, {}, {})
         self.assertEqual(expected, actual[2])
 
         prnt = m_print(0, m_num(2048))
-        expected = ['%1 = call i32 @printf("%d", 2048)']
+        expected = ['%t1 = call i32 @printf("%d", 2048)']
         actual = statementToLLVM(0, prnt, top_env, {}, {})
         self.assertEqual(expected, actual[2])
 
     def test_conditional(self):
         ast = m_conditional(1, m_id(5, 'MAGIC'), [m_ret(1, m_num(3))], [m_ret(1, m_num(5))])
-        expected = ['%1 = load i32, i32* %MAGIC',
-                    'br i32 %1, label %2, label %3',
-                    '2:',
+        expected = ['%t1 = load i32, i32* %MAGIC',
+                    'br i1 %t1, label %l2, label %l3',
+                    'l2:',
                     'ret i32 3',
-                    'br label %4',
-                    '3:',
+                    'br label %l4',
+                    'l3:',
                     'ret i32 5',
-                    'br label %4',
-                    '4:']
+                    'br label %l4',
+                    'l4:']
         actual = statementToLLVM(0, ast, top_env, type_env, fun_env)
 
         self.assertEqual(expected, actual[2])
@@ -41,14 +42,14 @@ class test_LLVM_generation(unittest.TestCase):
     
     def test_conditional2(self):
         ast = m_conditional(1, m_bool(True), [m_ret(1, m_num(3))], [m_ret(1, m_num(5))])
-        expected = ['br i32 1, label %1, label %2',
-                    '1:',
+        expected = ['br i1 1, label %l1, label %l2',
+                    'l1:',
                     'ret i32 3',
-                    'br label %3',
-                    '2:',
+                    'br label %l3',
+                    'l2:',
                     'ret i32 5',
-                    'br label %3',
-                    '3:']
+                    'br label %l3',
+                    'l3:']
         actual = statementToLLVM(0, ast, top_env, type_env, fun_env)
 
         self.assertEqual(expected, actual[2])
@@ -58,12 +59,12 @@ class test_LLVM_generation(unittest.TestCase):
 
     def test_loop(self):
         ast = m_loop(1, m_bool(True), [m_ret(1, m_num(3))])
-        expected = ['1:',
-                    'br i32 1, label %2, label %3',
-                    '2:',
+        expected = ['l1:',
+                    'br i1 1, label %l2, label %l3',
+                    'l2:',
                     'ret i32 3',
-                    'br label %1',
-                    '3:']
+                    'br label %l1',
+                    'l3:']
 
         actual = statementToLLVM(0, ast, {}, {}, {})
         self.assertEqual(expected, actual[2])
@@ -72,13 +73,13 @@ class test_LLVM_generation(unittest.TestCase):
 
     def test_loop2(self):
         ast = m_loop(1, m_id(81913, 'MAGIC'), [m_ret(1, m_num(3))])
-        expected = ['%1 = load i32, i32* %MAGIC',
-                    '2:',
-                    'br i32 %1, label %3, label %4',
-                    '3:',
+        expected = ['%t1 = load i32, i32* %MAGIC',
+                    'l2:',
+                    'br i1 %t1, label %l3, label %l4',
+                    'l3:',
                     'ret i32 3',
-                    'br label %2',
-                    '4:']
+                    'br label %l2',
+                    'l4:']
 
         actual = statementToLLVM(0, ast, top_env, {}, {})
         self.assertEqual(expected, actual[2])
@@ -97,10 +98,10 @@ class test_LLVM_generation(unittest.TestCase):
         """
 
         expected = []
-        expected.append(f'%1 = load i32, i32* %z')
-        expected.append(f'%2 = getelementptr %struct.s2, %struct.s2* %struct2_inst, i32 0, i32 1')
-        expected.append(f'%3 = getelementptr %struct.s1, %struct.s1* %2, i32 0, i32 0')
-        expected.append(f'store i32 %1, i32* %3')
+        expected.append(f'%t1 = load i32, i32* %z')
+        expected.append(f'%t2 = getelementptr %struct.s2, %struct.s2* %struct2_inst, i32 0, i32 1')
+        expected.append(f'%t3 = getelementptr %struct.s1, %struct.s1* %t2, i32 0, i32 0')
+        expected.append(f'store i32 %t1, i32* %t3')
 
         actual = statementToLLVM(0, ast, env, t_env, {})
 
@@ -129,7 +130,7 @@ class test_LLVM_generation(unittest.TestCase):
         z = a;
         """
 
-        expected = [f'%1 = %a', '%z = %1']
+        expected = [f'%t1 = add %struct.bar* %a, 0', '%z = add %struct.bar* %t1, 0']
         actual = statementToLLVM(0, ast, env, t_env, {})
 
         self.assertEqual(actual[2], expected)
@@ -147,9 +148,9 @@ class test_LLVM_generation(unittest.TestCase):
 
         expected = []
         # expected.append(f'%1 = %struct.s1* %struct1_inst')
-        expected.append(f'%1 = %struct1_inst')
-        expected.append(f'%2 = getelementptr %struct.s2, %struct.s2* %struct2_inst, i32 0, i32 1')
-        expected.append(f'store %struct.s1* %1, %struct.s1** %2')
+        expected.append(f'%t1 = add %struct.s1* %struct1_inst, 0')
+        expected.append(f'%t2 = getelementptr %struct.s2, %struct.s2* %struct2_inst, i32 0, i32 1')
+        expected.append(f'store %struct.s1* %t1, %struct.s1** %t2')
 
         actual = statementToLLVM(0, ast, env, t_env, {})
 
@@ -162,24 +163,26 @@ class test_LLVM_generation(unittest.TestCase):
 
     def test_unary(self):
         actual = expressionToLLVM(0, m_unary(3, '-', m_num(5)), {}, {}, {})
-        expected = ['%1 = mul i32 -1, 5']
+        expected = ['%t1 = mul i32 -1, 5']
         self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
         self.assertEqual(actual[2], expected)
 
         actual = expressionToLLVM(0, m_unary(3, '!', m_bool(False)), {}, {}, {})
-        expected = ['%1 = xor i32 1, 0']
+        expected = ['%t1 = xor i1 1, 0']
         self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
         self.assertEqual(actual[2], expected)
 
         env = {'a': m_type('int')}
 
         actual = expressionToLLVM(0, m_unary(3, '-', m_id(2, 'a')), env, {}, {})
-        expected = ['%1 = load i32, i32* %a', '%2 = mul i32 -1, %1']
+        expected = ['%t1 = load i32, i32* %a', 
+                    '%t2 = mul i32 -1, %t1']
         self.assertTrue(actual[0] == 2  and actual[1] == 'i32')
         self.assertEqual(actual[2], expected) 
 
         actual = expressionToLLVM(0, m_unary(3, '!', m_id(2, 'a')), env, {}, {})
-        expected = ['%1 = load i32, i32* %a', '%2 = xor i32 1, %1']
+        expected = ['%t1 = load i32, i32* %a', 
+                '%t2 = xor i1 1, %t1']
         self.assertTrue(actual[0] == 2 and actual[1] == 'i32')
         self.assertEqual(actual[2], expected)
 
@@ -188,12 +191,14 @@ class test_LLVM_generation(unittest.TestCase):
         env = {'a': m_type('int')}
 
         actual = expressionToLLVM(0, m_binop(2, '==', m_bool(True), m_bool(False)), env, {}, {})
-        expected = ['%1 = icmp eq i32 1, 0']
+        expected = ['%t1 = icmp eq i1 1, 0']
         self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
         self.assertEqual(actual[2], expected)
 
         actual = expressionToLLVM(0, m_binop(2, '==', m_id(2, 'a'), m_id(2, 'a')), env, {}, {})
-        expected = ['%1 = load i32, i32* %a', '%2 = load i32, i32* %a', '%3 = icmp eq i32 %1, %2']
+        expected = ['%t1 = load i32, i32* %a', 
+                    '%t2 = load i32, i32* %a', 
+                    '%t3 = icmp eq i1 %t1, %t2']
         self.assertTrue(actual[0] == 3 and actual[1] == 'i32')
         self.assertEqual(actual[2], expected)
 
@@ -201,14 +206,14 @@ class test_LLVM_generation(unittest.TestCase):
     def test_invocation(self):
         # function_env structure: {str: (m_type, list[m_type])}     maps funID -> return type
         actual = expressionToLLVM(0, m_invocation(3, m_id(3, 'FOO'), [m_num(3)]), {}, {}, fun_env)
-        expected = ['%1 = call i32 @FOO(i32 3)']
+        expected = ['%t1 = call i32 @FOO(i32 3)']
         self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
         self.assertEqual(actual[2], expected)
 
         invocation = m_invocation(3, m_id(3, 'FOO'), [m_id(2, 'a')])
         actual = expressionToLLVM(0, invocation, top_env, type_env, fun_env)
-        expected = ['%1 = load i32, i32* %a',
-                    '%2 = call i32 @FOO(i32 %1)']
+        expected = ['%t1 = load i32, i32* %a',
+                    '%t2 = call i32 @FOO(i32 %t1)']
 
         self.assertEqual(actual[2], expected)
         self.assertEqual(actual[0], 2)
@@ -223,9 +228,9 @@ class test_LLVM_generation(unittest.TestCase):
         dot = m_dot(1, [m_id(1, 'struct2_inst'), m_id(1, 'struct1'), m_id(1, 'b')])
 
 
-        expected = [f'%1 = getelementptr %struct.s2, %struct.s2* %struct2_inst, i32 0, i32 1',
-                    f'%2 = getelementptr %struct.s1, %struct.s1* %1, i32 0, i32 1',
-                    f'%3 = load i32, i32* %2']
+        expected = [f'%t1 = getelementptr %struct.s2, %struct.s2* %struct2_inst, i32 0, i32 1',
+                    f'%t2 = getelementptr %struct.s1, %struct.s1* %t1, i32 0, i32 1',
+                    f'%t3 = load i32, i32* %t2']
 
         actual = expressionToLLVM(0, dot, env, t_env, {})
         self.assertTrue(actual[0] == 3 and actual[1] == 'i32')
@@ -235,7 +240,7 @@ class test_LLVM_generation(unittest.TestCase):
     def test_dot_2(self):
         env = {'a':m_type('int')}
         ast = m_dot(1, [m_id(1, 'a')])
-        expected = [f'%1 = load i32, i32* %a']
+        expected = [f'%t1 = load i32, i32* %a']
         actual = expressionToLLVM(0, ast, env, {}, {})
         self.assertTrue(actual[0] == 1 and actual[1] == 'i32')
         self.assertEqual(actual[2], expected)
@@ -243,7 +248,7 @@ class test_LLVM_generation(unittest.TestCase):
 
     def test_ret(self):
         ret1 = m_ret(169, m_id(5, 'a'))
-        expected1 = [f'%1 = load i32, i32* %a', 'ret i32 %1']
+        expected1 = [f'%t1 = load i32, i32* %a', 'ret i32 %t1']
         actual1 = statementToLLVM(0, ret1, top_env, type_env, fun_env)
         self.assertEqual(expected1, actual1[2])
 
@@ -253,7 +258,9 @@ class test_LLVM_generation(unittest.TestCase):
         self.assertEqual(expected2, actual2[2])
 
         ret3 = m_ret(9001, m_new_struct(m_id(3, 'BIGCHUNGUS')))
-        expected3 = ['%1 = call i8* @malloc(4)', '%1 = bitcast i8* %1 to %struct.BIGCHUNGUS*', f'ret %struct.BIGCHUNGUS* %1']
+        expected3 = ['%t1 = call i8* @malloc(4)', 
+                        '%t1 = bitcast i8* %t1 to %struct.BIGCHUNGUS*', 
+                        f'ret %struct.BIGCHUNGUS* %t1']
         actual3 = statementToLLVM(0, ret3, top_env, type_env, fun_env)
         self.assertEqual(expected3, actual3[2])
 
