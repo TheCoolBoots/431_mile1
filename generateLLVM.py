@@ -1,5 +1,3 @@
-from cmath import exp
-from re import T
 from ast_class_definitions import *
 
 # env structure : {str: m_type}
@@ -31,7 +29,7 @@ def toLLVM(ast:m_prog):
         lastRegUsed, fun_env, funCode = functionToLLVM(lastRegUsed, function, top_env, type_env, fun_env, type_sizes)
         output.extend(funCode)
 
-    return '\n'.join(output)
+    return output
 
 
 def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env, type_sizes):
@@ -86,15 +84,15 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str
         case m_print():
             exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, t_env, f_env)
             if type(exprCode) == list:
-                instruction = f'%{exprReg + 1} = call i32 @printf("%d", %{exprReg})'
+                instruction = f'%t{exprReg + 1} = call i32 @printf("%d", %t{exprReg})'
                 exprCode.append(instruction)
                 return exprReg + 1, 'i32', exprCode
             else:
-                instruction = f'%{exprReg + 1} = call i32 @printf("%d", {exprCode})'
+                instruction = f'%t{exprReg + 1} = call i32 @printf("%d", {exprCode})'
                 return exprReg + 1, 'i32', [instruction]
         case m_delete():
             exprReg, exprType, exprCode = expressionToLLVM(lastRegUsed, stmt.expression, env, t_env, f_env)
-            exprCode.extend([f'%{exprReg + 1} = bitcast {exprType} %{exprReg} to i8*',
+            exprCode.extend([f'%t{exprReg + 1} = bitcast {exprType} %t{exprReg} to i8*',
                             f'call void @free(%{exprReg + 1})'])
             return exprReg + 1, 'void', exprCode
         case m_conditional():
@@ -111,20 +109,20 @@ def loopToLLVM(lastRegUsed:int, loop:m_loop, env, t_env, f_env) -> Tuple[int, st
     guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, loop.guard_expression, env, t_env, f_env)
 
     if type(guardCode) == list:
-        guardCode.append(f'{guardReg+1}:')
-        guardCode.append(f'br i32 %{guardReg}, label %{guardReg+2}, label %{guardReg+3}')
+        guardCode.append(f'l{guardReg+1}:')
+        guardCode.append(f'br i1 %t{guardReg}, label %l{guardReg+2}, label %l{guardReg+3}')
     else:
-        guardCode = [f'{guardReg+1}:',f'br i32 {guardCode}, label %{guardReg+2}, label %{guardReg+3}']
+        guardCode = [f'l{guardReg+1}:',f'br i1 {guardCode}, label %l{guardReg+2}, label %l{guardReg+3}']
 
     lastRegUsed = guardReg+3
 
-    whileBlockCode = [f'{guardReg + 2}:']
+    whileBlockCode = [f'l{guardReg + 2}:']
     for statement in loop.body_statements:
         t1, t2, t3 = statementToLLVM(lastRegUsed, statement, env, t_env, f_env)
         whileBlockCode.extend(t3)
         lastRegUsed = t1
-    whileBlockCode.append(f'br label %{guardReg + 1}')
-    whileBlockCode.append(f'{guardReg+3}:')
+    whileBlockCode.append(f'br label %l{guardReg + 1}')
+    whileBlockCode.append(f'l{guardReg+3}:')
     guardCode.extend(whileBlockCode)
     return (lastRegUsed, t2, guardCode)
 
@@ -134,31 +132,31 @@ def condToLLVM(lastRegUsed:int, stmt:m_conditional, env, t_env, f_env) -> Tuple[
     guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, stmt.guard_expression, env, t_env, f_env)
 
     if type(guardCode) == list:
-        guardCode.append(f'br i32 %{guardReg}, label %{guardReg+1}, label %{guardReg+2}')
+        guardCode.append(f'br i1 %t{guardReg}, label %l{guardReg+1}, label %l{guardReg+2}')
     else:
-        guardCode = [f'br i32 {guardCode}, label %{guardReg+1}, label %{guardReg+2}']
+        guardCode = [f'br i1 {guardCode}, label %l{guardReg+1}, label %l{guardReg+2}']
 
     lastRegUsed = guardReg + 3
 
-    ifCode = [f'{guardReg + 1}:']
+    ifCode = [f'l{guardReg + 1}:']
     for statement in stmt.if_statements:
         t1, t2, t3 = statementToLLVM(lastRegUsed, statement, env, t_env, f_env)
         ifCode.extend(t3)
         lastRegUsed = t1
-    ifCode.append(f'br label %{guardReg+3}')
+    ifCode.append(f'br label %l{guardReg+3}')
     thenCode = []
 
     if stmt.else_statements[0] != None:
-        thenCode = [f'{guardReg + 2}:']
+        thenCode = [f'l{guardReg + 2}:']
         for statement in stmt.else_statements:
             t1, t2, t3 = statementToLLVM(lastRegUsed, statement, env, t_env, f_env)
             thenCode.extend(t3)
             lastRegUsed = t1
-        thenCode.append(f'br label %{guardReg+3}')
+        thenCode.append(f'br label %l{guardReg+3}')
         
     guardCode.extend(ifCode)
     guardCode.extend(thenCode)
-    guardCode.append(f'{guardReg+3}:')
+    guardCode.append(f'l{guardReg+3}:')
     return (lastRegUsed, t2, guardCode)
 
 
@@ -182,29 +180,34 @@ def assignToLLVM(lastRegUsed:int, assign:m_assignment, env, t_env, f_env) -> Tup
         nested = True
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, t_env[currentIDTypeID])
 
-        instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
+        if type(currentID) == int:
+            instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %t{currentID}, i32 0, i32 {accessedIDmemNum}'
+        else:
+            instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
         outputCode.append(instruction)
 
         currentID = lastRegUsed + 1
         currentIDTypeID = accessedTypeID
         lastRegUsed += 1
 
+    if type(currentID) == int:
+        currentID = f't{currentID}'
 
     if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
         if immediateVal:
             outputCode.append(f'store i32 {exprCode}, i32* %{currentID}')
             return lastRegUsed, 'i32', outputCode
         else:
-            outputCode.append(f'store i32 %{exprReg}, i32* %{currentID}')
+            outputCode.append(f'store i32 %t{exprReg}, i32* %{currentID}')
             return lastRegUsed, 'i32', outputCode
     #(f'store %struct.s1* %1, %struct.s1** %2')
     else:
+        llvmType = getLLVMType(currentIDTypeID)
         if nested:
-            llvmType = getLLVMType(currentIDTypeID)
-            outputCode.append(f'store {llvmType} %{exprReg}, {llvmType}* %{currentID}')
+            outputCode.append(f'store {llvmType} %t{exprReg}, {llvmType}* %{currentID}')
             return lastRegUsed, llvmType, outputCode
         else:
-            outputCode.append(f'%{currentID} = %{exprReg}')
+            outputCode.append(f'%{currentID} = add {llvmType} %t{exprReg}, 0')
             return lastRegUsed, getLLVMType(currentIDTypeID), outputCode
 
     
@@ -218,7 +221,7 @@ def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env) -> Tuple[int, str, list
     returnReg, retType, returnCode = expressionToLLVM(lastRegUsed, ret.expression, env, t_env, f_env)
 
     if type(returnCode) == list:
-        returnCode.append(f'ret {retType} %{returnReg}')
+        returnCode.append(f'ret {retType} %t{returnReg}')
         return (returnReg, retType, returnCode)
     elif returnCode == 'void':
         return (returnReg, retType, [f'ret {retType}'])
@@ -243,11 +246,13 @@ def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[in
             return lastRegUsed, 'void', 'void'
         case m_binop():
             return binaryToLLVM(lastRegUsed, expression, env, t_env, f_env)
-        case m_num() | m_bool():
+        case m_num():
             return lastRegUsed, 'i32', int(expression.val)
+        case m_bool():
+            return lastRegUsed, 'i1', int(expression.val)
         case m_new_struct():
-            code = [f'%{lastRegUsed + 1} = call i8* @malloc({len(t_env[expression.struct_id.identifier]) * 4})',
-                 f'%{lastRegUsed + 1} = bitcast i8* %{lastRegUsed + 1} to %struct.{expression.struct_id.identifier}*']
+            code = [f'%t{lastRegUsed + 1} = call i8* @malloc({len(t_env[expression.struct_id.identifier]) * 4})',
+                 f'%t{lastRegUsed + 1} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expression.struct_id.identifier}*']
             return lastRegUsed+1, f'%struct.{expression.struct_id.identifier}*', code
         case m_null():
             # keeping it like this ensures functionality for rest of compiler
@@ -255,7 +260,7 @@ def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[in
         case m_invocation():
             return invocationToLLVM(lastRegUsed, expression, env, t_env, f_env)
         case m_read():
-            return lastRegUsed+2, 'i32', [f'%{lastRegUsed+2} = alloc i32', f'%{lastRegUsed+1} = call i32 @scanf("%d", %{lastRegUsed+2}*)']
+            return lastRegUsed+2, 'i32', [f'%t{lastRegUsed+2} = alloc i32', f'%t{lastRegUsed+1} = call i32 @scanf("%d", %t{lastRegUsed+2}*)']
         case m_unary():
             return unaryToLLVM(lastRegUsed, expression, env, t_env, f_env) 
         case m_dot():
@@ -263,10 +268,10 @@ def expressionToLLVM(lastRegUsed:int, expression, env, t_env, f_env) -> Tuple[in
         case m_id():
             idType = env[expression.identifier]
             if idType == m_type('bool') or idType == m_type('int'):
-                return lastRegUsed+1, 'i32', [f'%{lastRegUsed+1} = load i32, i32* %{expression.identifier}']
+                return lastRegUsed+1, 'i32', [f'%t{lastRegUsed+1} = load i32, i32* %{expression.identifier}']
             else:
                 llvmType = getLLVMType(idType.typeID)
-                return lastRegUsed+1, llvmType, [f'%{lastRegUsed+1} = %{expression.identifier}']
+                return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = add {llvmType} %{expression.identifier}, 0']
 
 
 def dotToLLVM(lastRegUsed:int, expression:m_dot, env, t_env, f_env) -> Tuple[int, str, list[str]]:
@@ -278,15 +283,19 @@ def dotToLLVM(lastRegUsed:int, expression:m_dot, env, t_env, f_env) -> Tuple[int
     for accessedm_id in expression.ids[1:]:
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, t_env[currentIDTypeID])
 
-        instruction = f'%{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
+        if type(currentID) == int:
+            currentID = f't{currentID}'
+        instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
         outputCode.append(instruction)
 
         currentID = lastRegUsed + 1
         currentIDTypeID = accessedTypeID
         lastRegUsed += 1
 
+    if type(currentID) == int:
+        currentID = f't{currentID}'
     currentIDTypeID = getLLVMType(currentIDTypeID)  # returns i32 or %struct.__*
-    outputCode.append(f'%{lastRegUsed + 1} = load {currentIDTypeID}, {currentIDTypeID}* %{currentID}')
+    outputCode.append(f'%t{lastRegUsed + 1} = load {currentIDTypeID}, {currentIDTypeID}* %{currentID}')
 
     return (lastRegUsed + 1, currentIDTypeID, outputCode)
 
@@ -307,7 +316,7 @@ def invocationToLLVM(lastRegUsed:int, exp:m_invocation, env, t_env, f_env) -> Tu
 
     for paramReg, paramType, paramCode in params:
         if type(paramCode) == list:
-            parameters.append(f'{paramType} %{paramReg}')
+            parameters.append(f'{paramType} %t{paramReg}')
             instructions.extend(paramCode)
         else:
             parameters.append(f'i32 {paramCode}')
@@ -315,7 +324,7 @@ def invocationToLLVM(lastRegUsed:int, exp:m_invocation, env, t_env, f_env) -> Tu
     # join them into TYPE REG, TYPE REG, TYPE REG format
     parameters = ', '.join(parameters)
             
-    instructions.append(f'%{targetReg} = call {returnTypeID} @{funID}({parameters})')
+    instructions.append(f'%t{targetReg} = call {returnTypeID} @{funID}({parameters})')
 
     return (targetReg, returnTypeID, instructions)
 
@@ -326,15 +335,15 @@ def unaryToLLVM(lastRegUsed:int, exp:m_unary, env, t_env, f_env) -> Tuple[int, s
 
     match exp.operator:
         case '!':
-            op = f'xor i32 1'
+            op = f'xor i1 1'
         case '-':
             op = f'mul i32 -1'
         
     if type(operandCode) == list:
-        operandCode.append(f'%{operandReg + 1} = {op}, %{operandReg}')
+        operandCode.append(f'%t{operandReg + 1} = {op}, %t{operandReg}')
         return (operandReg+1, 'i32', operandCode)
     else:
-        return (operandReg+1, 'i32', [f'%{operandReg + 1} = {op}, {operandCode}'])
+        return (operandReg+1, 'i32', [f'%t{operandReg + 1} = {op}, {operandCode}'])
 
 
 # == != <= < > >= - + * / || &&
@@ -345,17 +354,17 @@ def binaryToLLVM(lastRegUsed:int, exp:m_binop, env, t_env, f_env):
     # == != <= < > >= - + * / || &&
     match exp.operator:
         case '==':
-            op = 'icmp eq i32'
+            op = 'icmp eq i1'
         case '!=':
-            op = 'icmp ne i32'
+            op = 'icmp ne i1'
         case '<=':
-            op = 'icmp sle i32'
+            op = 'icmp sle i1'
         case '<':
-            op = 'icmp slt i32'
+            op = 'icmp slt i1'
         case '>=':
-            op = 'icmp sge i32'
+            op = 'icmp sge i1'
         case '>':
-            op = 'icmp sgt i32'
+            op = 'icmp sgt i1'
         case '-':
             op = 'sub i32'
         case '+':
@@ -365,26 +374,26 @@ def binaryToLLVM(lastRegUsed:int, exp:m_binop, env, t_env, f_env):
         case '/':
             op = 'div i32'
         case '||':
-            op = 'or i32'
+            op = 'or i1'
         case '&&':
-            op = 'and i32'
+            op = 'and i1'
 
     instructions = []
     targetReg = rightOpReg + 1
     if type(leftOpCode) == list:
         instructions.extend(leftOpCode)
-        leftOpReg = '%' + str(leftOpReg)
+        leftOpReg = '%t' + str(leftOpReg)
     else:
         leftOpReg = leftOpCode
     
     if type(rightOpCode) == list:
         instructions.extend(rightOpCode)
-        rightOpReg = '%' + str(rightOpReg)
+        rightOpReg = '%t' + str(rightOpReg)
     else:
         rightOpReg = rightOpCode
 
 
-    instructions.append(f'%{targetReg} = {op} {leftOpReg}, {rightOpReg}')
+    instructions.append(f'%t{targetReg} = {op} {leftOpReg}, {rightOpReg}')
 
     return (targetReg , 'i32', instructions)
 
