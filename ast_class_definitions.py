@@ -88,7 +88,7 @@ class m_declaration:
 
     def getSSALocals(self) -> list[str]:
         if self.type.typeID == 'int' or self.type.typeID == 'bool':
-            raise AttributeError('THERE SHOULD NEVER BE A LOCAL DEFINITION OF A PRIMITIVE TYPE IN SSA FORM')
+            return f'%{self.id.identifier} = alloca i32'
         else:
             return f'%{self.id.identifier} = alloca %struct.A*'
 

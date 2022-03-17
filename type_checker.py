@@ -325,7 +325,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                     return -1
 
                 # if all the parameter types are equal to expected arg types, return the function's return type
-                if listsEqual(function_env[functionID.identifier][2], actualArgTypes):
+                if function_env[functionID.identifier][2] == actualArgTypes:
                     return function_env[functionID.identifier][1]
                 else:
                     print(f'ERROR on line {lineNum}: mismatched argument types')
