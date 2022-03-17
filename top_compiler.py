@@ -18,10 +18,10 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
     code.append('target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"')
     code.append('target triple = "x86_64-apple-macosx10.15.0')
 
-    code.extend(['declare i8* @malloc(i32)', 
-                'declare void @free(i8*)', 
-                'declare i32 @printf(i8*, i32)', 
-                'declare i32 @scanf(i8*, i32*)', 
+    code.extend(['declare align 16 i8* @malloc(i32) #2', 
+                'declare void @free(i8*) #1', 
+                'declare i32 @printf(i8*, ...) #1', 
+                'declare i32 @scanf(i8*, ...) #1', 
                 '@.str = private unnamed_addr constant [3 x i8] c"%d\00", align 1',
                 '@.str.1 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1'])
 
