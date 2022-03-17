@@ -15,13 +15,15 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
 
     code = []
     # These can change a lot depending on how its compiled
-    code.append("; ModuleID = 'PLACEHOLDER_NAME.bc'")
-    code.append('source_filename = "PLACEHOLDER_NAME.c"') # This could probably be changed to .mini if that doesnt cause a problem
-    code.append('target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"')
-    code.append('target triple = "x86_64-pc-linux-gnu"')
+    code.append('target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"')
+    code.append('target triple = "x86_64-apple-macosx10.15.0')
 
-    code.extend(['declare i8* @malloc(i32)', 'declare void @free(i8*)', 
-                'declare i32 @printf(i8*, i32)', 'declare i32 @scanf(i8*, i32*)'])
+    code.extend(['declare i8* @malloc(i32)', 
+                'declare void @free(i8*)', 
+                'declare i32 @printf(i8*, i32)', 
+                'declare i32 @scanf(i8*, i32*)', 
+                '@.str = private unnamed_addr constant [3 x i8] c"%d\00", align 1',
+                '@.str.1 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1'])
 
     if useMemory:
         if retType != -1:
@@ -34,17 +36,16 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
         else:
             return
     
-
-    # This string will often come before functions in llvm, not sure if it is needed, may need to parse thru and add it.
-    # code.insert(index, "; Function Attrs: noinline nounwind optnone ssp uwtable")
-
-    # code.append('attributes  # 0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }')
-    # These last 4 lines can change a lot depending how its compiled, not sure how important it actually is
-    code.append('attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }')
-    code.append('!llvm.module.flags = !{!0}')
-    code.append('!llvm.ident = !{!1}')
-    code.append('!0 = !{i32 1, !"wchar_size", i32 4}')
-    code.append('!1 = !{!"clang version 10.0.0-4ubuntu1 "}')
+    code.extend(['attributes #0 = { noinline nounwind optnone ssp uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "tune-cpu"="generic" }',
+                'attributes #1 = { allocsize(0) "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "tune-cpu"="generic" }',
+                'attributes #2 = { allocsize(0) }',
+                '!llvm.module.flags = !{!0, !1, !2, !3}',
+                '!llvm.ident = !{!4}',
+                '!0 = !{i32 1, !"wchar_size", i32 4}',
+                '!1 = !{i32 7, !"PIC Level", i32 2}',
+                '!2 = !{i32 7, !"uwtable", i32 1}',
+                '!3 = !{i32 7, !"frame-pointer", i32 2}',
+                '!4 = !{!"Homebrew clang version 13.0.1"}'])
 
     print('\n'.join(code))
 

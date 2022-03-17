@@ -23,13 +23,13 @@ def topSSACompile(prog:m_prog) -> list[str]:
 
         functionDef = fnode.ast
         top_env = prog.getTopEnv(False)
-
+        initialMappings = functionDef.getSSALocalMappings()
+        fnode.rootNode.mappings = initialMappings
         params = []
         paramTypes = []
         for param in functionDef.param_declarations:
             paramTypes.append(param.type)
             params.append(f'{getLLVMType(param.type.typeID)} %{param.id.identifier}')
-            top_env[param.id.identifier] = param.type
             params = ', '.join(params)
         if len(params) == 0:
             params = ''

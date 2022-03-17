@@ -14,7 +14,6 @@ define i32 @main() #0 {
   %6 = call align 16 i8* @malloc(i64 8) #2
   %7 = bitcast i8* %6 to %struct.exs*
   ; b -> %7
-
   ; a -> %7
   
   
