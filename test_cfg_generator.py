@@ -87,6 +87,7 @@ class test_cfg_generator(unittest.TestCase):
                                 '  2 -> 4;',
                                 '  3 -> 5;',
                                 '  4 -> 5;',
+                                '  5 -> 0;',
                                 '}']
         self.assertEqual(serialized, expectedSerialized)
 
@@ -96,7 +97,8 @@ class test_cfg_generator(unittest.TestCase):
                             '2: if guard node',
                             '3: statement block node',
                             '4: statement block node',
-                            '5: if exit node']
+                            '5: if exit node',
+                            '0: return node']
         self.assertEqual(labels, expectedLabels)
 
 
@@ -179,25 +181,34 @@ class test_cfg_generator(unittest.TestCase):
         ast = importMiniFile('miniFiles/nested_if.mini')
         functions = generateProgCFGs(ast)
         serialized = functions[0].serialize()
-        expectedLabels = ['digraph "cfg" {', 
+        expectedSerialized = ['digraph "cfg" {', 
         '  1 -> 2;', 
         '  2 -> 3;', 
         '  2 -> 8;', 
         '  3 -> 4;', 
-        '  8 -> 9;',
+        '  8 -> 9;', 
         '  4 -> 5;', 
         '  4 -> 6;', 
-        '  9 -> 10;', 
-        '  9 -> 11;', 
+        '  9 -> 0;', 
         '  5 -> 7;', 
         '  6 -> 7;', 
-        '  10 -> 12;', 
-        '  11 -> 12;', 
-        '  7 -> 13;', 
-        '  12 -> 13;', 
-        '  13 -> 0;', 
+        '  7 -> 9;', 
         '}']
-        self.assertEqual(serialized, expectedLabels)
+        self.assertEqual(serialized, expectedSerialized)
+
+        nodes = functions[0].getAllNodes()
+        labels = [f'{node.id}: {node.label}' for node in nodes]
+        expectedLabels = ['1: statement block node', 
+        '2: if guard node', 
+        '3: statement block node', 
+        '8: statement block node', 
+        '4: if guard node', 
+        '9: if exit node', 
+        '5: statement block node', 
+        '6: statement block node', 
+        '0: return node', 
+        '7: if exit node']
+        self.assertEqual(labels, expectedLabels)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,15 @@
+fun main() int
+{
+    int x;
+    int y;
+
+    x = 3;
+    y = 2;
+    while (x < 5)
+    {
+        x = x + 1;
+        y = y + 3;
+    }
+
+    return y;
+}

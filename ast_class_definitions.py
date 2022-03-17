@@ -337,6 +337,7 @@ class CFG_Node():
         self.mappings = {}
         self.visited = False
         self.llvmCode = []
+        self.unfinishedPhiIndexes = []
 
     def addPrevNode(self, node:CFG_Node):
         self.prevNodes.append(node)
