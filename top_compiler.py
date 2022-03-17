@@ -22,8 +22,8 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
                 'declare void @free(i8*) #1', 
                 'declare i32 @printf(i8*, ...) #1', 
                 'declare i32 @scanf(i8*, ...) #1', 
-                '@.str = private unnamed_addr constant [3 x i8] c"%d\00", align 1',
-                '@.str.1 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1'])
+                '@.str = private unnamed_addr constant [3 x i8] c"%d\\00", align 1',
+                '@.str.1 = private unnamed_addr constant [4 x i8] c"%d\\0A\\00", align 1'])
 
     if useMemory:
         if retType != -1:

@@ -174,7 +174,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_read():
             currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = alloca i32',
                         f'%t{lastRegUsed+2} = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32* %t{lastRegUsed + 1})',
-                        f'%t{lastRegUsed+3} = load i32, i32* %t{lastRegUsed+2}'])
+                        f'%t{lastRegUsed+3} = load i32, i32* %t{lastRegUsed+1}'])
             return lastRegUsed+3, 'i32'
         case m_unary():
             return unaryToSSA(lastRegUsed, expr, env, types, functions, currentNode)
