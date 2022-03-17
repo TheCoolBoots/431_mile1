@@ -26,9 +26,14 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
     if useMemory:
         if retType != -1:
             code.extend(toLLVM(ast))
+        else:
+            return
     else:
         if retType != -1:
             code.extend(topSSACompile(ast))
+        else:
+            return
+    
 
     # This string will often come before functions in llvm, not sure if it is needed, may need to parse thru and add it.
     # code.insert(index, "; Function Attrs: noinline nounwind optnone ssp uwtable")

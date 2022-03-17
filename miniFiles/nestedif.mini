@@ -1,0 +1,30 @@
+fun main() int{
+    int x;
+    int y;
+    int z;
+    bool g;
+    bool h;
+    int a;
+    int b;
+    int s;
+    x = 1;
+    y = 2;
+    z = 3;
+    g = true;
+    h = false;
+
+    x = y + z;
+    if (g) {
+        a = x*2;
+        x = x+1;
+    } else {
+        if (h) {
+            x = y*9;
+        } else {
+            b = x+2;
+        }
+    }
+    s = x+7;
+    return s;
+}
+
