@@ -16,7 +16,7 @@ def toLLVM(ast:m_prog):
     lastRegUsed = 0
     # add llvm code to define global variables
     for varDecl in ast.global_declarations:
-        output.extend(varDecl.getSSAGlobals(lastRegUsed, type_sizes))
+        output.extend(varDecl.getSSAGlobals())
         # if declaration is a struct, will use one register in its declaration
         if varDecl.type.typeID != 'int' and varDecl.type.typeID != 'bool' and varDecl.type.typeID != 'null':
             lastRegUsed += 1
@@ -34,13 +34,6 @@ def toLLVM(ast:m_prog):
 
 def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env, type_sizes):
     code = []
-
-    for declaration in func.body_declarations:
-        top_env[declaration.id.identifier] = declaration.type
-        code.extend(declaration.getSSALocals(lastRegUsed, type_sizes))
-        # if declaration is a struct, will use one register in its declaration
-        if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
-            lastRegUsed += 1
     
     params = []
     paramTypes = []
@@ -53,6 +46,13 @@ def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env, typ
     code.append(f'define {getLLVMType(func.return_type.typeID)} @{func.id.identifier}({params})' + ' {')
     if func.id.identifier == 'main':
         code.append('entry:')
+
+    for declaration in func.body_declarations:
+        top_env[declaration.id.identifier] = declaration.type
+        code.append(declaration.getSSALocals())
+        # if declaration is a struct, will use one register in its declaration
+        if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
+            lastRegUsed += 1
 
     lastRegUsed = 0
     for statement in func.statements:

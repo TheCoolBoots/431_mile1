@@ -7,9 +7,9 @@ fun main() int
     val1 = 0;
     val2 = 0;
 
-    while (check < 100000) {
+    while (true) {
 
-        if(check < 50000) {
+        if(true) {
             val1 = val1 + 1;
         }
 
@@ -18,6 +18,10 @@ fun main() int
         }
 
        check = check + 1;
+
+        if(check > 90000) {
+            return check;
+        }
     }
 
     return check;
