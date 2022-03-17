@@ -5,11 +5,7 @@ struct A{
 
 # make a second function that returns void/null
 fun deleteFun() void {
-
-
-
-
-    return null;
+    struct A c;
 }
 
 fun main() int {
@@ -18,6 +14,8 @@ fun main() int {
 
     int b;
     b = null;
+
+    a.a = deleteFun();
 
     return 0;
 }
