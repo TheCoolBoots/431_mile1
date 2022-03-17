@@ -166,8 +166,10 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
     match expr:
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
-        case m_num() | m_bool():
+        case m_num():
             return expr.val, 'i32_immediate', []
+        case m_bool():
+            return int(expr.val), 'i1_immediate', []
         case m_new_struct():
             code = [f'%t{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
                  f'%t{lastRegUsed + 1} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
