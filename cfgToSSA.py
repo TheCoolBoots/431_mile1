@@ -7,7 +7,7 @@ from typing import Tuple
 # converts an m_prog into an SSA LLVM program
 def topSSACompile(prog:m_prog) -> list[str]:
     functionNodes = generateProgCFGs(prog)
-    types = prog.getTopTypeEnv()
+    types = prog.getTypes()
     typeSizes = prog.getTypeSizes()
 
     functions = {}
