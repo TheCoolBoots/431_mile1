@@ -8,16 +8,17 @@ target triple = "x86_64-apple-macosx10.15.0"
 
 ; Function Attrs: noinline nounwind optnone ssp uwtable
 define i32 @main() #0 {
-  %1 = alloca i32*, align 8
-  %2 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 5)
-  %3 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 5)
-  %4 = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0))
-  %5 = call align 16 i8* @malloc(i64 4) #3
-  %6 = bitcast i8* %5 to i32*
-  store i32* %6, i32** %1, align 8
-  %7 = load i32*, i32** %1, align 8
-  %8 = bitcast i32* %7 to i8*
-  call void @free(i8* %8)
+  %1 = alloca i32, align 4
+  %2 = alloca i32*, align 8
+  %3 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 5)
+  %4 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 5)
+  %5 = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32* %1)
+  %6 = call align 16 i8* @malloc(i64 4) #3
+  %7 = bitcast i8* %6 to i32*
+  store i32* %7, i32** %2, align 8
+  %8 = load i32*, i32** %2, align 8
+  %9 = bitcast i32* %8 to i8*
+  call void @free(i8* %9)
   ret i32 0
 }
 
