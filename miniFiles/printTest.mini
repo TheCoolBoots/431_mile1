@@ -1,0 +1,8 @@
+fun main() int {
+    int a;
+    a = 1;
+    int b;
+    b = 2;
+
+    return 0;
+}

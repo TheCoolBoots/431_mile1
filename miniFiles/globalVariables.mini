@@ -1,0 +1,14 @@
+
+int a;
+bool b;
+
+fun main() int {
+    a = 1;
+    b = true;
+
+    a = a-a;
+    b = !b;
+
+
+    return a;
+}

@@ -1,0 +1,19 @@
+struct A{
+   int a;
+   int b;
+};
+
+struct A a;
+struct A b;
+
+fun main() int {
+    a = new A;
+    b = new A;
+
+    a.a = 1;
+    b.b = 2;
+
+    a = b;
+
+    return a.b;
+}

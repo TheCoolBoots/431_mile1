@@ -1,0 +1,27 @@
+struct A{
+   int a;
+   int b;
+};
+
+fun main() int {
+
+    struct A a;
+    struct A b;
+
+    a = new A;
+    b = new A;
+
+    a.a = 1;
+    b.b = 2;
+
+    delete a;
+
+    a = b;
+
+
+    delete a;
+    # delete b;
+
+
+    return 0;
+}

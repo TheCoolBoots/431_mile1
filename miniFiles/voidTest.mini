@@ -1,0 +1,23 @@
+struct A{
+   int a;
+   int b;
+};
+
+# make a second function that returns void/null
+fun deleteFun() void {
+
+
+
+
+    return null;
+}
+
+fun main() int {
+    struct A a;
+    a = null;
+
+    int b;
+    b = null;
+
+    return 0;
+}
