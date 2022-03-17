@@ -64,10 +64,7 @@ class test_cfg_generator(unittest.TestCase):
         'br label %l4', 
         'l4:', 
         '%t1 = phi i32 [3, %l2], [7, %l3]', 
-        '%t0 = add i32 %t1, 0', 
-        'br label %l0', 
-        'l0:', 
-        'ret i32 %t0', 
+        'ret i32 %t1', 
         '}']
 
         self.assertEqual(actual, expected)
@@ -97,9 +94,7 @@ class test_cfg_generator(unittest.TestCase):
             '%t2 = add i32 %t1, 1', 
             'br label %l2', 
             'l4:', 
-            '%t0 = add i32 %t1, 0', 
-            'br label %l0', 
-            'l0:']
+            'ret i32 %t1']
 
         self.assertEqual(actual, expected)
 
@@ -129,9 +124,7 @@ class test_cfg_generator(unittest.TestCase):
                     '%t4 = add i32 %t3, 3', 
                     'br label %l2', 
                     'l4:', 
-                    '%t0 = add i32 %t3, 0', 
-                    'br label %l0', 
-                    'l0:']
+                    'ret i32 %t3']
         self.assertEqual(actual, expected)
 
         sealUnsealedBlocks(lastRegUsed, cfgs[0])
@@ -149,9 +142,7 @@ class test_cfg_generator(unittest.TestCase):
                     '%t4 = add i32 %t3, 3', 
                     'br label %l2', 
                     'l4:', 
-                    '%t0 = add i32 %t3, 0', 
-                    'br label %l0', 
-                    'l0:']
+                    'ret i32 %t3']
 
         self.assertEqual(actual2, expected2)
 
@@ -197,14 +188,11 @@ class test_cfg_generator(unittest.TestCase):
                     '%t8 = icmp sgt i32 %t7, 90000', 
                     'br i1 %t8, label %l9, label %l10', 
                     'l9:', 
-                    '%t0 = add i32 %t7, 0', 
-                    'br label %l0', 
+                    'ret i32 %t7', 
                     'l10:', 
                     'br label %l2', 
                     'l11:', 
-                    '%t0 = add i32 %t1, 0', 
-                    'br label %l0', 
-                    'l0:']
+                    'ret i32 %t1',]
 
         self.assertEqual(actual, expected)
 
@@ -234,25 +222,22 @@ class test_cfg_generator(unittest.TestCase):
                     '%t7 = icmp eq i32 %input, 0', 
                     'br i1 %t7, label %l3, label %l4', 
                     'l3:', 
-                    '%t0 = add i32 0, 0', 
-                    'br label %l0', 
+                    'ret i32 0', 
                     'l4:', 
                     'br label %l5', 
                     'l5:', 
                     '%t8 = icmp sle i32 %input, 2', 
                     'br i1 %t8, label %l6, label %l7', 
                     'l6:', 
-                    '%t0 = add i32 1, 0', 
-                    'br label %l0', 
+                    'ret i32 1', 
                     'l7:', 
                     '%t2 = sub i32 %input, 1', 
                     '%t3 = call i32 @computeFib(i32 %t2)', 
                     '%t4 = sub i32 %input, 2', 
                     '%t5 = call i32 @computeFib(i32 %t4)', 
                     '%t6 = add i32 %t3, %t5', 
-                    '%t0 = add i32 %t6, 0', 
-                    'br label %l0', 
-                    'l0:']
+                    'ret i32 %t6', 
+                    ]
 
         self.assertEqual(actual, expected)
 
@@ -263,19 +248,18 @@ class test_cfg_generator(unittest.TestCase):
         expected = ['define i32 @computeFib(i32 %input) {', 
         'l1:', 'br label %l2', 'l2:', '%t7 = icmp eq i32 %input, 0', 
         'br i1 %t7, label %l3, label %l4', 'l3:', 
-        '%t0 = add i32 0, 0', 'br label %l0', 'l4:', 'br label %l5', 
+        'ret i32 0', 'l4:', 'br label %l5', 
         'l5:', '%t8 = icmp sle i32 %input, 2', 
         'br i1 %t8, label %l6, label %l7', 'l6:', 
-        '%t0 = add i32 1, 0', 'br label %l0', 'l7:', 
+        'ret i32 1', 'l7:', 
         '%t2 = sub i32 %input, 1', '%t3 = call i32 @computeFib(i32 %t2)', 
         '%t4 = sub i32 %input, 2', '%t5 = call i32 @computeFib(i32 %t4)', 
-        '%t6 = add i32 %t3, %t5', '%t0 = add i32 %t6, 0', 'br label %l0', 
-        'l0:', 'ret i32 %t0', '}', 'define i32 @main() {', 'l1:', 
+        '%t6 = add i32 %t3, %t5', 'ret i32 %t6', '}', 'define i32 @main() {', 'l1:', 
         '%t1 = alloca i32', 
         '%t2 = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32* %t1)', 
         '%t3 = load i32, i32* %t2', '%t4 = call i32 @computeFib(i32 %t3)', 
         '%t5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 %t4)', 
-        '%t0 = add i32 0, 0', 'br label %l0', 'l0:', 'ret i32 %t0', '}']
+        'ret i32 0', '}']
         self.assertEqual(actual, expected)
         
 

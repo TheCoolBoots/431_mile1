@@ -51,7 +51,6 @@ def topSSACompile(prog:m_prog) -> list[str]:
             lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, n, top_env, types, functions)
         
         functionCode.extend(buildLLVM(sortedNodes))
-        functionCode.append(f'ret {getLLVMType(functionDef.return_type.typeID)} %t0')
         functionCode.append('}')
 
 
@@ -144,7 +143,8 @@ def addNodeLabelsAndBranches(lastRegUsed, node:CFG_Node, top_env, types, functio
             if not node.visited:
                 node.llvmCode.insert(0, f'l{node.id}:')
                 node.visited = True
-                node.llvmCode.append(f'br label %l{node.nextNodes[0].id}')
+                if node.nextNodes[0].id != 0:
+                    node.llvmCode.append(f'br label %l{node.nextNodes[0].id}')
                 return lastRegUsed
         case 'while guard node':
             if not node.visited:
@@ -184,14 +184,14 @@ def addNodeLabelsAndBranches(lastRegUsed, node:CFG_Node, top_env, types, functio
                 return lastRegUsed
         case 'return node':
             if not node.visited:
-                node.llvmCode.insert(0, f'l{node.id}:')
                 node.visited = True
                 return lastRegUsed
         case 'if exit node' | 'while exit node':
             if not node.visited:
                 node.llvmCode.insert(0, f'l{node.id}:')
                 node.visited = True
-                node.llvmCode.append(f'br label %l{node.nextNodes[0].id}')
+                if node.nextNodes[0].id != 0:
+                    node.llvmCode.append(f'br label %l{node.nextNodes[0].id}')
                 return lastRegUsed
 
 
