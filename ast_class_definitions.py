@@ -336,6 +336,7 @@ class CFG_Node():
         self.sealed = sealed
         self.mappings = {}
         self.visited = False
+        self.llvmCode = []
 
     def addPrevNode(self, node:CFG_Node):
         self.prevNodes.append(node)

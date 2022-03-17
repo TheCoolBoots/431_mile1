@@ -1,0 +1,12 @@
+fun main() int
+{
+    int x;
+
+    x = 3;
+    if (x < 5)
+    {
+        x = 7;
+    }
+
+    return x;
+}
