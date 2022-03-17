@@ -28,7 +28,10 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             else:
                 exprType = exprType.split('_')[0]
             
-            instruction = f'%t{lastRegUsed + 1} = call i32 @printf("%d", {exprReg})'
+            if not stmt.endl:
+                instruction = f'%t{lastRegUsed + 1} = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 {exprReg}))'
+            else:
+                instruction = f'%t{lastRegUsed + 1} = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 {exprReg})'
             currentNode.llvmCode.append(instruction)
             return lastRegUsed + 1, 'i32'
         case m_delete():
@@ -43,7 +46,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             if type(exprReg) != str:
                 lastRegUsed = exprReg
             currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = bitcast {exprType} %t{exprReg} to i8*',
-                            f'call void @free(%t{lastRegUsed + 1})'])
+                            f'call void @free(i8* %t{lastRegUsed + 1})'])
             # env.pop(exprReg)
             return lastRegUsed + 1, 'void'
         case m_ret():
@@ -160,8 +163,8 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
             return int(expr.val), 'i1_immediate'
         case m_new_struct():
             currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
-                 f'%t{lastRegUsed + 1} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*'])
-            return lastRegUsed+1, f'%struct.{expr.struct_id.identifier}*'
+                 f'%t{lastRegUsed + 2} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*'])
+            return lastRegUsed+2, f'%struct.{expr.struct_id.identifier}*'
         case m_null():
             # keeping it like this ensures functionality for rest of compiler
             currentNode.llvmCode.append(f'%t{lastRegUsed+1} = add i32 0, 0')
@@ -169,7 +172,8 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_invocation():
             return invocationToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_read():
-            currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = alloc i32', f'%t{lastRegUsed+2} = call i32 @scanf("%d", %t{lastRegUsed+1}*)'])
+            f'%4 = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0))'
+            currentNode.llvmCode.extend([f'%t{lastRegUsed+2} = call i32 @scanf("%d", %t{lastRegUsed+1}*)'])
             return lastRegUsed+2, 'i32'
         case m_unary():
             return unaryToSSA(lastRegUsed, expr, env, types, functions, currentNode)
@@ -182,11 +186,10 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
                     llvmType = getLLVMType(env[expr.identifier][1].typeID)
                     currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}* @{expr.identifier}'])
                     return lastRegUsed+1, llvmType
-                # id is a local struct
+                # id is a local variable
                 else:
-                    llvmType = getLLVMType(env[expr.identifier][1].typeID)
-                    currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}* %{expr.identifier}'])
-                    return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = load {llvmType}* %{expr.identifier}']
+                    # TODO
+                    pass
             # handle with SSA form
             exprReg, llvmType, lastLabel = readVariable(lastRegUsed, expr.identifier, currentNode)
             return exprReg, llvmType
@@ -201,16 +204,21 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         if 'immediate' in currentNode.mappings[identifier][0]:
             return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], currentNode.id
         else:
-            return f'%t{currentNode.mappings[identifier][1]}', f'{currentNode.mappings[identifier][0]}_immediate', currentNode.id
+            if type(currentNode.mappings[identifier][1]) == int:
+                return f'%t{currentNode.mappings[identifier][1]}', f'{currentNode.mappings[identifier][0]}_immediate', currentNode.id
+            else:
+                return f'{currentNode.mappings[identifier][1]}', f'{currentNode.mappings[identifier][0]}_immediate', currentNode.id
+                
     else:
         if not currentNode.sealed:
             # guard block isnt sealed yet, therefore it goes into this one
             # structs will never go into mappings so hard coding i32 is fine here
             if type(lastRegUsed) != int:
                 lastRegUsed = int(lastRegUsed[2:])
+            
+            # TODO: structs won't be i32
             currentNode.mappings[identifier] = ('i32', lastRegUsed+1, currentNode.id)
             currentNode.llvmCode.append(f'{lastRegUsed+1}-{currentNode.id}-{identifier}-*')
-            currentNode.unfinishedPhiIndexes.append(len(currentNode.llvmCode) - 1)
             return lastRegUsed+1, 'i32', currentNode.id
         elif len(currentNode.prevNodes) == 0:
             # val is undefined

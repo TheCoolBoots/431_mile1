@@ -7,8 +7,8 @@ def generateProgCFGs(prog:m_prog) -> list[Function_CFG]:
     for fun in prog.functions:
         returnNode = CFG_Node(0, 'return node')
         lastIDUsed = 0
-        lastIDUsed, entryNode, exitNode, funReturnNode = generateStatementsCFG(lastIDUsed, fun.statements, returnNode)
-        graphs.append(Function_CFG(entryNode, exitNode, returnNode, fun))
+        lastIDUsed, entryNode, exitNode, returnNode = generateStatementsCFG(lastIDUsed, fun.statements, returnNode)
+        graphs.append(Function_CFG(entryNode, returnNode, fun))
     return graphs
 
 

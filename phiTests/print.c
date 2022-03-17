@@ -5,7 +5,8 @@ int main(){
 
     printf("%d", 5);
     printf("%d\n", 5);
-    scanf("%d");
+    int a;
+    scanf("%d", &a);
     int* magic = (int*) malloc(sizeof(int));
     free(magic);
 }

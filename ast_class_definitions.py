@@ -9,6 +9,14 @@ TASK 1: create python class for each format as described in overview.pdf
 
 # from msilib.schema import Error
 
+def getLLVMType(typeID:str) -> str:
+    if typeID == 'bool' or typeID == 'int':
+        return 'i32'
+    elif typeID == 'void':
+        return 'void'
+    else:
+        return f'%struct.{typeID}*'
+
 class m_bool:
     def __init__(self, val:bool):
         self.val = val
@@ -123,6 +131,12 @@ class m_function:
         self.body_declarations = body_declarations
         self.statements = statements
         self.lineNum = lineNum
+
+    def getSSALocalMappings(self):
+        # TODO: figure out why the environment maps to a tuple with True and m_type
+        # BOOL True means it is a global variable, False means local variable
+        return {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in self.param_declarations}
+    
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
             return False
@@ -337,7 +351,6 @@ class CFG_Node():
         self.mappings = {}
         self.visited = False
         self.llvmCode = []
-        self.unfinishedPhiIndexes = []
 
     def addPrevNode(self, node:CFG_Node):
         self.prevNodes.append(node)
@@ -350,9 +363,8 @@ class CFG_Node():
 
 
 class Function_CFG():
-    def __init__(self, rootNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node, ast:m_function):
+    def __init__(self, rootNode:CFG_Node, returnNode:CFG_Node, ast:m_function):
         self.rootNode = rootNode
-        self.exitNode = exitNode
         self.returnNode = returnNode
         self.ast = ast
 
@@ -408,3 +420,4 @@ class Function_CFG():
             for node in currNode.nextNodes:
                 queue.append(node)
         return unsealedNodes
+
