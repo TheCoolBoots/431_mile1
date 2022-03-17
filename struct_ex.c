@@ -12,6 +12,8 @@ int main(void)
 	ext_t* b;
 
 	a = (ext_t*)malloc(sizeof(ext_t));
+	b = (ext_t*)malloc(sizeof(ext_t));
+        a = b;
 
 	return 0;
 
