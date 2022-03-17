@@ -16,7 +16,7 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
     code = []
     # These can change a lot depending on how its compiled
     code.append('target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"')
-    code.append('target triple = "x86_64-apple-macosx10.15.0')
+    code.append('target triple = "x86_64-apple-macosx10.15.0"')
 
     code.extend(['declare align 16 i8* @malloc(i32) #2', 
                 'declare void @free(i8*) #1', 

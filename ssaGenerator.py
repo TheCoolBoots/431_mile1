@@ -58,7 +58,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
 
 def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if ret.expression == None:
-        currentNode.llvmCode.extend([f'%t0 = void', f'br label %retLabel'])
+        currentNode.llvmCode.extend([f'ret void'])
         return lastRegUsed, 'void'
 
     returnReg, retType = expressionToSSA(lastRegUsed, ret.expression, env, types, functions, currentNode)
@@ -71,7 +71,7 @@ def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, c
     if(retType == 'void'):
         currentNode.llvmCode.append(f'%t0 = void')
     else:
-        currentNode.llvmCode.append(f'%t0 = add {retType} {returnReg}, 0')
+        currentNode.llvmCode.append(f'ret {retType} {returnReg}')
 
     return returnReg, retType
 
