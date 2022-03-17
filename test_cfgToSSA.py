@@ -259,7 +259,24 @@ class test_cfg_generator(unittest.TestCase):
     def test_fibonacciTop(self):
         ast = importMiniFile('benchmarks\Fibonacci\Fibonacci.mini')
         actual = topSSACompile(ast)
-        print('\n'.join(actual))
+
+        expected = ['define i32 @computeFib(i32 %input) {', 
+        'l1:', 'br label %l2', 'l2:', '%t7 = icmp eq i32 %input, 0', 
+        'br i1 %t7, label %l3, label %l4', 'l3:', 
+        '%t0 = add i32 0, 0', 'br label %l0', 'l4:', 'br label %l5', 
+        'l5:', '%t8 = icmp sle i32 %input, 2', 
+        'br i1 %t8, label %l6, label %l7', 'l6:', 
+        '%t0 = add i32 1, 0', 'br label %l0', 'l7:', 
+        '%t2 = sub i32 %input, 1', '%t3 = call i32 @computeFib(i32 %t2)', 
+        '%t4 = sub i32 %input, 2', '%t5 = call i32 @computeFib(i32 %t4)', 
+        '%t6 = add i32 %t3, %t5', '%t0 = add i32 %t6, 0', 'br label %l0', 
+        'l0:', 'ret i32 %t0', '}', 'define i32 @main() {', 'l1:', 
+        '%t1 = alloca i32', 
+        '%t2 = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32* %t1)', 
+        '%t3 = load i32, i32* %t2', '%t4 = call i32 @computeFib(i32 %t3)', 
+        '%t5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 %t4)', 
+        '%t0 = add i32 0, 0', 'br label %l0', 'l0:', 'ret i32 %t0', '}']
+        self.assertEqual(actual, expected)
         
 
 
