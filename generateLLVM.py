@@ -16,7 +16,7 @@ def toLLVM(ast:m_prog):
     lastRegUsed = 0
     # add llvm code to define global variables
     for varDecl in ast.global_declarations:
-        output.extend(varDecl.getSSAGlobals(lastRegUsed, type_sizes))
+        output.extend(varDecl.getSSAGlobals())
         # if declaration is a struct, will use one register in its declaration
         if varDecl.type.typeID != 'int' and varDecl.type.typeID != 'bool' and varDecl.type.typeID != 'null':
             lastRegUsed += 1
@@ -37,7 +37,7 @@ def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env, typ
 
     for declaration in func.body_declarations:
         top_env[declaration.id.identifier] = declaration.type
-        code.extend(declaration.getSSALocals(lastRegUsed, type_sizes))
+        code.extend(declaration.getSSALocals())
         # if declaration is a struct, will use one register in its declaration
         if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
             lastRegUsed += 1
@@ -106,13 +106,15 @@ def statementToLLVM(lastRegUsed: int, stmt, env, t_env, f_env) -> Tuple[int, str
 
 
 def loopToLLVM(lastRegUsed:int, loop:m_loop, env, t_env, f_env) -> Tuple[int, str, list[str]]:
+    code = []
     guardReg, guardType, guardCode = expressionToLLVM(lastRegUsed, loop.guard_expression, env, t_env, f_env)
 
     if type(guardCode) == list:
-        guardCode.append(f'l{guardReg+1}:')
-        guardCode.append(f'br i1 %t{guardReg}, label %l{guardReg+2}, label %l{guardReg+3}')
+        code.append(f'l{guardReg+1}:')
+        code.extend(guardCode)
+        code.append(f'br i1 %t{guardReg}, label %l{guardReg+2}, label %l{guardReg+3}')
     else:
-        guardCode = [f'l{guardReg+1}:',f'br i1 {guardCode}, label %l{guardReg+2}, label %l{guardReg+3}']
+        code = [f'l{guardReg+1}:',f'br i1 {guardCode}, label %l{guardReg+2}, label %l{guardReg+3}']
 
     lastRegUsed = guardReg+3
 
@@ -123,8 +125,8 @@ def loopToLLVM(lastRegUsed:int, loop:m_loop, env, t_env, f_env) -> Tuple[int, st
         lastRegUsed = t1
     whileBlockCode.append(f'br label %l{guardReg + 1}')
     whileBlockCode.append(f'l{guardReg+3}:')
-    guardCode.extend(whileBlockCode)
-    return (lastRegUsed, t2, guardCode)
+    code.extend(whileBlockCode)
+    return (lastRegUsed, t2, code)
 
 
 

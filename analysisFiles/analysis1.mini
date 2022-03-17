@@ -17,7 +17,7 @@ fun main() int
             val2 = val2 + 1;
         }
 
-       check = check + 1;
+        check = check + 1;
     }
 
     return check;
