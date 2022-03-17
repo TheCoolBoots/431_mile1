@@ -1,3 +1,6 @@
+ERROR: unrecognized structure in AST 
+[<ast_class_definitions.m_id object at 0x106eba830>]
+ERROR: unrecognized structure:[<ast_class_definitions.m_id object at 0x106eba830>]
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.15.0"
 declare align 16 i8* @malloc(i32) #2
@@ -6,36 +9,38 @@ declare i32 @printf(i8*, ...) #1
 declare i32 @scanf(i8*, ...) #1
 @.str = private unnamed_addr constant [3 x i8] c"%d\00", align 1
 @.str.1 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
-define i32 @computeFib(i32 %input) {
+define i32 @function(i32 %n) {
 l1:
 br label %l2
 l2:
-%t7 = icmp eq i32 %input, 0
-br i1 %t7, label %l3, label %l4
+%t8 = icmp sle i32 %n, 0
+br i1 %t8, label %l3, label %l4
 l3:
 ret i32 0
 l4:
 br label %l5
 l5:
-%t8 = icmp sle i32 %input, 2
-br i1 %t8, label %l6, label %l7
+%t1 = phi i32 [%t5, %l6], [0, %l4]
+%t2 = phi i32 [%t2, %l6], [%n, %l4]
+%t9 = mul i32 %t2, %t2
+%t10 = icmp slt i32 %t1, %t9
+br i1 %t10, label %l6, label %l7
 l6:
-ret i32 1
+%t3 = add i32 %t1, %t2
+%t4 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 %t3))
+%t5 = add i32 %t1, 1
+br label %l5
 l7:
-%t2 = sub i32 %input, 1
-%t3 = call i32 @computeFib(i32 %t2)
-%t4 = sub i32 %input, 2
-%t5 = call i32 @computeFib(i32 %t4)
-%t6 = add i32 %t3, %t5
-ret i32 %t6
+%t6 = sub i32 %t2, 1
+%t7 = call i32 @function(i32 %t6)
+ret i32 %t7
 }
 define i32 @main() {
 l1:
 %t1 = alloca i32
 %t2 = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32* %t1)
 %t3 = load i32, i32* %t1
-%t4 = call i32 @computeFib(i32 %t3)
-%t5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 %t4)
+%t4 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 0)
 ret i32 0
 }
 attributes #0 = { noinline nounwind optnone ssp uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="penryn" "target-features"="+cx16,+cx8,+fxsr,+mmx,+sahf,+sse,+sse2,+sse3,+sse4.1,+ssse3,+x87" "tune-cpu"="generic" }

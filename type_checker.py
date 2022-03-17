@@ -11,7 +11,7 @@ def typeCheckProgram(program:m_prog):
                 return -1
 
     for decl in program.global_declarations:
-        if decl.type not in encounteredTypes:
+        if decl.type.typeID not in encounteredTypes:
             print(f'ERROR on line {decl.lineNum}: unrecognized type')
             return -1
 
