@@ -50,9 +50,6 @@ def functionToLLVM(lastRegUsed, func:m_function, top_env, type_env, fun_env, typ
     for declaration in func.body_declarations:
         top_env[declaration.id.identifier] = declaration.type
         code.append(declaration.getSSALocals())
-        # if declaration is a struct, will use one register in its declaration
-        if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
-            lastRegUsed += 1
 
     lastRegUsed = 0
     for statement in func.statements:

@@ -1,9 +1,8 @@
 from pyclbr import Function
 from re import L
-from ssaGenerator import expressionToSSA, generateSSA, readUnsealedBlock, statementToSSA
+from ssaGenerator import expressionToSSA, generateSSA, readUnsealedBlock
 from cfg_generator import generateProgCFGs
 from ast_class_definitions import *
-from ssaGenerator import readVariable
 
 
 # converts an m_prog into an SSA LLVM program
@@ -66,7 +65,7 @@ def topSSACompile(prog:m_prog) -> list[str]:
 
 
 def sealUnsealedBlocks(functionNode:Function_CFG, functionCode:list[str]) -> list[str]:
-    unsealedNodes = functionNode.getUnsealedNodes()
+    unsealedNodes = functionNode.getAllNodes(True)
     if len(unsealedNodes.values()) == 0:
         return functionCode
 
@@ -77,7 +76,7 @@ def sealUnsealedBlocks(functionNode:Function_CFG, functionCode:list[str]) -> lis
             nodeID = int(parts[1])
             targetID = parts[2]
             unsealedNodes[nodeID].sealed = True
-            targetReg, llvmType, newLine, lastLabel = readUnsealedBlock(targetReg-1, targetID, unsealedNodes[nodeID])
+            targetReg, llvmType, newLine, lastLabel = readUnsealedBlock(targetReg, targetID, unsealedNodes[nodeID], unsealedNodes[nodeID])
             functionCode[i] = newLine[0]
     
     return functionCode
@@ -151,8 +150,8 @@ def whileNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tup
     if bodyExitNode.label == 'return node':
         lastRegUsed, retNode, retExitNode = cfgToSSA(lastRegUsed, bodyExitNode, top_env, types, functions)
         outputCode.extend(retNode)
-    else:
-        outputCode.append(f'br label %l{node.id}')
+
+    outputCode.append(f'br label %l{node.id}')
 
     outputCode.append(f'l{whileExit.id}:')
 
@@ -189,8 +188,9 @@ def ifNodeToSSA(lastRegUsed, node:CFG_Node, top_env, types, functions) -> Tuple[
         lastRegUsed, retNodeCode, ifBlockExitNode = cfgToSSA(lastRegUsed, ifBlockExitNode, top_env, types, functions)
         outputCode.extend(retNodeCode)
 
+    else:
     # there exists an else block, thus need to add jump to bypass it
-    outputCode.append(f'br label %l{ifBlockExitNode.id}')  
+        outputCode.append(f'br label %l{ifBlockExitNode.id}')  
 
     # label for else block or exit label (if no else block exists)
     outputCode.append(f'l{elseBlock.id}:')

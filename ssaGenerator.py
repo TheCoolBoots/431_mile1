@@ -196,7 +196,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
                     llvmType = getLLVMType(env[expr.identifier][1].typeID)
                     return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = load {llvmType}* %{expr.identifier}']
             # handle with SSA form
-            exprReg, llvmType, code, lastLabel = readVariable(lastRegUsed, expr.identifier, currentNode)
+            exprReg, llvmType, code, lastLabel = readVariable(lastRegUsed, expr.identifier, currentNode, currentNode)
             return exprReg, llvmType, code
         case other:
             print(f'ERROR: unrecognized expression: {other}')
@@ -204,7 +204,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
 
 # mappings structure = {str id: (str llvmType, int regNum, int prevBlock)}
 # returns lastRegUsed, llvmType, code, preceeding label
-def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], int]:
+def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node, sourceNode:CFG_Node) -> Tuple[int, str, list[str], int]:
     if identifier in currentNode.mappings:
         if 'immediate' in currentNode.mappings[identifier][0]:
             return currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], [], currentNode.mappings[identifier][2]
@@ -214,8 +214,11 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         if not currentNode.sealed:
             # guard block isnt sealed yet, therefore it goes into this one
             # structs will never go into mappings so hard coding i32 is fine here
-            currentNode.mappings[identifier] = ('i32', lastRegUsed+1, currentNode.id)
-            return lastRegUsed+1, 'i32', [f'{lastRegUsed + 1}-{currentNode.id}-{identifier}-*'], currentNode.id
+            # sourceNode.sealed = False
+            if type(lastRegUsed) != int:
+                lastRegUsed = int(lastRegUsed[2:])
+            sourceNode.mappings[identifier] = ('i32', lastRegUsed+1, sourceNode.id)
+            return lastRegUsed+1, 'i32', [f'{lastRegUsed+1}-{sourceNode.id}-{identifier}-*'], sourceNode.id
         elif len(currentNode.prevNodes) == 0:
             # val is undefined
             # should never encounter this case
@@ -223,10 +226,10 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         elif len(currentNode.prevNodes) == 1:
             # call expressionToLLVM with expr and prev block's mappings
             prevNode = currentNode.prevNodes[0]
-            return readVariable(lastRegUsed, identifier, prevNode)
+            return readVariable(lastRegUsed, identifier, prevNode, currentNode)
         else:
             # create phi node with values in prev blocks
-            possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
+            possibleRegisters = [readVariable(lastRegUsed, identifier, node, sourceNode) for node in currentNode.prevNodes]
             llvmType = possibleRegisters[0][1]
             if 'immediate' in llvmType:
                 llvmType = llvmType.replace('_immediate', '')
@@ -234,23 +237,26 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             phiParams = ', '.join(phiParams)
 
             # map variable to phi node
-            currentNode.mappings[identifier] = (llvmType, f'{lastRegUsed+1}', currentNode.id)
+            sourceNode.mappings[identifier] = (llvmType, f'{lastRegUsed+1}', currentNode.id)
             return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
 
 
-def readUnsealedBlock(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], str]:
+def readUnsealedBlock(targetRegister:int, identifier:str, currentNode:CFG_Node, sourceNode:CFG_Node) -> Tuple[int, str, list[str], str]:
     # create phi node with values in prev blocks
-    possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
-    
+    if len(currentNode.prevNodes) == 1:
+        prevNode = currentNode.prevNodes[0]
+        return readUnsealedBlock(targetRegister, identifier, prevNode, sourceNode)
+
+    possibleSrcRegisters = [readVariable(targetRegister, identifier, node, sourceNode) for node in currentNode.prevNodes]
     
     phiParams = []
 
-    if 'immediate' in possibleRegisters[0][1]:
-        llvmType = possibleRegisters[0][1].split('_')[0]
+    if 'immediate' in possibleSrcRegisters[0][1]:
+        llvmType = possibleSrcRegisters[0][1].split('_')[0]
     else:
-        llvmType = possibleRegisters[0][1]
+        llvmType = possibleSrcRegisters[0][1]
 
-    for reg in possibleRegisters:
+    for reg in possibleSrcRegisters:
         val = reg[0]
         if 'immediate' not in reg[1]:
             val = f'%t{val}'
@@ -258,8 +264,8 @@ def readUnsealedBlock(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> 
     phiParams = ', '.join(phiParams)
 
     # map variable to phi node
-    currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, currentNode.id)
-    return lastRegUsed+1, llvmType, [f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}'], currentNode.id
+    # currentNode.mappings[identifier] = (llvmType, lastRegUsed+1, currentNode.id)
+    return targetRegister, llvmType, [f'%t{targetRegister} = phi {llvmType} {phiParams}'], currentNode.id
 
 
 def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
