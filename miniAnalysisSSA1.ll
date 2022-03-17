@@ -14,11 +14,11 @@ br i1 1, label %l2, label %l10
 l2:
 br i1 1, label %l4, label %l5
 l4:
-%t1 = phi i32 [1, %l6], [0, %l0]
+%t1 = phi i32 [%t1, %l6], [0, %l0]
 %t2 = add i32 %t1, 1
 br label %l6
 l5:
-%t3 = phi i32 [3, %l6], [0, %l0]
+%t3 = phi i32 [%t3, %l6], [0, %l0]
 %t4 = add i32 %t3, 1
 br label %l6
 l6:
