@@ -2,6 +2,7 @@ import unittest
 from ast_class_definitions import *
 from generateLLVM import expressionToLLVM, statementToLLVM
 import test_ast_trees
+from top_compiler import importMiniFile
 
 
 top_env = {'b': (m_type('BIGCHUNGUS')), 'a': m_type('int'), 'MAGIC':m_type('bool')}

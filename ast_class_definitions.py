@@ -376,7 +376,7 @@ class Function_CFG():
         output.append('}')
         return output
 
-    def getAllNodes(self) -> list:
+    def getAllNodes(self, dictionary = False) -> list:
         nodeReferences = {}
         queue = []
         queue.append(self.rootNode)
@@ -388,6 +388,8 @@ class Function_CFG():
                 nodeReferences[currNode.id] = currNode
             for node in currNode.nextNodes:
                 queue.append(node)
+        if dictionary:
+            return nodeReferences
         return list(nodeReferences.values())
 
     def getUnsealedNodes(self) -> dict:

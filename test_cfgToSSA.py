@@ -33,40 +33,101 @@ class test_cfg_generator(unittest.TestCase):
 
         # print('\n'.join(actual))
 
+
+# NOT WORKING
     def test_phi2(self):
         ast = importMiniFile('analysisFiles/analysis1.mini')
+        actual = topSSACompile(ast)
+
+        """define i32 @main() {
+            l0:
+            br label %l1
+            l1:
+            br i1 1, label %l2, label %l10
+            l2:
+            br i1 1, label %l4, label %l5
+            l4:
+            %t1 = phi i32 [%t2, %l6], [0, %l0]
+            %t2 = add i32 %t1, 1
+            br label %l6
+            l5:
+            %t3 = phi i32 [%t4, %l6], [0, %l0]
+            %t4 = add i32 %t3, 1
+            br label %l6
+            l6:
+            %t5 = phi i32 [5, %l2], [%t5, %l2]
+            %t6 = add i32 %t5, 1
+            %t7 = icmp sgt i32 %t6, 90000
+            br i1 %t7, label %l8, label %l9
+            l8:
+            %t0 = add i32 %t6, 0
+            br label %retLabel
+            l9:
+            br label %l1
+            l10:
+            %t7 = phi i32 [%t6, %l9], [0, %l0]
+            %t0 = add i32 %t7, 0
+            br label %retLabel
+            retLabel:
+            ret i32 %t0
+            }"""
+        print('\n'.join(actual))
+
+
+
+    def test_modifyInternal(self):
+        ast = importMiniFile('miniFiles/modifyInternal.mini')
         actual = topSSACompile(ast)
 
         expected = ['define i32 @main() {', 
                     'l0:', 
                     'br label %l1', 
                     'l1:', 
-                    '%t1 = phi i32 [%t9, %l6], [0, %l0]', 
-                    '%t2 = icmp slt i32 %t1, 100000', 
-                    'br i1 %t2, label %l2, label %l7', 
+                    '%t1 = phi i32 [%t3, %l2], [0, %l0]', 
+                    '%t2 = icmp slt i32 %t1, 50', 
+                    'br i1 %t2, label %l2, label %l3', 
                     'l2:', 
-                    '%t3 = icmp slt i32 %t1, 50000', 
-                    'br i1 %t3, label %l4, label %l5', 
-                    'l4:', 
-                    '%t4 = phi i32 [%t4, %l6], [0, %l0]', 
-                    '%t5 = add i32 %t4, 1', 
-                    'br label %l6', 
-                    'l5:', 
-                    '%t6 = phi i32 [%t6, %l6], [0, %l0]', 
-                    '%t7 = add i32 %t6, 1', 
-                    'br label %l6', 
-                    'l6:', 
-                    '%t8 = phi i32 [%t1, %l1], [%t1, %l1]', 
-                    '%t9 = add i32 %t8, 1', 
+                    '%t3 = add i32 %t1, 1', 
                     'br label %l1', 
-                    'l7:', 
+                    'l3:', 
                     '%t0 = add i32 %t1, 0', 
                     'br label %retLabel', 
                     'retLabel:', 
                     'ret i32 %t0', 
                     '}']
 
+        # print('\n'.join(actual))
+        # print(actual)
+
         self.assertEqual(actual, expected)
+
+    def test_modifyInternal2(self):
+        ast = importMiniFile('miniFiles/modifyInternal2.mini')
+        actual = topSSACompile(ast)
+
+        expected = ['define i32 @main() {', 
+        'l0:', 
+        'br label %l1', 
+        'l1:', 
+        '%t1 = phi i32 [%t5, %l2], [0, %l0]', 
+        '%t2 = icmp slt i32 %t1, 50', 
+        'br i1 %t2, label %l2, label %l3', 
+        'l2:', 
+        '%t3 = phi i32 [%t4, %l2], [0, %l0]', 
+        '%t4 = add i32 %t3, 1', 
+        '%t5 = add i32 %t1, 2', 
+        'br label %l1', 
+        'l3:', 
+        '%t6 = phi i32 [%t4, %l2], [0, %l0]', 
+        '%t0 = add i32 %t6, 0', 
+        'br label %retLabel', 
+        'retLabel:', 
+        'ret i32 %t0', 
+        '}']
+
+        self.assertEqual(actual, expected)
+        # print('\n'.join(actual))
+
 
 
 
