@@ -1,8 +1,7 @@
-from pyclbr import Function
-from re import L
 from ssaGenerator import expressionToSSA, generateSSA, readUnsealedBlock
 from cfg_generator import generateProgCFGs
 from ast_class_definitions import *
+from typing import Tuple
 
 
 # converts an m_prog into an SSA LLVM program

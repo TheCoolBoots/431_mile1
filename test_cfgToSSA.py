@@ -125,6 +125,27 @@ class test_cfg_generator(unittest.TestCase):
         'ret i32 %t0', 
         '}']
 
+        """
+        define i32 @main() {
+        l0:
+        br label %l1
+        l1:
+        %t1 = phi i32 [%t5, %l2], [0, %l0]
+        %t2 = phi i32 [%t4, %l2], [0, %l0]
+        %t3 = icmp slt i32 %t1, 50
+        br i1 %t3, label %l2, label %l3
+        l2:
+        %t4 = add i32 %t2, 1
+        %t5 = add i32 %t1, 2
+        br label %l1
+        l3:
+        %t0 = add i32 %t2, 0
+        br label %retLabel
+        retLabel:
+        ret i32 %t0
+        }
+        """
+
         self.assertEqual(actual, expected)
         # print('\n'.join(actual))
 

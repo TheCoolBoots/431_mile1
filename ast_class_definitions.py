@@ -1,4 +1,4 @@
-
+from typing import Tuple
 
 """
 TASK 1: create python class for each format as described in overview.pdf
@@ -8,8 +8,6 @@ TASK 1: create python class for each format as described in overview.pdf
 """
 
 # from msilib.schema import Error
-from typing import Tuple
-
 
 class m_bool:
     def __init__(self, val:bool):
