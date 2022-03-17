@@ -220,7 +220,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # call expressionToLLVM with expr and prev block's mappings
             prevNode = currentNode.prevNodes[0]
             lastRegUsed, llvmType, discard = readVariable(lastRegUsed, identifier, prevNode)
-            return lastRegUsed, llvmType, discard
+            return lastRegUsed, llvmType, currentNode.id
         else:
             # create phi node with values in prev blocks
             possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]

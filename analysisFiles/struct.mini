@@ -1,0 +1,24 @@
+struct A{
+    int a;
+    int b;
+}
+
+fun main() int{
+    struct A A_INST1;
+    struct A A_INST2;
+
+    A_INST1 = new struct A;
+    A_INST2 = new struct A;
+
+    // A_INST1,2 are struct.A**
+
+    A_INST1 = A_INST2;
+
+    %t1 = malloc(%struct.A*)
+    %t2 = malloc(%struct.A*)
+
+    // in stack mode:
+    %t3
+    store t2 t1
+
+}
