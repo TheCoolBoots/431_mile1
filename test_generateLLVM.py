@@ -264,6 +264,9 @@ class test_LLVM_generation(unittest.TestCase):
         actual3 = statementToLLVM(0, ret3, top_env, type_env, fun_env)
         self.assertEqual(expected3, actual3[2])
 
+    def test_analysis1(self):
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

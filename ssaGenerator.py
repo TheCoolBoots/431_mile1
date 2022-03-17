@@ -166,8 +166,10 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
     match expr:
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
-        case m_num() | m_bool():
+        case m_num():
             return expr.val, 'i32_immediate', []
+        case m_bool():
+            return int(expr.val), 'i1_immediate', []
         case m_new_struct():
             code = [f'%t{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
                  f'%t{lastRegUsed + 1} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*']
@@ -226,6 +228,8 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # create phi node with values in prev blocks
             possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
             llvmType = possibleRegisters[0][1]
+            if 'immediate' in llvmType:
+                llvmType = llvmType.replace('_immediate', '')
             phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
             phiParams = ', '.join(phiParams)
 
@@ -237,11 +241,20 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
 def readUnsealedBlock(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, list[str], str]:
     # create phi node with values in prev blocks
     possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
+    
+    
+    phiParams = []
+
     if 'immediate' in possibleRegisters[0][1]:
         llvmType = possibleRegisters[0][1].split('_')[0]
     else:
         llvmType = possibleRegisters[0][1]
-    phiParams = [f'[{reg[0]}, %l{reg[3]}]' for reg in possibleRegisters]
+
+    for reg in possibleRegisters:
+        val = reg[0]
+        if 'immediate' not in reg[1]:
+            val = f'%t{val}'
+        phiParams.append(f'[{val}, %l{reg[3]}]')
     phiParams = ', '.join(phiParams)
 
     # map variable to phi node
@@ -322,12 +335,11 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
             op = 'and i32'
 
     instructions = []
-    targetReg = lastRegUsed + 1
     instructions.extend(leftOpCode)
     instructions.extend(rightOpCode)
-    instructions.append(f'%t{targetReg} = {op} {leftOpReg}, {rightOpReg}')
+    instructions.append(f'%t{lastRegUsed + 1} = {op} {leftOpReg}, {rightOpReg}')
 
-    return (targetReg, 'i32', instructions)
+    return (lastRegUsed + 1, 'i32', instructions)
 
 
 def unaryToSSA(lastRegUsed:int, exp:m_unary, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
