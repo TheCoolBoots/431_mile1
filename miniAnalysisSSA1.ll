@@ -10,29 +10,17 @@ define i32 @main() {
 l0:
 br label %l1
 l1:
-br i1 1, label %l2, label %l10
+%t1 = phi i32 [%t5, %l2], [0, %l0]
+%t2 = icmp slt i32 %t1, 50
+br i1 %t2, label %l2, label %l3
 l2:
-br i1 1, label %l4, label %l5
-l4:
-%t1 = phi i32 [%t1, %l6], [0, %l0]
-%t2 = add i32 %t1, 1
-br label %l6
-l5:
-%t3 = phi i32 [%t3, %l6], [0, %l0]
+%t3 = phi i32 [%t4, %l2], [0, %l0]
 %t4 = add i32 %t3, 1
-br label %l6
-l6:
-%t5 = phi i32 [5, %l1], [%t5, %l1]
-%t6 = add i32 %t5, 1
-%t7 = icmp sgt i32 %t6, 90000
-br i1 %t7, label %l8, label %l9
-l8:
+%t5 = add i32 %t1, 2
+br label %l1
+l3:
+%t6 = phi i32 [%t4, %l2], [0, %l0]
 %t0 = add i32 %t6, 0
-br label %retLabel
-br label %l0
-l9:
-l10:
-%t0 = add i32 %t5, 0
 br label %retLabel
 retLabel:
 ret i32 %t0
