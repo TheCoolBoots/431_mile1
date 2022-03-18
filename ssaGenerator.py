@@ -230,11 +230,11 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
     else:
         if not currentNode.sealed:
             # guard block isnt sealed yet, therefore it goes into this one
-            # structs will never go into mappings so hard coding i32 is fine here
             if type(lastRegUsed) != int:
                 lastRegUsed = int(lastRegUsed[2:])
             
             # TODO: structs won't be i32
+            # NEED TO GET THE LLVMTYPE OF STRUCTS IN MAPPINGS SOMEHOW
             currentNode.mappings[identifier] = ('i32', lastRegUsed+1, currentNode.id)
             currentNode.llvmCode.append(f'{lastRegUsed+1}-{currentNode.id}-{identifier}-*')
             return lastRegUsed+1, 'i32', currentNode.id
@@ -260,7 +260,11 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             if type(lastRegUsed) == str and is_number(lastRegUsed[2:]):
                 lastRegUsed = int(lastRegUsed[2:])
             currentNode.mappings[identifier] = (llvmType, f'{lastRegUsed+1}', currentNode.id)
-            currentNode.llvmCode.insert(0, f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}')
+            if len(currentNode.llvmCode) > 0 and currentNode.llvmCode[0][-1] == ':':
+                currentNode.llvmCode.insert(1, f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}')
+            else:
+                currentNode.llvmCode.insert(0, f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}')
+
             return lastRegUsed+1, llvmType, currentNode.id
 
 
@@ -331,7 +335,10 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         currentID = exprReg
 
     # llvmType should always be %struct.__*
-    currentIDTypeID = llvmType[8:-1]
+    if(llvmType[0] == '%'):
+        currentIDTypeID = llvmType[8:-1]
+    else:
+        currentIDTypeID = llvmType
 
     for id in expression.ids[1:]:
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(id.identifier, types[currentIDTypeID])

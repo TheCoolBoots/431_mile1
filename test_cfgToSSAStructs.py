@@ -112,26 +112,33 @@ class test_cfg_generator(unittest.TestCase):
     #     self.assertEqual(actual, expected)
 
 
-    # void values - try to do stuff with a void value?
-    def test_void(self):
-        ast = importMiniFile('miniFiles/voidTest.mini')
-        # ast = importMiniFile("benchmarks/killerBubbles/killerBubbles.mini")
+    # # void values - try to do stuff with a void value?
+    # def test_void(self):
+    #     ast = importMiniFile('miniFiles/voidTest.mini')
+    #     # ast = importMiniFile("benchmarks/killerBubbles/killerBubbles.mini")
+    #     actual = topSSACompile(ast)
+
+    #     expected = ['%struct.A = type {i32, i32}', 
+    #     'define void @deathSort() {', 
+    #     'l1:', 
+    #     'ret null', 
+    #     '}', 
+    #     'define i32 @main() {', 
+    #     'l1:', 
+    #     '%t1 = call i8* @malloc(8)', 
+    #     '%t2 = bitcast i8* %t1 to %struct.A*', 
+    #     '%t3 = call void @deathSort()', 
+    #     'ret null', 
+    #     '}']
+    #     self.assertEqual(expected, actual)
+
+    def test_stats(self):
+        ast = importMiniFile('benchmarks\stats\stats.mini')
         actual = topSSACompile(ast)
 
-        ['%struct.A = type {i32, i32}', 
-        'define void @deathSort() {', 
-        'l1:', 
-        'ret void', 
-        '}', 
-        'define i32 @main() {', 
-        'l1:', 
-        '%t1 = call i8* @malloc(8)', 
-        '%t2 = bitcast i8* %t1 to %struct.A*', 
-        '%t3 = call void @deathSort()', 
-        '%t4 = add i32 0, 0', 
-        'ret i32 %t4', 
-        '}']
         print(actual)
+
+    
 
 
 

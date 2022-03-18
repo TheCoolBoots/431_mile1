@@ -30,7 +30,7 @@ def topSSACompile(prog:m_prog) -> list[str]:
         for param in functionDef.param_declarations:
             paramTypes.append(param.type)
             params.append(f'{getLLVMType(param.type.typeID)} %{param.id.identifier}')
-            params = ', '.join(params)
+        params = ', '.join(params)
         if len(params) == 0:
             params = ''
     

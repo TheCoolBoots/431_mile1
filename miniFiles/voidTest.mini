@@ -13,7 +13,7 @@ fun main() int {
     struct A a;
     int b;
 
-    a = null;
+    a = new A;
     b = 1;
 
     a = deathSort();
