@@ -74,7 +74,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
             accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
 
             if currentID in env and env[currentID][0]:
-                currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load %struct.{currentIDTypeID}** {currentID}')
+                currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load %struct.{currentIDTypeID}*, %struct.{currentIDTypeID}** {currentID}')
                 currentNode.llvmCode.append(f'%t{lastRegUsed + 2} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %t{lastRegUsed + 1}, i32 0, i32 {accessedIDmemNum}')
                 currentID = f'%t{lastRegUsed + 2}'
                 lastRegUsed += 2
@@ -125,7 +125,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
             if expr.identifier in env:
                 # if id is a global variable
                 llvmType = getLLVMType(env[expr.identifier][1].typeID)
-                currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}* @{expr.identifier}'])
+                currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}, {llvmType}* @{expr.identifier}'])
                 return lastRegUsed+1, f'%t{lastRegUsed+1}', llvmType
             # handle with SSA form
             lastRegUsed, varValue, llvmType, lastLabel = readVariable(lastRegUsed, expr.identifier, currentNode)
@@ -238,7 +238,7 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(expression.ids[1].identifier, types[currentIDTypeID])
 
         # load the pointer to struct from pointer pointer
-        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load %struct.{currentIDTypeID}** @{currentID}')
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load %struct.{currentIDTypeID}*, %struct.{currentIDTypeID}** @{currentID}')
         currentNode.llvmCode.append(f'%t{lastRegUsed + 2} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %t{lastRegUsed + 1}, i32 0, i32 {accessedIDmemNum}')
         currentID = f'%t{lastRegUsed + 2}'
         lastRegUsed += 2
