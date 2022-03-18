@@ -373,35 +373,47 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
     # == != <= < > >= - + * / || &&
     match binop.operator:
         case '==':
-            op = 'icmp eq i32'
+            op = 'icmp eq'
+            retType = 'i1'
         case '!=':
-            op = 'icmp ne i32'
+            op = 'icmp ne'
+            retType = 'i1'
         case '<=':
-            op = 'icmp sle i32'
+            op = 'icmp sle'
+            retType = 'i1'
         case '<':
-            op = 'icmp slt i32'
+            op = 'icmp slt'
+            retType = 'i1'
         case '>=':
-            op = 'icmp sge i32'
+            op = 'icmp sge'
+            retType = 'i1'
         case '>':
-            op = 'icmp sgt i32'
+            op = 'icmp sgt'
+            retType = 'i1'
         case '-':
-            op = 'sub i32'
+            op = 'sub'
+            retType = 'i32'
         case '+':
-            op = 'add i32'
+            op = 'add'
+            retType = 'i32'
         case '*':
-            op = 'mul i32'
+            op = 'mul'
+            retType = 'i32'
         case '/':
-            op = 'div i32'
+            op = 'div'
+            retType = 'i32'
         case '||':
-            op = 'or i32'
+            op = 'or'
+            retType = 'i1'
         case '&&':
-            op = 'and i32'
+            op = 'and'
+            retType = 'i1'
 
     if type(lastRegUsed) == str and is_number(lastRegUsed[2:]):
         lastRegUsed = int(lastRegUsed[2:])
-    currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = {op} {leftOpReg}, {rightOpReg}')
+    currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = {op} {leftLLVMType} {leftOpReg}, {rightOpReg}')
 
-    return lastRegUsed + 1, 'i32'
+    return lastRegUsed + 1, retType
 
 
 def unaryToSSA(lastRegUsed:int, exp:m_unary, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str]:
