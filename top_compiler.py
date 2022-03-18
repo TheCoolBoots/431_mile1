@@ -11,7 +11,8 @@ def top_compile(miniFile, outputFile = 'compilerOutput.ll', useMemory = False):
 
     ast = importMiniFile(miniFile)
 
-    retType = typeCheckProgram(ast)
+    # retType = typeCheckProgram(ast)
+    retType = 'temp'
 
     code = []
     # These can change a lot depending on how its compiled
