@@ -107,7 +107,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
         # if it is not in top_env, it is a local variable and is dealt with through SSA form
         if immediate:
             exprType = exprType + '_immediate'
-        if type(exprReg) == str:
+        if type(exprReg) == str and is_number(exprReg[2:]):
             exprReg = int(exprReg[2:])
         currentNode.mappings[targetStrings[0]] = (exprType, exprReg, currentNode.id)
         return lastRegUsed, exprType
@@ -257,7 +257,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             phiParams = ', '.join(phiParams)
 
             # map variable to phi node
-            if type(lastRegUsed) == str:
+            if type(lastRegUsed) == str and is_number(lastRegUsed[2:]):
                 lastRegUsed = int(lastRegUsed[2:])
             currentNode.mappings[identifier] = (llvmType, f'{lastRegUsed+1}', currentNode.id)
             currentNode.llvmCode.insert(0, f'%t{lastRegUsed+1} = phi {llvmType} {phiParams}')
@@ -397,7 +397,7 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
         case '&&':
             op = 'and i32'
 
-    if type(lastRegUsed) == str:
+    if type(lastRegUsed) == str and is_number(lastRegUsed[2:]):
         lastRegUsed = int(lastRegUsed[2:])
     currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = {op} {leftOpReg}, {rightOpReg}')
 
@@ -457,3 +457,10 @@ def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[in
     for i, decl in enumerate(declarations):
         if decl.id.identifier == id:
             return (i, decl.type.typeID)
+
+def is_number(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
