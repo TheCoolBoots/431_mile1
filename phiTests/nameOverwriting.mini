@@ -1,0 +1,13 @@
+struct i
+{
+   int i;
+};
+
+int i;
+
+fun main() int
+{
+    int i;
+    i = 5;
+    return i;
+}

@@ -124,14 +124,16 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
 def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, str]:
     match expr:
         case m_id():
-            if expr.identifier in env:
-                # if id is a global variable
+            readRet = readVariable(lastRegUsed, expr.identifier, currentNode)
+
+            # if id is a global variable
+            if readRet == None:
                 llvmType = getLLVMType(env[expr.identifier][1].typeID)
                 currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}, {llvmType}* @{expr.identifier}'])
                 return lastRegUsed+1, f'%t{lastRegUsed+1}', llvmType
+            
             # handle with SSA form
-            lastRegUsed, varValue, llvmType, lastLabel = readVariable(lastRegUsed, expr.identifier, currentNode)
-            return lastRegUsed, varValue, llvmType
+            return readRet[0], readRet[1], readRet[2]
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
         case m_num():
@@ -177,7 +179,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # NEED TO GET THE LLVMTYPE OF STRUCTS IN MAPPINGS SOMEHOW
             identifierType = currentNode.progRootNode.mappings[identifier][0]
             currentNode.mappings[identifier] = (identifierType, f'%t{lastRegUsed+1}', currentNode.id)
-            currentNode.llvmCode.append(f'{lastRegUsed+1}-{currentNode.id}-{identifier}-*')
+            currentNode.llvmCode.insert(0, f'{lastRegUsed+1}-{currentNode.id}-{identifier}-*')
             return lastRegUsed+1, f'%t{lastRegUsed+1}', identifierType, currentNode.id
         elif len(currentNode.prevNodes) == 0:
             # val is undefined

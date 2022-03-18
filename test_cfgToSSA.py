@@ -120,8 +120,8 @@ class test_cfgToSSA(unittest.TestCase):
         expected = ['l1:', 
                     'br label %l2', 
                     'l2:', 
-                    '1-2-x-*', 
                     '3-2-y-*', 
+                    '1-2-x-*', 
                     '%t5 = icmp slt i32 %t1, 5', 
                     'br i1 %t5, label %l3, label %l4', 
                     'l3:', 
@@ -138,8 +138,8 @@ class test_cfgToSSA(unittest.TestCase):
         expected2 = ['l1:', 
                     'br label %l2', 
                     'l2:', 
-                    '%t1 = phi i32 [%t2, %l3], [3, %l1]', 
                     '%t3 = phi i32 [%t4, %l3], [2, %l1]', 
+                    '%t1 = phi i32 [%t2, %l3], [3, %l1]', 
                     '%t5 = icmp slt i32 %t1, 5', 
                     'br i1 %t5, label %l3, label %l4', 
                     'l3:', 
@@ -173,9 +173,9 @@ class test_cfgToSSA(unittest.TestCase):
         expected = ['l1:', 
                     'br label %l2', 
                     'l2:', 
-                    '%t1 = phi i32 [%t9, %l10], [0, %l1]', # val1
-                    '%t3 = phi i32 [%t10, %l10], [0, %l1]', # val2
-                    '%t5 = phi i32 [%t7, %l10], [0, %l1]',  # check
+                    '%t5 = phi i32 [%t7, %l10], [0, %l1]', # check
+                    '%t3 = phi i32 [%t9, %l10], [0, %l1]', # val2
+                    '%t1 = phi i32 [%t10, %l10], [0, %l1]', # val1
                     'br i1 1, label %l3, label %l11', 
                     # while loop
                     'l3:', 
@@ -191,8 +191,8 @@ class test_cfgToSSA(unittest.TestCase):
                     '%t4 = add i32 %t3, 1', 
                     'br label %l7', 
                     'l7:', 
-                    '%t10 = phi i32 [%t3, %l5], [%t4, %l6]',  # val2
-                    '%t9 = phi i32 [%t2, %l5], [%t1, %l6]',  # val1
+                    '%t10 = phi i32 [%t2, %l5], [%t1, %l6]', # val1
+                    '%t9 = phi i32 [%t3, %l5], [%t4, %l6]',  # val2
                     '%t6 = phi i32 [%t5, %l5], [%t5, %l6]',  # check
                     '%t7 = add i32 %t6, 1', 
                     'br label %l8', 
@@ -303,6 +303,19 @@ class test_cfgToSSA(unittest.TestCase):
 
         # print(actual)
         self.assertEqual(actual,expected)
+
+    def test_overwriteLabels(self):
+        ast = importMiniFile('phiTests/nameOverwriting.mini')
+        actual = topSSACompile(ast)
+
+        expected = ['%struct.i = type {i32}', 
+                    '@i = common dso_local global i32 0', 
+                    'define i32 @main() {', 
+                    'l1:', 
+                    'ret i32 5', 
+                    '}']
+
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':
