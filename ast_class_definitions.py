@@ -138,7 +138,7 @@ class m_function:
         # TODO: figure out why the environment maps to a tuple with True and m_type
         # BOOL True means it is a global variable, False means local variable
         paramDeclarations = {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in self.param_declarations}
-        localDeclarations = {decl.id.identifier: (getLLVMType(decl.type.typeID), 'null', 'null') for decl in self.body_declarations}
+        localDeclarations = {decl.id.identifier: (getLLVMType(decl.type.typeID), '0', 'null') for decl in self.body_declarations}
         return paramDeclarations | localDeclarations
     
     def __eq__(self, __o: object) -> bool:
