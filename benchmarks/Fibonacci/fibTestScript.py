@@ -1,20 +1,25 @@
 import os
 import time
 
+passes = 30
+funInput = 38
 
-# start a timer
-start = time.time()
+i = 0
+sum = 0
+while i < passes:
+    # start a timer
+    start = time.time()
+
+    # run the file with input
+    os.system("echo " + str(funInput) + " | ./a.out")
+
+    # end timer
+    end = time.time()
+
+    # add to overall time sum
+    sum += (end - start)
+    i += 1
 
 
-# run the file with input
-os.system("./a.out")
-
-
-# how do we do command line input?
-os.system("3")
-
-# end timer
-end = time.time()
-
-# print the difference
-print(str(end - start))
+# print the average time => time sum / # of passes
+print("average runtime: " + str(sum / passes))
