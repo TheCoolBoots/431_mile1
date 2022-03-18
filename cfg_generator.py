@@ -5,17 +5,21 @@ from typing import Tuple
 def generateProgCFGs(prog:m_prog) -> list[Function_CFG]:
     graphs = []
     for fun in prog.functions:
-        returnNode = CFG_Node(0, 'return node')
+        returnNode = CFG_Node(0, 'return node', None)
         lastIDUsed = 0
         lastIDUsed, entryNode, exitNode, returnNode = generateStatementsCFG(lastIDUsed, fun.statements, returnNode)
+        returnNode.progRootNode = entryNode
         graphs.append(Function_CFG(entryNode, returnNode, fun))
     return graphs
 
 
 # returns a cfg with a single entry and exit node built from a list of statements
 # returns (lastIDUsed:int, entryNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node)
-def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
-    entryNode = CFG_Node(lastNodeIDUsed + 1, 'statement block node')
+def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_Node, rootNode:CFG_Node = None) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
+    entryNode = CFG_Node(lastNodeIDUsed + 1, 'statement block node', rootNode)
+
+    if rootNode == None:
+        rootNode = entryNode
     lastNodeIDUsed += 1
 
     prevNode = entryNode
@@ -27,7 +31,7 @@ def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_No
                 prevNode.extendStatements(currentStatements)
                 currentStatements = []
 
-                lastNodeIDUsed, condEntry, exitNode, ifRetNode = generateIfCFG(lastNodeIDUsed, statement, returnNode)
+                lastNodeIDUsed, condEntry, exitNode, ifRetNode = generateIfCFG(lastNodeIDUsed, statement, returnNode, rootNode)
                 prevNode.addNextNode(condEntry)
                 condEntry.addPrevNode(prevNode)
 
@@ -44,7 +48,7 @@ def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_No
             case m_loop():
                 prevNode.extendStatements(currentStatements)
                 currentStatements = []
-                lastNodeIDUsed, condEntry, exitNode, loopRetNode = generateLoopCFG(lastNodeIDUsed, statement, returnNode)
+                lastNodeIDUsed, condEntry, exitNode, loopRetNode = generateLoopCFG(lastNodeIDUsed, statement, returnNode, rootNode)
                 prevNode.addNextNode(condEntry)
                 condEntry.addPrevNode(prevNode)
 
@@ -71,18 +75,18 @@ def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_No
 
 # returns a cfg with a single entry and (exit node or return node) built from a conditional
 # returns (lastIDUsed:int, entryNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node)
-def generateIfCFG(lastNodeIDUsed:int, cond:m_conditional, returnNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
-    guardNode = CFG_Node(lastNodeIDUsed+1, 'if guard node', guardExpression=cond.guard_expression)
+def generateIfCFG(lastNodeIDUsed:int, cond:m_conditional, returnNode:CFG_Node, rootNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
+    guardNode = CFG_Node(lastNodeIDUsed+1, 'if guard node', rootNode, guardExpression=cond.guard_expression)
     lastNodeIDUsed += 1
-    exitNode = CFG_Node(-1, 'if exit node')
+    exitNode = CFG_Node(-1, 'if exit node', rootNode)
 
-    lastNodeIDUsed, ifBlockEntry, ifBlockExit, ifReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.if_statements, returnNode)
+    lastNodeIDUsed, ifBlockEntry, ifBlockExit, ifReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.if_statements, returnNode, rootNode)
     ifBlockEntry.addPrevNode(guardNode)
     guardNode.addNextNode(ifBlockEntry)
 
     elseReturnNode = -1
     if cond.else_statements != [None]:
-        lastNodeIDUsed, elseBlockEntry, elseBlockExit, elseReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.else_statements, returnNode)
+        lastNodeIDUsed, elseBlockEntry, elseBlockExit, elseReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.else_statements, returnNode, rootNode)
         elseBlockEntry.addPrevNode(guardNode)
         guardNode.addNextNode(elseBlockEntry)
 
@@ -116,12 +120,12 @@ def generateIfCFG(lastNodeIDUsed:int, cond:m_conditional, returnNode:CFG_Node) -
 
 # returns a cfg with a single entry and exit node built from a loop
 # returns (lastIDUsed:int, entryNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node)
-def generateLoopCFG(lastNodeIDUsed:int, loop:m_loop, returnNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
-    guardNode = CFG_Node(lastNodeIDUsed+1, 'while guard node', guardExpression=loop.guard_expression)
+def generateLoopCFG(lastNodeIDUsed:int, loop:m_loop, returnNode:CFG_Node, rootNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
+    guardNode = CFG_Node(lastNodeIDUsed+1, 'while guard node', rootNode, guardExpression=loop.guard_expression)
     lastNodeIDUsed += 1
-    exitNode = CFG_Node(-1, 'while exit node')
+    exitNode = CFG_Node(-1, 'while exit node', rootNode)
 
-    lastNodeIDUsed, whileEntry, whileExit, whileReturnNode = generateStatementsCFG(lastNodeIDUsed, loop.body_statements, returnNode)
+    lastNodeIDUsed, whileEntry, whileExit, whileReturnNode = generateStatementsCFG(lastNodeIDUsed, loop.body_statements, returnNode, rootNode)
     guardNode.addNextNode(whileEntry)
     guardNode.addNextNode(exitNode)
     exitNode.addPrevNode(guardNode)

@@ -135,8 +135,9 @@ class m_function:
     def getSSALocalMappings(self):
         # TODO: figure out why the environment maps to a tuple with True and m_type
         # BOOL True means it is a global variable, False means local variable
-        allDeclarations = self.param_declarations + self.body_declarations
-        return {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in allDeclarations}
+        paramDeclarations = {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in self.param_declarations}
+        localDeclarations = {decl.id.identifier: (getLLVMType(decl.type.typeID), None, None) for decl in self.body_declarations}
+        return paramDeclarations | localDeclarations
     
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):
@@ -341,7 +342,7 @@ class CFG_Node():
 
 
 class CFG_Node():
-    def __init__(self, id:int, label:str, sealed = True, guardExpression = None) -> None:
+    def __init__(self, id:int, label:str, rootNode:CFG_Node, sealed = True, guardExpression = None) -> None:
         self.id = id
         self.label = label
         self.ast_statements = []
@@ -352,6 +353,7 @@ class CFG_Node():
         self.mappings = {}
         self.visited = False
         self.llvmCode = []
+        self.progRootNode = rootNode
 
     def addPrevNode(self, node:CFG_Node):
         self.prevNodes.append(node)

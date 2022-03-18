@@ -132,11 +132,11 @@ class test_cfg_generator(unittest.TestCase):
     #     '}']
     #     self.assertEqual(expected, actual)
 
-    def test_stats(self):
-        ast = importMiniFile('benchmarks\stats\stats.mini')
-        actual = topSSACompile(ast)
+    # def test_stats(self):
+    #     ast = importMiniFile('benchmarks\stats\stats.mini')
+    #     actual = topSSACompile(ast)
 
-        print(actual)
+    #     print(actual)
 
     
 

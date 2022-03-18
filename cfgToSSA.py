@@ -39,9 +39,9 @@ def topSSACompile(prog:m_prog) -> list[str]:
         functions[functionDef.id.identifier] = (functionDef.return_type, paramTypes)
 
         # register 0 will be reserved for the return value
-        lastRegUsed = firstCFGPass(fnode, top_env, types, functions)
-        sealUnsealedBlocks(lastRegUsed, fnode)
         sortedNodes = topologicalCFGSort(fnode, False)
+        lastRegUsed = firstCFGPass(sortedNodes, top_env, types, functions)
+        sealUnsealedBlocks(lastRegUsed, fnode)
         for n in sortedNodes:
             lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, n, top_env, types, functions)
         
@@ -54,7 +54,7 @@ def topSSACompile(prog:m_prog) -> list[str]:
     return code
 
 
-def sealUnsealedBlocks(lastRegUsed:int, fnode:Function_CFG):
+def sealUnsealedBlocks(lastRegUsed:int, fnode:Function_CFG) -> int:
     unsealedNodes = fnode.getUnsealedNodes()
 
     for nodeID, node in unsealedNodes.items():
@@ -67,32 +67,16 @@ def sealUnsealedBlocks(lastRegUsed:int, fnode:Function_CFG):
                 lastRegUsed, newLine = readUnsealedBlock(lastRegUsed, node, targetID, targetReg)
                 node.llvmCode[i] = newLine
         unsealedNodes[nodeID].sealed = True
+    return lastRegUsed
 
 # generates initial mappings and phi nodes
-def firstCFGPass(functionNode:Function_CFG, top_env, types, functions) -> int:
-    nodeReferences = {}
-    queue = []
-    queue.append(functionNode.rootNode)
+def firstCFGPass(nodes:list[CFG_Node], top_env, types, functions) -> int:
     lastRegUsed = 0
-    while queue != []:
-        currNode = queue.pop(0)
-        if currNode.id in nodeReferences:
-            continue
-        else:
-            nodeReferences[currNode.id] = currNode
-            lastRegUsed = cfgNodeToSSA(lastRegUsed, currNode, top_env, types, functions)
-        for node in currNode.nextNodes:
-            queue.append(node)
 
-    return lastRegUsed
-    
+    for node in nodes:
+        for statement in node.ast_statements:
+            lastRegUsed = statementToSSA(lastRegUsed, statement, top_env, types, functions, node)
 
-
-# generates ssa code for statements inside a single cfg node
-# returns the last register used
-def cfgNodeToSSA(lastRegUsed:int, node:CFG_Node, top_env, types, functions) -> int:
-    for statement in node.ast_statements:
-        lastRegUsed, llvmType = statementToSSA(lastRegUsed, statement, top_env, types, functions, node)
     return lastRegUsed
 
 
@@ -138,44 +122,34 @@ def addNodeLabelsAndBranches(lastRegUsed, node:CFG_Node, top_env, types, functio
             if not node.visited:
                 node.llvmCode.insert(0, f'l{node.id}:')
                 node.visited = True
-                if len(node.nextNodes) != 0 and node.nextNodes[0].id != 0:
+                if len(node.nextNodes) > 0 and node.nextNodes[0].id != 0:
                     node.llvmCode.append(f'br label %l{node.nextNodes[0].id}')
                 return lastRegUsed
         case 'while guard node':
             if not node.visited:
                 node.visited = True
                 node.llvmCode.insert(0, f'l{node.id}:')
-                exprReg, exprType = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
-
-                if 'immediate' not in exprType:
-                    lastRegUsed = exprReg
-                    exprReg = f'%t{exprReg}'
-                else:
-                    exprType = exprType.split('_')[0]
+                lastRegUsed, exprVal, exprType = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
 
                 whileBody = node.nextNodes[0]
                 whileExit = node.nextNodes[1]
 
-                node.llvmCode.append(f'br i1 {exprReg}, label %l{whileBody.id}, label %l{whileExit.id}')
+                node.llvmCode.append(f'br i1 {exprVal}, label %l{whileBody.id}, label %l{whileExit.id}')
                 return lastRegUsed
         case 'if guard node':
             if not node.visited:
                 node.visited = True
                 node.llvmCode.insert(0, f'l{node.id}:')
 
-                exprReg, exprType = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
-                if 'immediate' not in exprType:
-                    lastRegUsed = exprReg
-                    exprReg = f'%t{exprReg}'
-                else:
-                    exprType = exprType.split('_')[0]
+                lastRegUsed, exprVal, exprType = expressionToSSA(lastRegUsed, node.guardExpression, top_env, types, functions, node)
+
                 # every if gard node will have only 2 nodes after it
                 # the node at index 0 will always be the body node
                 # the node at index 1 will always be the else/exit node
                 ifBlock = node.nextNodes[0]
                 elseBlock = node.nextNodes[1]
 
-                node.llvmCode.append(f'br i1 {exprReg}, label %l{ifBlock.id}, label %l{elseBlock.id}')
+                node.llvmCode.append(f'br i1 {exprVal}, label %l{ifBlock.id}, label %l{elseBlock.id}')
                 return lastRegUsed
         case 'return node':
             if not node.visited:
