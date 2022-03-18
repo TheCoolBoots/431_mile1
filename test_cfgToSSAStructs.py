@@ -72,102 +72,52 @@ class test_cfg_generator(unittest.TestCase):
                     '%t6 = getelementptr %struct.A, %struct.A* %t4, i32 0, i32 1', 
                     'store i32 2, i32* %t6', 
                     '%t7 = getelementptr %struct.A, %struct.A* %t4, i32 0, i32 1', 
-                    '%t8 = load i32* %t%t7', 
+                    '%t8 = load i32, i32* %t7', 
                     'ret i32 %t8']
 
         self.assertEqual(actual, expected)
 
 
-    # # global variables
-    # def test_global_variables(self):
-    #     ast = importMiniFile('miniFiles/globalVariables.mini')
-    #     cfgs = generateProgCFGs(ast)
-    #     types = ast.getTopTypeEnv()
-    #     top_env = ast.getTopEnv(False)
-    #     functions = {}
-    #     lastRegUsed = firstCFGPass(cfgs[0], types, top_env, functions)
+    # global variables
+    def test_nested_structs(self):
+        ast = importMiniFile('miniFiles/nestedStruct.mini')
+        cfgs = generateProgCFGs(ast)
+        types = ast.getTypes()
+        top_env = ast.getTopEnv(False)
+        functions = {}
+        lastRegUsed = firstCFGPass(cfgs[0], top_env, types, functions)
 
-    #     sealUnsealedBlocks(lastRegUsed, cfgs[0])
+        sealUnsealedBlocks(lastRegUsed, cfgs[0])
 
-    #     sortedNodes = topologicalCFGSort(cfgs[0], False)
-    #     for node in sortedNodes:
-    #         lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, node, top_env, types, functions)
-    #     actual = buildLLVM(sortedNodes)
+        sortedNodes = topologicalCFGSort(cfgs[0], False)
+        for node in sortedNodes:
+            lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, node, top_env, types, functions)
+        actual = buildLLVM(sortedNodes)
 
-    #     print(actual)
+        expected = ['l1:', 
+                    '%t1 = call i8* @malloc(8)', 
+                    '%t2 = bitcast i8* %t1 to %struct.A*', 
+                    '%t3 = call i8* @malloc(8)', 
+                    '%t4 = bitcast i8* %t3 to %struct.A*', 
+                    '%t5 = getelementptr %struct.A, %struct.A* %t2, i32 0, i32 1', 
+                    'store %struct.A* %t4, %struct.A** %t5', 
+                    '%t6 = getelementptr %struct.A, %struct.A* %t2, i32 0, i32 1', 
+                    '%t7 = getelementptr %struct.A, %struct.A* 6, i32 0, i32 0', 
+                    'store i32 2, i32* %t7', 
+                    '%t8 = getelementptr %struct.A, %struct.A* %t2, i32 0, i32 1', 
+                    '%t9 = getelementptr %struct.A, %struct.A* %t8, i32 0, i32 0', 
+                    '%t10 = load i32, i32* %t9', 
+                    'ret i32 %t10']
 
-
-    #     expected = []
-    #     self.assertEqual(actual, expected)
-
-
-    # # print
-    # def test_print(self):
-    #     ast = importMiniFile('miniFiles/printTest.mini')
-    #     cfgs = generateProgCFGs(ast)
-    #     types = ast.getTopTypeEnv()
-    #     top_env = ast.getTopEnv(False)
-    #     functions = {}
-    #     lastRegUsed = firstCFGPass(cfgs[0], types, top_env, functions)
-
-    #     sealUnsealedBlocks(lastRegUsed, cfgs[0])
-
-    #     sortedNodes = topologicalCFGSort(cfgs[0], False)
-    #     for node in sortedNodes:
-    #         lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, node, top_env, types, functions)
-    #     actual = buildLLVM(sortedNodes)
-
-    #     print(actual)
+        self.assertEqual(actual, expected)
 
 
-    #     expected = []
-    #     self.assertEqual(actual, expected)
-
-
-    # # delete
-    # def test_delete(self):
-    #     ast = importMiniFile('miniFiles/deleteTest.mini')
-    #     cfgs = generateProgCFGs(ast)
-    #     types = ast.getTopTypeEnv()
-    #     top_env = ast.getTopEnv(False)
-    #     functions = {}
-    #     lastRegUsed = firstCFGPass(cfgs[0], types, top_env, functions)
-
-    #     sealUnsealedBlocks(lastRegUsed, cfgs[0])
-
-    #     sortedNodes = topologicalCFGSort(cfgs[0], False)
-    #     for node in sortedNodes:
-    #         lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, node, top_env, types, functions)
-    #     actual = buildLLVM(sortedNodes)
-
-    #     print(actual)
-
-
-    #     expected = []
-    #     self.assertEqual(actual, expected)
-
-
-    # # void values - try to do stuff with a void value?
-    # def test_void(self):
-    #     ast = importMiniFile('miniFiles/voidTest.mini')
-    #     cfgs = generateProgCFGs(ast)
-    #     types = ast.getTopTypeEnv()
-    #     top_env = ast.getTopEnv(False)
-    #     functions = {}
-    #     lastRegUsed = firstCFGPass(cfgs[0], types, top_env, functions)
-
-    #     sealUnsealedBlocks(lastRegUsed, cfgs[0])
-
-    #     sortedNodes = topologicalCFGSort(cfgs[0], False)
-    #     for node in sortedNodes:
-    #         lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, node, top_env, types, functions)
-    #     actual = buildLLVM(sortedNodes)
-
-    #     print(actual)
-
-
-    #     expected = []
-    #     self.assertEqual(actual, expected)
+    # void values - try to do stuff with a void value?
+    def test_void(self):
+        ast = importMiniFile('miniFiles/voidTest.mini')
+        # ast = importMiniFile("benchmarks/killerBubbles/killerBubbles.mini")
+        # actual = topSSACompile(ast)
+        # print(actual)
 
 
 

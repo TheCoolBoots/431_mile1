@@ -1,0 +1,16 @@
+struct A
+{
+   int a;
+   struct A b;
+};
+
+fun main() int {
+    struct A a;
+
+    a = new A;
+    a.b = new A;
+
+    a.b.a = 2;
+
+    return a.b.a;
+}

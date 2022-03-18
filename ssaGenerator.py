@@ -342,11 +342,11 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         currentIDTypeID = accessedTypeID
     
     if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
-        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load i32* %t{currentID}')
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load i32, i32* {currentID}')
         return lastRegUsed+1, 'i32'
     else:
         llvmType = getLLVMType(currentIDTypeID)
-        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load {llvmType}* %t{currentID}')
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load {llvmType}, {llvmType}* {currentID}')
         return lastRegUsed+1, llvmType
 
 
