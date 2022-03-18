@@ -273,14 +273,15 @@ class test_cfg_generator(unittest.TestCase):
         actual = topSSACompile(ast)
 
         expected = ['define void @boolean(i32 %a) {', 
-        'l1:', 
-        '%t1 = add i32 %a, 1', 
-        '}', 
-        'define i32 @main() {', 
-        'l1:', 
-        'call void @boolean(i32 5)', 
-        'ret i32 1', 
-        '}']
+                    'l1:', 
+                    '%t1 = add i32 %a, 1', 
+                    'ret void'
+                    '}', 
+                    'define i32 @main() {', 
+                    'l1:', 
+                    'call void @boolean(i32 5)', 
+                    'ret i32 1', 
+                    '}']
 
         self.assertEqual(actual, expected)
 
