@@ -48,7 +48,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = bitcast {exprType} %t{exprReg} to i8*',
                             f'call void @free(i8* %t{lastRegUsed + 1})'])
             # env.pop(exprReg)
-            return lastRegUsed + 1, 'void'
+            return lastRegUsed + 1, 'null'
         case m_ret():
             return retToSSA(lastRegUsed, stmt, env, types, functions, currentNode)
         case other:
@@ -58,8 +58,8 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
 
 def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if ret.expression == None:
-        currentNode.llvmCode.append(f'ret void')
-        return lastRegUsed, 'void'
+        currentNode.llvmCode.append(f'ret null')
+        return lastRegUsed, 'null'
 
     returnReg, retType = expressionToSSA(lastRegUsed, ret.expression, env, types, functions, currentNode)
 
@@ -68,8 +68,8 @@ def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, c
     else:
         retType = retType.split('_')[0]
 
-    if(retType == 'void'):
-        currentNode.llvmCode.append(f'ret void')
+    if(retType == 'null'):
+        currentNode.llvmCode.append(f'ret null')
     else:
         currentNode.llvmCode.append(f'ret {retType} {returnReg}')
 
@@ -86,6 +86,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
     else:
         exprType = exprType.split('_')[0]
         immediate = True
+
 
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
@@ -184,8 +185,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
             return lastRegUsed+2, f'%struct.{expr.struct_id.identifier}*'
         case m_null():
             # keeping it like this ensures functionality for rest of compiler
-            currentNode.llvmCode.append(f'%t{lastRegUsed+1} = add i32 0, 0')
-            return lastRegUsed+1, 'i32'
+            return 'null', 'null_immediate'
         case m_invocation():
             return invocationToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_read():
