@@ -286,6 +286,9 @@ class test_cfgToSSA(unittest.TestCase):
                     'ret i32 1', 
                     '}']
 
+
+        # print(actual)
+
         self.assertEqual(actual, expected)
 
     def test_weirdReturn(self):
@@ -314,6 +317,35 @@ class test_cfgToSSA(unittest.TestCase):
                     'l1:', 
                     'ret i32 5', 
                     '}']
+
+        self.assertEqual(actual, expected)
+
+    def test_bertSubset(self):
+        ast = importMiniFile('phiTests/bertSubset.mini')
+        actual = topSSACompile(ast)
+
+        expected = ['%struct.tnode = type {i32, %struct.tnode*, %struct.tnode*}', 
+                    'define void @freeTree(%struct.tnode* %root) {', 
+                    'l1:', 
+                    'br label %l2', 
+                    'l2:', 
+                    '%t6 = icmp eq %struct.tnode* %root, null', 
+                    '%t7 = xor i1 1, %t6', 
+                    'br i1 %t7, label %l3, label %l4', 
+                    'l3:', 
+                    '%t1 = getelementptr %struct.tnode, %struct.tnode* %root, i32 0, i32 1', 
+                    '%t2 = load %struct.tnode*, %struct.tnode** %t1', 
+                    'call void @freeTree(%struct.tnode* %t2)', 
+                    '%t3 = getelementptr %struct.tnode, %struct.tnode* %root, i32 0, i32 2', 
+                    '%t4 = load %struct.tnode*, %struct.tnode** %t3', 
+                    'call void @freeTree(%struct.tnode* %t4)', 
+                    '%t5 = bitcast %struct.tnode* %root to i8*', 
+                    'call void @free(i8* %t5)', 
+                    'br label %l4', 
+                    'l4:', 
+                    'ret void',
+                    '}']
+        # print(actual)
 
         self.assertEqual(actual, expected)
 

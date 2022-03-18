@@ -46,7 +46,15 @@ def topSSACompile(prog:m_prog) -> list[str]:
         
         sealUnsealedBlocks(lastRegUsed, fnode)
 
-        functionCode.extend(buildLLVM(sortedNodes))
+        funCode = buildLLVM(sortedNodes)
+
+        if 'ret' not in funCode[-1]:
+            if sortedNodes[0].llvmRetType == 'void':
+                funCode.append ('ret void')
+            else:
+                funCode.append(f'ret {sortedNodes[0].llvmRetType} null')
+
+        functionCode.extend(funCode)
         functionCode.append('}')
 
 

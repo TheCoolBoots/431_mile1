@@ -1,0 +1,17 @@
+struct tnode
+{
+   int data;
+   struct tnode left;
+   struct tnode right;
+};
+
+
+fun freeTree(struct tnode root) void
+{
+   if (!(root == null))
+   {
+      freeTree(root.left);
+      freeTree(root.right);
+      delete root;
+   }
+}
