@@ -140,15 +140,15 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
             currentNode.llvmCode.append(f'store {llvmType} {exprReg}, {llvmType}* %t{currentID}')
             return lastRegUsed, llvmType
 
-        exprReg, llvmType, lastLabel = readVarRet
+        lookupReg, llvmType, lastLabel = readVarRet
 
         if 'immediate' not in llvmType:
-            lastRegUsed = exprReg
+            lastRegUsed = lookupReg
                 # exprReg = f'%t{exprReg}'
         else:
             llvmType = llvmType.split('_')[0]
 
-        currentID = exprReg
+        currentID = lookupReg
         currentIDTypeID = llvmType[8:-1]
         for id in targetStrings[1:]:
             accessedIDmemNum, accessedTypeID = getNestedDeclaration(id, types[currentIDTypeID])
@@ -156,6 +156,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
             currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* {currentID}, i32 0, i32 {accessedIDmemNum}')
             currentID = lastRegUsed + 1
             lastRegUsed += 1
+            currentIDTypeID = accessedTypeID
         
         if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
             currentNode.llvmCode.append(f'store i32 {exprReg}, i32* %t{currentID}')
@@ -298,7 +299,7 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         outputCode = []
         
         for accessedm_id in expression.ids[1:]:
-            accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
+            accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id. identifier, types[currentIDTypeID])
 
             if currentID in env and env[currentID][0]:
                 currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load %struct.{currentIDTypeID}** @{currentID}')
@@ -314,34 +315,39 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
             currentIDTypeID = accessedTypeID
 
         llvmType = getLLVMType(currentIDTypeID)
-        currentNode.llvmCode.append(f'store {llvmType} {exprReg}, {llvmType}* %t{currentID}')
-        return lastRegUsed, llvmType
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load {llvmType}, {llvmType}* %t{currentID}')
+        return lastRegUsed + 1, llvmType
 
     exprReg, llvmType, lastLabel = readVarRet
 
     if 'immediate' not in llvmType:
         lastRegUsed = exprReg
-            # exprReg = f'%t{exprReg}'
     else:
         llvmType = llvmType.split('_')[0]
 
-    currentID = exprReg
+    if type(exprReg) == int:
+        currentID = f'%t{exprReg}'
+    else:
+        currentID = exprReg
+
+    # llvmType should always be %struct.__*
     currentIDTypeID = llvmType[8:-1]
+
     for id in expression.ids[1:]:
         accessedIDmemNum, accessedTypeID = getNestedDeclaration(id.identifier, types[currentIDTypeID])
 
-        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}')
-        currentID = lastRegUsed + 1
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* {currentID}, i32 0, i32 {accessedIDmemNum}')
+        currentID = f'%t{lastRegUsed + 1}'
         lastRegUsed += 1
         currentIDTypeID = accessedTypeID
     
     if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
-        currentNode.llvmCode.append(f'load i32* %t{currentID}')
-        return lastRegUsed, 'i32'
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load i32* %t{currentID}')
+        return lastRegUsed+1, 'i32'
     else:
         llvmType = getLLVMType(currentIDTypeID)
-        currentNode.llvmCode.append(f'load {llvmType}* %t{currentID}')
-        return lastRegUsed, llvmType
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load {llvmType}* %t{currentID}')
+        return lastRegUsed+1, llvmType
 
 
 # == != <= < > >= - + * / || &&
