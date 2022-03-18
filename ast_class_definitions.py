@@ -135,7 +135,8 @@ class m_function:
     def getSSALocalMappings(self):
         # TODO: figure out why the environment maps to a tuple with True and m_type
         # BOOL True means it is a global variable, False means local variable
-        return {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in self.param_declarations}
+        allDeclarations = self.param_declarations + self.body_declarations
+        return {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in allDeclarations}
     
     def __eq__(self, __o: object) -> bool:
         if type(__o) != type(self):

@@ -4,19 +4,19 @@ struct A
    int b;
 };
 
-fun deathSort(struct A head) void
-{
-    int z;
+# make a second function that returns void/null
+fun deathSort() void {
+    return;
 }
 
 fun main() int {
     struct A a;
     int b;
 
-    a = new A;
+    a = null;
     b = 1;
 
-    a.a = null;
+    a = deathSort();
 
-    return 0;
+    return null;
 }

@@ -36,11 +36,6 @@ def topSSACompile(prog:m_prog) -> list[str]:
     
         functionCode.append(f'define {getLLVMType(functionDef.return_type.typeID)} @{functionDef.id.identifier}({params})' + ' {')
 
-        for declaration in functionDef.body_declarations:
-            if declaration.type.typeID != 'int' and declaration.type.typeID != 'bool' and declaration.type.typeID != 'null':
-                top_env[declaration.id.identifier] = declaration.type
-                functionCode.append(declaration.getSSALocals(typeSizes))
-
         functions[functionDef.id.identifier] = (functionDef.return_type, paramTypes)
 
         # register 0 will be reserved for the return value
@@ -143,7 +138,7 @@ def addNodeLabelsAndBranches(lastRegUsed, node:CFG_Node, top_env, types, functio
             if not node.visited:
                 node.llvmCode.insert(0, f'l{node.id}:')
                 node.visited = True
-                if node.nextNodes[0].id != 0:
+                if len(node.nextNodes) != 0 and node.nextNodes[0].id != 0:
                     node.llvmCode.append(f'br label %l{node.nextNodes[0].id}')
                 return lastRegUsed
         case 'while guard node':
