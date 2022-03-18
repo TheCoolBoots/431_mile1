@@ -137,7 +137,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_bool():
             return lastRegUsed, int(expr.val), 'i1'
         case m_new_struct():
-            currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
+            currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = call i8* @malloc(i32 {len(types[expr.struct_id.identifier]) * 4})',
                  f'%t{lastRegUsed + 2} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*'])
             return lastRegUsed+2, f'%t{lastRegUsed + 2}', f'%struct.{expr.struct_id.identifier}*'
         case m_null():

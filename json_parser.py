@@ -34,7 +34,9 @@ def parse(json):
             return m_num(int(json['value']))
 
         case {'line':_, 'exp':'true' | 'false'}:
-            return m_bool(bool(json['exp']))
+            value = json['exp'] == 'true'
+
+            return m_bool(value)
         
         case {'line':_, 'exp':'null'}:
             return m_null()
