@@ -1,6 +1,3 @@
-ERROR: unrecognized structure in AST 
-[<ast_class_definitions.m_id object at 0x1066911e0>]
-ERROR: unrecognized m_statement:[<ast_class_definitions.m_id object at 0x1066911e0>]
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.15.0"
 declare align 16 i8* @malloc(i32) #2

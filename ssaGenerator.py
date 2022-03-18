@@ -23,7 +23,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
             lastRegUsed, exprVal, exprType = expressionToSSA(lastRegUsed, stmt.expression, env, types, functions, currentNode)
             
             if not stmt.endl:
-                instruction = f'%t{lastRegUsed + 1} = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 {exprVal}))'
+                instruction = f'%t{lastRegUsed + 1} = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 {exprVal})'
             else:
                 instruction = f'%t{lastRegUsed + 1} = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 {exprVal})'
             currentNode.llvmCode.append(instruction)
