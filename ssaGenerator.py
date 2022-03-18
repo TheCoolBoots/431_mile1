@@ -31,7 +31,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
         case m_delete():
             lastRegUsed, exprVal, exprType= expressionToSSA(lastRegUsed, stmt.expression, env, types, functions, currentNode)
  
-            currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = bitcast {exprType} %t{exprVal} to i8*',
+            currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = bitcast {exprType} {exprVal} to i8*',
                             f'call void @free(i8* %t{lastRegUsed + 1})'])
             # env.pop(exprReg)
             return lastRegUsed + 1
@@ -51,10 +51,10 @@ def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, c
 
     lastRegUsed, retVal, retType = expressionToSSA(lastRegUsed, ret.expression, env, types, functions, currentNode)
 
-    if(retType == 'null'):
-        currentNode.llvmCode.append(f'ret {retType} void')
-    else:
-        currentNode.llvmCode.append(f'ret {retType} {retVal}')
+    if retType == 'void':
+        currentNode.llvmCode.append(f'ret void')
+    else: 
+        currentNode.llvmCode.append(f'ret {currentNode.llvmRetType} {retVal}')
 
     return lastRegUsed
 
@@ -333,7 +333,7 @@ def unaryToSSA(lastRegUsed:int, exp:m_unary, env:dict, types:dict, functions:dic
 
     match exp.operator:
         case '!':
-            op = f'xor i32 1'
+            op = f'xor i1 1'
         case '-':
             op = f'mul i32 -1'
         

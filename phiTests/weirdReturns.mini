@@ -1,6 +1,6 @@
-fun boolean(int a) void
+fun boolean(int a) int
 {
-    a = a + 1;
+    return null;
 }
 
 fun main() int

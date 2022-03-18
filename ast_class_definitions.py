@@ -138,7 +138,14 @@ class m_function:
         # TODO: figure out why the environment maps to a tuple with True and m_type
         # BOOL True means it is a global variable, False means local variable
         paramDeclarations = {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in self.param_declarations}
-        localDeclarations = {decl.id.identifier: (getLLVMType(decl.type.typeID), '0', 'null') for decl in self.body_declarations}
+        localDeclarations = {}
+        for decl in self.body_declarations:
+            llvmType = getLLVMType(decl.type.typeID)
+            if llvmType[0] == '%':
+                localDeclarations[decl.id.identifier] = (llvmType, 'null', 'null')
+            else:
+                localDeclarations[decl.id.identifier] = (llvmType, '0', 'null')
+                
         return paramDeclarations | localDeclarations
     
     def __eq__(self, __o: object) -> bool:
@@ -344,7 +351,7 @@ class CFG_Node():
 
 
 class CFG_Node():
-    def __init__(self, id:int, label:str, rootNode:CFG_Node, sealed = True, guardExpression = None) -> None:
+    def __init__(self, id:int, label:str, rootNode:CFG_Node, funLLVMRetType:str, sealed = True, guardExpression = None) -> None:
         self.id = id
         self.label = label
         self.ast_statements = []
@@ -356,6 +363,7 @@ class CFG_Node():
         self.visited = False
         self.llvmCode = []
         self.progRootNode = rootNode
+        self.llvmRetType = funLLVMRetType
 
     def addPrevNode(self, node:CFG_Node):
         self.prevNodes.append(node)

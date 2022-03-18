@@ -5,7 +5,7 @@ from top_compiler import importMiniFile
 from cfg_generator import generateProgCFGs
 from cfgToSSA import addNodeLabelsAndBranches, sealUnsealedBlocks, topSSACompile, topologicalCFGSort, buildLLVM, firstCFGPass
 
-class test_cfg_generator(unittest.TestCase):
+class test_cfgToSSA(unittest.TestCase):
 
     def test_topologicalSort(self):
         ast = importMiniFile('phiTests/simpleWhilePhi.mini')
@@ -31,6 +31,7 @@ class test_cfg_generator(unittest.TestCase):
         '  6 -> 7;', 
         '  7 -> 9;', 
         '}']
+
         self.assertEqual(serialized, expectedSerialized)
 
         nodes = functions[0].getAllNodes()
@@ -263,8 +264,10 @@ class test_cfg_generator(unittest.TestCase):
                     'define i32 @main() {', 
                     'l1:', 
                     '%t1 = call i1 @boolean()', 
-                    'ret i1 %t1', 
+                    'ret i32 %t1', 
                     '}']
+
+        # print(actual)
 
         self.assertEqual(actual, expected)
                     
@@ -275,7 +278,7 @@ class test_cfg_generator(unittest.TestCase):
         expected = ['define void @boolean(i32 %a) {', 
                     'l1:', 
                     '%t1 = add i32 %a, 1', 
-                    'ret void'
+                    'ret void',
                     '}', 
                     'define i32 @main() {', 
                     'l1:', 
@@ -284,6 +287,22 @@ class test_cfg_generator(unittest.TestCase):
                     '}']
 
         self.assertEqual(actual, expected)
+
+    def test_weirdReturn(self):
+        ast = importMiniFile('phiTests/weirdReturns.mini')
+        actual = topSSACompile(ast)
+        expected = ['define i32 @boolean(i32 %a) {', 
+                    'l1:', 
+                    'ret i32 null', 
+                    '}', 
+                    'define i32 @main() {', 
+                    'l1:', 
+                    '%t1 = call i32 @boolean(i32 5)', 
+                    'ret i32 %t1', 
+                    '}']
+
+        # print(actual)
+        self.assertEqual(actual,expected)
 
 
 if __name__ == '__main__':

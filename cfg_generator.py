@@ -5,9 +5,14 @@ from typing import Tuple
 def generateProgCFGs(prog:m_prog) -> list[Function_CFG]:
     graphs = []
     for fun in prog.functions:
-        returnNode = CFG_Node(0, 'return node', None)
+        returnNode = CFG_Node(0, 'return node', None, getLLVMType(fun.return_type.typeID))
+        if(fun.return_type == m_type('void')):
+            returnNode.ast_statements.append(m_ret(0, None))
         lastIDUsed = 0
-        lastIDUsed, entryNode, exitNode, returnNode = generateStatementsCFG(lastIDUsed, fun.statements, returnNode)
+        lastIDUsed, entryNode, exitNode, discard = generateStatementsCFG(lastIDUsed, getLLVMType(fun.return_type.typeID), fun.statements, returnNode)
+        if entryNode == exitNode:
+            entryNode.addNextNode(returnNode)
+            returnNode.addPrevNode(entryNode)
         if returnNode != None:
             returnNode.progRootNode = entryNode
         graphs.append(Function_CFG(entryNode, returnNode, fun))
@@ -16,8 +21,8 @@ def generateProgCFGs(prog:m_prog) -> list[Function_CFG]:
 
 # returns a cfg with a single entry and exit node built from a list of statements
 # returns (lastIDUsed:int, entryNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node)
-def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_Node, rootNode:CFG_Node = None) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
-    entryNode = CFG_Node(lastNodeIDUsed + 1, 'statement block node', rootNode)
+def generateStatementsCFG(lastNodeIDUsed:int, llvmRetType:str,  statements:list, returnNode:CFG_Node, rootNode:CFG_Node = None) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
+    entryNode = CFG_Node(lastNodeIDUsed + 1, 'statement block node', rootNode, llvmRetType)
 
     if rootNode == None:
         rootNode = entryNode
@@ -32,7 +37,7 @@ def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_No
                 prevNode.extendStatements(currentStatements)
                 currentStatements = []
 
-                lastNodeIDUsed, condEntry, exitNode, ifRetNode = generateIfCFG(lastNodeIDUsed, statement, returnNode, rootNode)
+                lastNodeIDUsed, condEntry, exitNode, ifRetNode = generateIfCFG(lastNodeIDUsed, llvmRetType, statement, returnNode, rootNode)
                 prevNode.addNextNode(condEntry)
                 condEntry.addPrevNode(prevNode)
 
@@ -49,7 +54,7 @@ def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_No
             case m_loop():
                 prevNode.extendStatements(currentStatements)
                 currentStatements = []
-                lastNodeIDUsed, condEntry, exitNode, loopRetNode = generateLoopCFG(lastNodeIDUsed, statement, returnNode, rootNode)
+                lastNodeIDUsed, condEntry, exitNode, loopRetNode = generateLoopCFG(lastNodeIDUsed, llvmRetType, statement, returnNode, rootNode)
                 prevNode.addNextNode(condEntry)
                 condEntry.addPrevNode(prevNode)
 
@@ -76,18 +81,18 @@ def generateStatementsCFG(lastNodeIDUsed:int, statements:list, returnNode:CFG_No
 
 # returns a cfg with a single entry and (exit node or return node) built from a conditional
 # returns (lastIDUsed:int, entryNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node)
-def generateIfCFG(lastNodeIDUsed:int, cond:m_conditional, returnNode:CFG_Node, rootNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
-    guardNode = CFG_Node(lastNodeIDUsed+1, 'if guard node', rootNode, guardExpression=cond.guard_expression)
+def generateIfCFG(lastNodeIDUsed:int, llvmRetType:str, cond:m_conditional, returnNode:CFG_Node, rootNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
+    guardNode = CFG_Node(lastNodeIDUsed+1, 'if guard node', rootNode, llvmRetType, guardExpression=cond.guard_expression)
     lastNodeIDUsed += 1
-    exitNode = CFG_Node(-1, 'if exit node', rootNode)
+    exitNode = CFG_Node(-1, 'if exit node', rootNode, llvmRetType)
 
-    lastNodeIDUsed, ifBlockEntry, ifBlockExit, ifReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.if_statements, returnNode, rootNode)
+    lastNodeIDUsed, ifBlockEntry, ifBlockExit, ifReturnNode = generateStatementsCFG(lastNodeIDUsed, llvmRetType, cond.if_statements, returnNode, rootNode)
     ifBlockEntry.addPrevNode(guardNode)
     guardNode.addNextNode(ifBlockEntry)
 
     elseReturnNode = -1
     if cond.else_statements != [None]:
-        lastNodeIDUsed, elseBlockEntry, elseBlockExit, elseReturnNode = generateStatementsCFG(lastNodeIDUsed, cond.else_statements, returnNode, rootNode)
+        lastNodeIDUsed, elseBlockEntry, elseBlockExit, elseReturnNode = generateStatementsCFG(lastNodeIDUsed, llvmRetType, cond.else_statements, returnNode, rootNode)
         elseBlockEntry.addPrevNode(guardNode)
         guardNode.addNextNode(elseBlockEntry)
 
@@ -121,12 +126,12 @@ def generateIfCFG(lastNodeIDUsed:int, cond:m_conditional, returnNode:CFG_Node, r
 
 # returns a cfg with a single entry and exit node built from a loop
 # returns (lastIDUsed:int, entryNode:CFG_Node, exitNode:CFG_Node, returnNode:CFG_Node)
-def generateLoopCFG(lastNodeIDUsed:int, loop:m_loop, returnNode:CFG_Node, rootNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
-    guardNode = CFG_Node(lastNodeIDUsed+1, 'while guard node', rootNode, guardExpression=loop.guard_expression)
+def generateLoopCFG(lastNodeIDUsed:int, llvmRetType:str, loop:m_loop, returnNode:CFG_Node, rootNode:CFG_Node) -> Tuple[int, CFG_Node, CFG_Node, CFG_Node]:
+    guardNode = CFG_Node(lastNodeIDUsed+1, 'while guard node', rootNode, llvmRetType, guardExpression=loop.guard_expression)
     lastNodeIDUsed += 1
-    exitNode = CFG_Node(-1, 'while exit node', rootNode)
+    exitNode = CFG_Node(-1, 'while exit node', rootNode, llvmRetType)
 
-    lastNodeIDUsed, whileEntry, whileExit, whileReturnNode = generateStatementsCFG(lastNodeIDUsed, loop.body_statements, returnNode, rootNode)
+    lastNodeIDUsed, whileEntry, whileExit, whileReturnNode = generateStatementsCFG(lastNodeIDUsed, llvmRetType, loop.body_statements, returnNode, rootNode)
     guardNode.addNextNode(whileEntry)
     guardNode.addNextNode(exitNode)
     exitNode.addPrevNode(guardNode)
