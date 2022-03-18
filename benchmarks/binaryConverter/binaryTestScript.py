@@ -1,8 +1,8 @@
 import os
 import time
 
-passes = 30
-funInput = 38
+passes = 10
+funInput = "11100000"
 
 i = 0
 sum = 0
@@ -11,7 +11,7 @@ while i < passes:
     start = time.time()
 
     # run the file with input
-    os.system("echo " + str(funInput) + " | ./biggestSSA.out")
+    os.system("echo " + str(funInput) + " | ./binarySSA.out")
 
     # end timer
     end = time.time()

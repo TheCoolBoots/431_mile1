@@ -1,6 +1,3 @@
-ERROR: unrecognized structure in AST 
-[<ast_class_definitions.m_id object at 0x106d46890>]
-ERROR: unrecognized m_statement:[<ast_class_definitions.m_id object at 0x106d46890>]
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.15.0"
 declare align 16 i8* @malloc(i32) #2
@@ -28,7 +25,7 @@ l5:
 br i1 %t11, label %l6, label %l7
 l6:
 %t3 = add i32 %t1, %t2
-%t5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 %t3))
+%t5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32 %t3)
 %t6 = add i32 %t1, 1
 br label %l5
 l7:
@@ -41,6 +38,7 @@ l1:
 %t1 = alloca i32
 %t2 = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32* %t1)
 %t3 = load i32, i32* %t1
+call i32 @function(i32 %t3)
 %t4 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 0)
 ret i32 0
 }

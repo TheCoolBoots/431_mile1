@@ -1,12 +1,3 @@
-ERROR: unrecognized structure in AST 
-[<ast_class_definitions.m_id object at 0x10ca76230>]
-ERROR: unrecognized structure in AST 
-[<ast_class_definitions.m_id object at 0x10cb7d5d0>]
-ERROR: unrecognized structure in AST 
-[<ast_class_definitions.m_id object at 0x10cb7d630>]
-ERROR: unrecognized m_statement:[<ast_class_definitions.m_id object at 0x10ca76230>]
-ERROR: unrecognized m_statement:[<ast_class_definitions.m_id object at 0x10cb7d5d0>]
-ERROR: unrecognized m_statement:[<ast_class_definitions.m_id object at 0x10cb7d630>]
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.15.0"
 declare align 16 i8* @malloc(i32) #2
@@ -22,8 +13,8 @@ define i32 @multBy4xTimes(%struct.IntHolder* %num, i32 %timesLeft) {
 l1:
 br label %l2
 l2:
-%t9 = icmp sle i32 %timesLeft, 0
-br i1 %t9, label %l3, label %l4
+%t10 = icmp sle i32 %timesLeft, 0
+br i1 %t10, label %l3, label %l4
 l3:
 %t1 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 %t2 = load i32, i32* %t1
@@ -34,27 +25,30 @@ l4:
 %t5 = mul i32 4, %t4
 %t6 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 store i32 %t5, i32* %t6
-%t7 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
-%t8 = load i32, i32* %t7
-ret i32 %t8
+%t7 = sub i32 %timesLeft, 1
+call i32 @multBy4xTimes(%struct.IntHolder* %num, i32 %t7)
+%t8 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
+%t9 = load i32, i32* %t8
+ret i32 %t9
 }
 define void @divideBy8(%struct.IntHolder* %num) {
 l1:
 %t1 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 %t2 = load i32, i32* %t1
-%t3 = div i32 %t2, 2
+%t3 = sdiv i32 %t2, 2
 %t4 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 store i32 %t3, i32* %t4
 %t5 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 %t6 = load i32, i32* %t5
-%t7 = div i32 %t6, 2
+%t7 = sdiv i32 %t6, 2
 %t8 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 store i32 %t7, i32* %t8
 %t9 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 %t10 = load i32, i32* %t9
-%t11 = div i32 %t10, 2
+%t11 = sdiv i32 %t10, 2
 %t12 = getelementptr %struct.IntHolder, %struct.IntHolder* %num, i32 0, i32 0
 store i32 %t11, i32* %t12
+ret void
 }
 define i32 @main() {
 l1:
@@ -69,13 +63,13 @@ store i32 1000000, i32* @end
 %t8 = load i32, i32* %t6
 store i32 %t8, i32* @interval
 %t9 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 %t5)
-%t10 = load i32* @interval
+%t10 = load i32, i32* @interval
 %t11 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.1, i64 0, i64 0), i32 %t10)
 br label %l2
 l2:
-%t56 = phi i1 [%t35, %l9], [null, %l1]
-%t54 = phi i32 [%t33, %l9], [null, %l1]
-%t53 = phi i32 [%t30, %l9], [null, %l1]
+%t56 = phi i1 [%t35, %l9], [0, %l1]
+%t54 = phi i32 [%t33, %l9], [0, %l1]
+%t53 = phi i32 [%t30, %l9], [0, %l1]
 %t51 = phi %struct.IntHolder* [%t26, %l9], [%t2, %l1]
 %t12 = phi i32 [%t24, %l9], [0, %l1]
 %t42 = phi i32 [%t23, %l9], [0, %l1]
@@ -92,7 +86,7 @@ l4:
 %t33 = phi i32 [%t37, %l8], [%t54, %l3]
 %t35 = phi i1 [%t55, %l8], [%t56, %l3]
 %t39 = phi i32 [%t57, %l8], [%t44, %l3]
-%t46 = load i32* @end
+%t46 = load i32, i32* @end
 %t47 = icmp sle i32 %t24, %t46
 br i1 %t47, label %l5, label %l9
 l5:
@@ -111,7 +105,9 @@ l5:
 store i32 %t25, i32* %t27
 %t28 = getelementptr %struct.IntHolder, %struct.IntHolder* %t26, i32 0, i32 0
 %t29 = load i32, i32* %t28
-%t31 = load i32* @interval
+call i32 @multBy4xTimes(%struct.IntHolder* %t26, i32 2)
+call void @divideBy8(%struct.IntHolder* %t26)
+%t31 = load i32, i32* @interval
 %t32 = sub i32 %t31, 1
 %t34 = icmp sle i32 %t32, 0
 br label %l6

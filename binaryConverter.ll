@@ -42,7 +42,7 @@ l2:
 %t12 = icmp sgt i32 %binaryNum, 0
 br i1 %t12, label %l3, label %l7
 l3:
-%t1 = div i32 %binaryNum, 10
+%t1 = sdiv i32 %binaryNum, 10
 %t2 = mul i32 %t1, 10
 %t3 = sub i32 %binaryNum, %t2
 br label %l4
@@ -57,7 +57,7 @@ l6:
 %t9 = phi i32 [%recursiveDepth, %l4], [%recursiveDepth, %l5]
 %t8 = phi i32 [%decimalSum, %l4], [%t5, %l5]
 %t6 = phi i32 [%binaryNum, %l4], [%binaryNum, %l5]
-%t7 = div i32 %t6, 10
+%t7 = sdiv i32 %t6, 10
 %t10 = add i32 %t9, 1
 %t11 = call i32 @recursiveDecimalSum(i32 %t7, i32 %t8, i32 %t10)
 ret i32 %t11
@@ -83,6 +83,7 @@ l2:
 %t10 = icmp sgt i32 %t6, 0
 br i1 %t10, label %l3, label %l4
 l3:
+call i32 @wait(i32 %t6)
 %t7 = sub i32 %t6, 1
 br label %l2
 l4:
