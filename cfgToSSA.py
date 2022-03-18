@@ -21,30 +21,31 @@ def topSSACompile(prog:m_prog) -> list[str]:
     for fnode in functionNodes:
         functionCode = []
 
-        functionDef = fnode.ast
+        m_func = fnode.ast
         top_env = prog.getTopEnv(False)
-        initialMappings = functionDef.getSSALocalMappings()
+        initialMappings = m_func.getSSALocalMappings()
         fnode.rootNode.mappings = initialMappings
         params = []
         paramTypes = []
-        for param in functionDef.param_declarations:
+        for param in m_func.param_declarations:
             paramTypes.append(param.type)
             params.append(f'{getLLVMType(param.type.typeID)} %{param.id.identifier}')
         params = ', '.join(params)
         if len(params) == 0:
             params = ''
     
-        functionCode.append(f'define {getLLVMType(functionDef.return_type.typeID)} @{functionDef.id.identifier}({params})' + ' {')
+        functionCode.append(f'define {getLLVMType(m_func.return_type.typeID)} @{m_func.id.identifier}({params})' + ' {')
 
-        functions[functionDef.id.identifier] = (functionDef.return_type, paramTypes)
+        functions[m_func.id.identifier] = (m_func.return_type, paramTypes)
 
         # register 0 will be reserved for the return value
         sortedNodes = topologicalCFGSort(fnode, False)
         lastRegUsed = firstCFGPass(sortedNodes, top_env, types, functions)
-        sealUnsealedBlocks(lastRegUsed, fnode)
         for n in sortedNodes:
             lastRegUsed = addNodeLabelsAndBranches(lastRegUsed, n, top_env, types, functions)
         
+        sealUnsealedBlocks(lastRegUsed, fnode)
+
         functionCode.extend(buildLLVM(sortedNodes))
         functionCode.append('}')
 
@@ -165,7 +166,9 @@ def addNodeLabelsAndBranches(lastRegUsed, node:CFG_Node, top_env, types, functio
 
 
 def getLLVMType(typeID:str) -> str:
-    if typeID == 'bool' or typeID == 'int':
+    if typeID == 'bool':
+        return 'i1'
+    elif typeID == 'int':
         return 'i32'
     elif typeID == 'void':
         return 'void'

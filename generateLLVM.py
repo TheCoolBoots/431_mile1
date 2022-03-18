@@ -229,7 +229,9 @@ def retToLLVM(lastRegUsed, ret:m_ret, env, t_env, f_env) -> Tuple[int, str, list
 
 
 def getLLVMType(typeID:str) -> str:
-    if typeID == 'bool' or typeID == 'int':
+    if typeID == 'bool':
+        return 'i1'
+    elif typeID == 'int':
         return 'i32'
     elif typeID == 'void':
         return 'void'

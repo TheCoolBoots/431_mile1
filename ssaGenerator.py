@@ -100,13 +100,16 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
             accessedIDmemNum, accessedTypeID = getNestedDeclaration(id, types[currentIDTypeID])
 
             currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* {currentID}, i32 0, i32 {accessedIDmemNum}')
-            currentID = lastRegUsed + 1
+            currentID = f'%t{lastRegUsed + 1}'
             lastRegUsed += 1
             currentIDTypeID = accessedTypeID
     
     
         llvmType = getLLVMType(currentIDTypeID)
-        currentNode.llvmCode.append(f'store {llvmType} {exprVal}, {llvmType}* %t{currentID}')
+        if len(targetStrings) > 1:
+            currentNode.llvmCode.append(f'store {llvmType} {exprVal}, {llvmType}* {currentID}')
+        else:
+            currentNode.mappings[targetStrings[0]] = (exprType, exprVal, currentNode.id)
         return lastRegUsed
     else:
         currentNode.mappings[targetStrings[0]] = (exprType, exprVal, currentNode.id)
@@ -146,7 +149,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
             currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = alloca i32',
                         f'%t{lastRegUsed+2} = call i32 (i8*, ...) @scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i64 0, i64 0), i32* %t{lastRegUsed + 1})',
                         f'%t{lastRegUsed+3} = load i32, i32* %t{lastRegUsed+1}'])
-            return lastRegUsed+3, f'%{lastRegUsed+3}', 'i32'
+            return lastRegUsed+3, f'%t{lastRegUsed+3}', 'i32'
         case m_unary():
             return unaryToSSA(lastRegUsed, expr, env, types, functions, currentNode)
         case m_dot():
@@ -177,7 +180,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
         elif len(currentNode.prevNodes) == 0:
             # val is undefined
             # should never encounter this case
-            print('ERROR: hit the undefined part for readVariable')
+            # print('ERROR: hit the undefined part for readVariable')
             pass
         elif len(currentNode.prevNodes) == 1:
             # call expressionToLLVM with expr and prev block's mappings
@@ -186,7 +189,10 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             return lastRegUsed, varValue, llvmType, currentNode.id
         else:
             # create phi node with values in prev blocks
-            possibleRegisters = [readVariable(lastRegUsed, identifier, node) for node in currentNode.prevNodes]
+            possibleRegisters = []
+            for node in currentNode.prevNodes:
+                possibleRegisters.append(readVariable(lastRegUsed, identifier, node))
+                lastRegUsed = possibleRegisters[-1][0]
             llvmType = possibleRegisters[0][2]
             phiParams = [f'[{reg[1]}, %l{reg[3]}]' for reg in possibleRegisters]
             phiParams = ', '.join(phiParams)
@@ -236,6 +242,7 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         currentNode.llvmCode.append(f'%t{lastRegUsed + 2} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %t{lastRegUsed + 1}, i32 0, i32 {accessedIDmemNum}')
         currentID = f'%t{lastRegUsed + 2}'
         lastRegUsed += 2
+        currentIDTypeID = accessedTypeID
 
         for accessedm_id in expression.ids[2:]:
             accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id.identifier, types[currentIDTypeID])

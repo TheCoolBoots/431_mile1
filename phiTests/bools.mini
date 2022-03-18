@@ -1,0 +1,12 @@
+fun boolean() bool
+{
+    if(false){
+        return false;
+    }
+	return true;
+}
+
+fun main() int
+{
+    return boolean();
+}

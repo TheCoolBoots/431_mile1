@@ -10,7 +10,9 @@ TASK 1: create python class for each format as described in overview.pdf
 # from msilib.schema import Error
 
 def getLLVMType(typeID:str) -> str:
-    if typeID == 'bool' or typeID == 'int':
+    if typeID == 'bool':
+        return 'i1'
+    elif typeID == 'int':
         return 'i32'
     elif typeID == 'void':
         return 'void'
@@ -136,7 +138,7 @@ class m_function:
         # TODO: figure out why the environment maps to a tuple with True and m_type
         # BOOL True means it is a global variable, False means local variable
         paramDeclarations = {param.id.identifier: (getLLVMType(param.type.typeID), f'%{param.id.identifier}', 1) for param in self.param_declarations}
-        localDeclarations = {decl.id.identifier: (getLLVMType(decl.type.typeID), None, None) for decl in self.body_declarations}
+        localDeclarations = {decl.id.identifier: (getLLVMType(decl.type.typeID), 'null', 'null') for decl in self.body_declarations}
         return paramDeclarations | localDeclarations
     
     def __eq__(self, __o: object) -> bool:
