@@ -34,7 +34,7 @@ def typeCheckProgram(program:m_prog):
         actual = checkFunctionReturn(function, {}, top_env, top_type_env, function_env)
         if actual == -1:
             return -1
-        if actual != expected:
+        if actual != expected and actual != m_type('null'):
             print(f'ERROR on line {function.lineNum}: expected return type {expected.typeID} not equal to actual return type {actual.typeID}')
             return -1
 
@@ -71,7 +71,7 @@ def checkFunctionReturn(function:m_function, local_env, top_env, top_type_env, f
         # don't care about statements that don't return
         # if the return type of the current statement is not the same
         # as the return type of the previous statement(s), there is an error
-        elif retType != None and retType != returnType:
+        elif retType != None and retType != returnType and (not retType == m_type('null')) and (not returnType == m_type('null')):
             print(f'ERROR in function {function.id}: not all paths return type {returnType.typeID}')
             return -1
     
@@ -147,7 +147,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
             sourceType = typeCheck(source_expression, local_env, top_env, top_type_env, function_env)
             if sourceType == -1:
                 return -1
-            elif sourceType != targetType and targetType != m_type('null'):
+            elif sourceType != targetType and targetType != m_type('null') and sourceType != m_type('null'):
             # MADE A CHANGE ON THIS LINE - RILEY (I couldnt print out sourceType.typeID)
                 print(f'ERROR on line {lineNum}: type mismatch - cannot assign {sourceType} to {targetType.typeID}')
                 return -1  
@@ -224,7 +224,7 @@ def typeCheck(statement, local_env, top_env, top_type_env, function_env) -> m_ty
                     return -1
             
             # if both return types are the same, if statement will always return the same
-            if ifReturnType == elseReturnType:
+            if ifReturnType == elseReturnType or ifReturnType == m_type('null') or elseReturnType == m_type('null'):
                 return ifReturnType
             
             print(f'ERROR in if statement on line {lineNum}: if and else return types are different. {ifReturnType} and {elseReturnType}')
