@@ -1,18 +1,19 @@
-struct A{
+struct A
+{
    int a;
    int b;
 };
 
-# make a second function that returns void/null
-fun deathSort(struct Node head) void{
+fun deathSort(struct A head) void
+{
     int z;
 }
 
 fun main() int {
     struct A a;
-    a = new A;
-
     int b;
+
+    a = new A;
     b = 1;
 
     a.a = null;
