@@ -179,7 +179,10 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # NEED TO GET THE LLVMTYPE OF STRUCTS IN MAPPINGS SOMEHOW
             identifierType = currentNode.progRootNode.mappings[identifier][0]
             currentNode.mappings[identifier] = (identifierType, f'%t{lastRegUsed+1}', currentNode.id)
-            currentNode.llvmCode.insert(0, f'{lastRegUsed+1}-{currentNode.id}-{identifier}-*')
+            if len(currentNode.llvmCode) > 0 and currentNode.llvmCode[0][-1] == ':':
+                currentNode.llvmCode.insert(1, f'{lastRegUsed+1}-{currentNode.id}-{identifier}-*')
+            else:
+                currentNode.llvmCode.insert(0, f'{lastRegUsed+1}-{currentNode.id}-{identifier}-*')
             return lastRegUsed+1, f'%t{lastRegUsed+1}', identifierType, currentNode.id
         elif len(currentNode.prevNodes) == 0:
             # val is undefined
@@ -325,7 +328,12 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
             op = 'and'
             retType = 'i1'
 
-    currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = {op} {leftLLVMType} {leftOperand}, {rightOperand}')
+    
+    if leftLLVMType == 'null':
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = {op} {rightLLVMType} {leftOperand}, {rightOperand}')
+    else:
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = {op} {leftLLVMType} {leftOperand}, {rightOperand}')
+        
 
     return lastRegUsed + 1, f'%t{lastRegUsed + 1}', retType
 
