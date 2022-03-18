@@ -312,7 +312,7 @@ def binaryToLLVM(lastRegUsed:int, binop:m_binop, env:dict, types:dict, functions
             op = 'mul'
             retType = 'i32'
         case '/':
-            op = 'div'
+            op = 'sdiv'
             retType = 'i32'
         case '||':
             op = 'or'
