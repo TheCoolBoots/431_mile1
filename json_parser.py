@@ -87,6 +87,10 @@ def parse(json):
         case {'line':_, 'stmt':'if', 'guard':_, 'then':_}:
             return m_conditional(int(json['line']), parse(json['guard']), parse(json['then']))
 
+        case {'line':lineNum, 'stmt':'invocation', 'id':funID, 'args':args}:
+            args = [parse(arg) for arg in args]
+            return m_invocation(int(lineNum), m_id(lineNum, funID), args)
+
         case {'stmt':'block', 'list':_}:
             return [parse(statement) for statement in json['list']]
 

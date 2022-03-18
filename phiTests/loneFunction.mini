@@ -1,0 +1,10 @@
+fun boolean(int a) void
+{
+    a = a + 1;
+}
+
+fun main() int
+{
+    boolean(5);
+    return 1;
+}

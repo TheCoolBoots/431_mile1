@@ -160,7 +160,7 @@ def addNodeLabelsAndBranches(lastRegUsed, node:CFG_Node, top_env, types, functio
             if not node.visited:
                 node.llvmCode.insert(0, f'l{node.id}:')
                 node.visited = True
-                if node.nextNodes[0].id != 0:
+                if len(node.nextNodes) > 0 and node.nextNodes[0].id != 0:
                     node.llvmCode.append(f'br label %l{node.nextNodes[0].id}')
                 return lastRegUsed
 

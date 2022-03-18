@@ -35,6 +35,8 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
                             f'call void @free(i8* %t{lastRegUsed + 1})'])
             # env.pop(exprReg)
             return lastRegUsed + 1
+        case m_invocation():
+            return invocationToSSA(lastRegUsed, stmt, env, types, functions, currentNode, True)
         case m_ret():
             return retToSSA(lastRegUsed, stmt, env, types, functions, currentNode)
         case other:
@@ -45,7 +47,7 @@ def statementToSSA(lastRegUsed:int, stmt, env:dict, types:dict, functions:dict, 
 def retToSSA(lastRegUsed:int, ret:m_ret, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, list[str]]:
     if ret.expression == None:
         currentNode.llvmCode.append(f'ret null')
-        return lastRegUsed, 'null'
+        return lastRegUsed
 
     lastRegUsed, retVal, retType = expressionToSSA(lastRegUsed, ret.expression, env, types, functions, currentNode)
 
@@ -339,7 +341,7 @@ def unaryToSSA(lastRegUsed:int, exp:m_unary, env:dict, types:dict, functions:dic
     return lastRegUsed+1, f'%t{lastRegUsed + 1}', 'i32'
 
 
-def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str]:
+def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, functions:dict, currentNode:CFG_Node, statement = False) -> Tuple[int, str]:
     parameters = []
     instructions = []
     for expression in exp.args_expressions:
@@ -351,9 +353,12 @@ def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, fun
     
     # join them into TYPE REG, TYPE REG, TYPE REG format
     parameters = ', '.join(parameters)
-            
-    currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = call {returnTypeID} @{funID}({parameters})')
+        
+    if statement:
+        currentNode.llvmCode.append(f'call {returnTypeID} @{funID}({parameters})')
+        return lastRegUsed
 
+    currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = call {returnTypeID} @{funID}({parameters})')
     return lastRegUsed + 1, f'%t{lastRegUsed + 1}', returnTypeID
 
 

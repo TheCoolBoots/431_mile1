@@ -268,6 +268,21 @@ class test_cfg_generator(unittest.TestCase):
 
         self.assertEqual(actual, expected)
                     
+    def test_loneFunction(self):
+        ast = importMiniFile('phiTests/loneFunction.mini')
+        actual = topSSACompile(ast)
+
+        expected = ['define void @boolean(i32 %a) {', 
+        'l1:', 
+        '%t1 = add i32 %a, 1', 
+        '}', 
+        'define i32 @main() {', 
+        'l1:', 
+        'call void @boolean(i32 5)', 
+        'ret i32 1', 
+        '}']
+
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':
