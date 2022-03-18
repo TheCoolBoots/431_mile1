@@ -90,7 +90,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
     if len(targetStrings) == 1:
-        # if the target is in the top_env, that means it is either a global var or global/local struct
+        # if the target is in the top_env, that means it is a global variable
         #       if global var, use @
         #       if local struct, use normal
         if targetStrings[0] in env:
@@ -102,14 +102,8 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
                 typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
                 currentNode.llvmCode.append(f'store {exprType} {exprReg}, {typeStr}* @{targetStrings[0]}')
                 return lastRegUsed, env[targetStrings[0]]
-            # struct is a locally defined struct
-            else:
-                typeStr = getLLVMType(env[targetStrings[0]][1].typeID)
-                currentNode.llvmCode.append(f'store {exprType} {exprReg}, {typeStr}* %{targetStrings[0]}')
-                return lastRegUsed, env[targetStrings[0]]
 
         # if it is not in top_env, it is a local variable and is dealt with through SSA form
-
         if immediate:
             exprType = exprType + '_immediate'
         if type(exprReg) == str:
@@ -117,39 +111,61 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
         currentNode.mappings[targetStrings[0]] = (exprType, exprReg, currentNode.id)
         return lastRegUsed, exprType
     else:   # target expression is a struct (A.a.b)
-        currentID = assign.target_ids[0].identifier
-        currentIDTypeID = env[currentID][1].typeID
-        
-        nested = False
-        for accessedm_id in assign.target_ids[1:]:
-            nested = True
-            accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
+        rootID = targetStrings[0]
+        readVarRet = readVariable(lastRegUsed, rootID, currentNode)
 
-            if currentID in env and env[currentID][0]:
-                instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
-            else:
-                instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
-            currentNode.llvmCode.append(instruction)
+        if readVarRet == None:
+            currentID = rootID
+            currentIDTypeID = env[currentID][1].typeID
 
+            outputCode = []
+            
+            for accessedm_id in targetStrings[1:]:
+                accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
+
+                if currentID in env and env[currentID][0]:
+                    currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load %struct.{currentIDTypeID}** @{currentID}')
+                    currentNode.llvmCode.append(f'%t{lastRegUsed + 2} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %t{lastRegUsed + 1}, i32 0, i32 {accessedIDmemNum}')
+                    currentID = lastRegUsed + 2
+                    lastRegUsed += 2
+
+                else:
+                    currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}')
+                    currentID = lastRegUsed + 1
+                    lastRegUsed += 1
+                    
+                currentIDTypeID = accessedTypeID
+
+            llvmType = getLLVMType(currentIDTypeID)
+            currentNode.llvmCode.append(f'store {llvmType} {exprReg}, {llvmType}* %t{currentID}')
+            return lastRegUsed, llvmType
+
+        exprReg, llvmType, lastLabel = readVarRet
+
+        if 'immediate' not in llvmType:
+            lastRegUsed = exprReg
+                # exprReg = f'%t{exprReg}'
+        else:
+            llvmType = llvmType.split('_')[0]
+
+        currentID = exprReg
+        currentIDTypeID = llvmType[8:-1]
+        for id in targetStrings[1:]:
+            accessedIDmemNum, accessedTypeID = getNestedDeclaration(id, types[currentIDTypeID])
+
+            currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* {currentID}, i32 0, i32 {accessedIDmemNum}')
             currentID = lastRegUsed + 1
-            currentIDTypeID = accessedTypeID
             lastRegUsed += 1
-
-        # if type(exprReg) == int:
-        #     exprReg = f'%t{exprReg}'
-
+        
         if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
             currentNode.llvmCode.append(f'store i32 {exprReg}, i32* %t{currentID}')
             return lastRegUsed, 'i32'
         else:
-            if nested:
-                llvmType = getLLVMType(currentIDTypeID)
-                currentNode.llvmCode.append(f'store {llvmType} {exprReg}, {llvmType}* %t{currentID}')
-                return lastRegUsed, llvmType
-            else:
-                # TODO can't assign registers to registers in llvm
-                currentNode.llvmCode.append(f'%t{currentID} = add i32 {exprReg}, 0')
-                return lastRegUsed, getLLVMType(currentIDTypeID)
+            llvmType = getLLVMType(currentIDTypeID)
+            currentNode.llvmCode.append(f'store {llvmType} {exprReg}, {llvmType}* %t{currentID}')
+            return lastRegUsed, llvmType
+
+        
     
 
 # returns a tuple containing (resultReg, llvmType)
@@ -162,7 +178,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
         case m_bool():
             return int(expr.val), 'i1_immediate'
         case m_new_struct():
-            currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = call i8* @malloc(i32 {len(types[expr.struct_id.identifier]) * 4})',
+            currentNode.llvmCode.extend([f'%t{lastRegUsed + 1} = call i8* @malloc({len(types[expr.struct_id.identifier]) * 4})',
                  f'%t{lastRegUsed + 2} = bitcast i8* %t{lastRegUsed + 1} to %struct.{expr.struct_id.identifier}*'])
             return lastRegUsed+2, f'%struct.{expr.struct_id.identifier}*'
         case m_null():
@@ -272,29 +288,60 @@ def readUnsealedBlock(lastRegUsed:int, node:CFG_Node, identifier:str, targetReg:
 
 
 def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str]:
-    currentID = expression.ids[0].identifier
-    currentIDTypeID = env[currentID][1].typeID
+    rootID = expression.ids[0].identifier
+    readVarRet = readVariable(lastRegUsed, rootID, currentNode)
 
-    outputCode = []
-    
-    for accessedm_id in expression.ids[1:]:
-        accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
+    if readVarRet == None:
+        currentID = rootID
+        currentIDTypeID = env[currentID][1].typeID
 
-        if currentID in env and env[currentID][0]:
-            instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* @{currentID}, i32 0, i32 {accessedIDmemNum}'
-        else:
-            instruction = f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}'
-        outputCode.append(instruction)
+        outputCode = []
+        
+        for accessedm_id in expression.ids[1:]:
+            accessedIDmemNum, accessedTypeID = getNestedDeclaration(accessedm_id, types[currentIDTypeID])
 
+            if currentID in env and env[currentID][0]:
+                currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load %struct.{currentIDTypeID}** @{currentID}')
+                currentNode.llvmCode.append(f'%t{lastRegUsed + 2} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %t{lastRegUsed + 1}, i32 0, i32 {accessedIDmemNum}')
+                currentID = lastRegUsed + 2
+                lastRegUsed += 2
+
+            else:
+                currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}')
+                currentID = lastRegUsed + 1
+                lastRegUsed += 1
+                
+            currentIDTypeID = accessedTypeID
+
+        llvmType = getLLVMType(currentIDTypeID)
+        currentNode.llvmCode.append(f'store {llvmType} {exprReg}, {llvmType}* %t{currentID}')
+        return lastRegUsed, llvmType
+
+    exprReg, llvmType, lastLabel = readVarRet
+
+    if 'immediate' not in llvmType:
+        lastRegUsed = exprReg
+            # exprReg = f'%t{exprReg}'
+    else:
+        llvmType = llvmType.split('_')[0]
+
+    currentID = exprReg
+    currentIDTypeID = llvmType[8:-1]
+    for id in expression.ids[1:]:
+        accessedIDmemNum, accessedTypeID = getNestedDeclaration(id.identifier, types[currentIDTypeID])
+
+        currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = getelementptr %struct.{currentIDTypeID}, %struct.{currentIDTypeID}* %{currentID}, i32 0, i32 {accessedIDmemNum}')
         currentID = lastRegUsed + 1
-        currentIDTypeID = accessedTypeID
         lastRegUsed += 1
-
-    currentIDTypeID = getLLVMType(currentIDTypeID)  # returns i32 or %struct.__*
-    outputCode.append(f'%t{lastRegUsed + 1} = load {currentIDTypeID}, {currentIDTypeID}* %t{currentID}')
-
-    currentNode.llvmCode.extend(outputCode)
-    return lastRegUsed + 1, currentIDTypeID
+        currentIDTypeID = accessedTypeID
+    
+    if currentIDTypeID == 'int' or currentIDTypeID == 'bool' or currentIDTypeID == 'null':
+        currentNode.llvmCode.append(f'load i32* %t{currentID}')
+        return lastRegUsed, 'i32'
+    else:
+        llvmType = getLLVMType(currentIDTypeID)
+        currentNode.llvmCode.append(f'load {llvmType}* %t{currentID}')
+        return lastRegUsed, llvmType
 
 
 # == != <= < > >= - + * / || &&
@@ -402,5 +449,5 @@ def invocationToSSA(lastRegUsed:int, exp:m_invocation, env:dict, types:dict, fun
 # returns (struct member num, member typeID)
 def getNestedDeclaration(id:m_id, declarations: list[m_declaration]) -> Tuple[int, str]:
     for i, decl in enumerate(declarations):
-        if decl.id == id:
+        if decl.id.identifier == id:
             return (i, decl.type.typeID)

@@ -8,6 +8,9 @@ fun main() int {
     struct A a;
     struct A b;
 
+    a = new A;
+    b = new A;
+
     a.a = 1;
     b.b = 2;
 
