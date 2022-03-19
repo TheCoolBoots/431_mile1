@@ -60,10 +60,12 @@ def generateStatementsCFG(lastNodeIDUsed:int, llvmRetType:str,  statements:list,
 
             case m_ret():
                 currentStatements.append(statement)
-                prevNode.extendStatements(currentStatements)
-                currentStatements = []
-                prevNode.addNextNode(returnNode)
-                returnNode.addPrevNode(prevNode)
+
+                if prevNode != None:
+                    prevNode.extendStatements(currentStatements)
+                    currentStatements = []
+                    prevNode.addNextNode(returnNode)
+                    returnNode.addPrevNode(prevNode)
 
                 if i < len(statements) - 1:
                     print(f"WARNING: unreachable code from lines {statements[i+1].lineNum} to {statements[-1].lineNum}") 

@@ -95,7 +95,10 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
 
     # if the variable is a struct
     if llvmType[0] == '%':
+        if 'struct' not in llvmType:
+            llvmType = currentNode.progRootNode.mappings[rootID][0]
         currentIDTypeID = llvmType[8:-1]
+        
 
         for id in targetStrings[1:]:
             accessedIDmemNum, accessedTypeID = getNestedDeclaration(id, types[currentIDTypeID])
@@ -167,7 +170,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
 # returns lastRegUsed, llvmType, preceeding label
 def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple[int, str, str, int]:
     if identifier in currentNode.mappings:
-        return lastRegUsed, currentNode.mappings[identifier][1], currentNode.mappings[identifier][0], currentNode.id
+        return lastRegUsed, currentNode.mappings[identifier][1], currentNode.progRootNode.mappings[identifier][0], currentNode.id
                 
     else:
         if not currentNode.sealed:
@@ -202,7 +205,12 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             for node in currentNode.prevNodes:
                 possibleRegisters.append(readVariable(lastRegUsed, identifier, node))
                 lastRegUsed = possibleRegisters[-1][0]
-            llvmType = possibleRegisters[0][2]
+
+            if possibleRegisters[0][2] == 'null':
+                llvmType = possibleRegisters[1][2]
+            else:
+                llvmType = possibleRegisters[0][2]
+
             phiParams = [f'[{reg[1]}, %l{reg[3]}]' for reg in possibleRegisters]
             phiParams = ', '.join(phiParams)
 
