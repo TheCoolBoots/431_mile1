@@ -65,10 +65,10 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
     rootID = targetStrings[0]
-    readVarRet = readVariable(lastRegUsed, rootID, currentNode)
+    lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # variable is a global variable
-    if readVarRet == None:
+    if lastRegUsed == None:
         currentIDTypeID = env[rootID][1].typeID
         currentID = f'@{rootID}'
         
@@ -91,8 +91,6 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
         llvmType = getLLVMType(currentIDTypeID)
         currentNode.llvmCode.append(f'store {llvmType} {exprVal}, {llvmType}* {currentID}')
         return lastRegUsed
-
-    lastRegUsed, currentID, llvmType, lastLabel = readVarRet
 
     # if the variable is a struct
     if llvmType[0] == '%':
