@@ -124,16 +124,16 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
 def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, str]:
     match expr:
         case m_id():
-            readRet = readVariable(lastRegUsed, expr.identifier, currentNode)
+            lastRegUsed, val, llvmType, lastNodeID = readVariable(lastRegUsed, expr.identifier, currentNode)
 
             # if id is a global variable
-            if readRet == None:
+            if lastRegUsed == None:
                 llvmType = getLLVMType(env[expr.identifier][1].typeID)
                 currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}, {llvmType}* @{expr.identifier}'])
                 return lastRegUsed+1, f'%t{lastRegUsed+1}', llvmType
             
             # handle with SSA form
-            return readRet[0], readRet[1], readRet[2]
+            return lastRegUsed, val, llvmType
         case m_binop():
             return binaryToLLVM(lastRegUsed, expr, env, types, functions, currentNode)
         case m_num():
@@ -178,7 +178,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # TODO: structs won't be i32
             # NEED TO GET THE LLVMTYPE OF STRUCTS IN MAPPINGS SOMEHOW
             if identifier not in currentNode.progRootNode.mappings[identifier]:
-                return None
+                return None, None, None, None
             identifierType = currentNode.progRootNode.mappings[identifier][0]
             currentNode.mappings[identifier] = (identifierType, f'%t{lastRegUsed+1}', currentNode.id)
             if len(currentNode.llvmCode) > 0 and currentNode.llvmCode[0][-1] == ':':
@@ -190,7 +190,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # val is undefined
             # should never encounter this case
             # print('ERROR: hit the undefined part for readVariable')
-            pass
+            return None, None, None, None
         elif len(currentNode.prevNodes) == 1:
             # call expressionToLLVM with expr and prev block's mappings
             prevNode = currentNode.prevNodes[0]
@@ -237,10 +237,10 @@ def readUnsealedBlock(lastRegUsed:int, node:CFG_Node, identifier:str, targetReg:
 
 def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str ,str]:
     rootID = expression.ids[0].identifier
-    readVarRet = readVariable(lastRegUsed, rootID, currentNode)
+    lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # variable is a global variable in the top env
-    if readVarRet == None:
+    if lastRegUsed == None:
         currentID = rootID
         currentIDTypeID = env[currentID][1].typeID
         
@@ -268,7 +268,6 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
 
 
     # variable is a parameter or declared locally
-    lastRegUsed, currentID, llvmType, lastLabel = readVarRet
     # llvmType should always be in form %struct.__*
     currentIDTypeID = llvmType[8:-1]
 
