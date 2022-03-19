@@ -177,7 +177,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             
             # TODO: structs won't be i32
             # NEED TO GET THE LLVMTYPE OF STRUCTS IN MAPPINGS SOMEHOW
-            if identifier not in currentNode.progRootNode.mappings[identifier]:
+            if identifier not in currentNode.progRootNode.mappings:
                 return lastRegUsed, None, None, None
             identifierType = currentNode.progRootNode.mappings[identifier][0]
             currentNode.mappings[identifier] = (identifierType, f'%t{lastRegUsed+1}', currentNode.id)
