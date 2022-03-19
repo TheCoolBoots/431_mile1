@@ -12,6 +12,7 @@ def generateProgCFGs(prog:m_prog) -> list[Function_CFG]:
         lastIDUsed, entryNode, exitNode, discard = generateStatementsCFG(lastIDUsed, getLLVMType(fun.return_type.typeID), fun.statements, returnNode)
         if returnNode != None:
             returnNode.progRootNode = entryNode
+        entryNode.progRootNode = entryNode
         graphs.append(Function_CFG(entryNode, returnNode, fun))
     return graphs
 

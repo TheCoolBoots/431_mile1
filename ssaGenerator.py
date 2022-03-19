@@ -65,10 +65,9 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
     targetStrings = [mid.identifier for mid in assign.target_ids]
 
     rootID = targetStrings[0]
-    lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # variable is a global variable
-    if currentID == None:
+    if rootID not in currentNode.progRootNode.mappings:
         currentIDTypeID = env[rootID][1].typeID
         currentID = f'@{rootID}'
         
@@ -91,6 +90,8 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
         llvmType = getLLVMType(currentIDTypeID)
         currentNode.llvmCode.append(f'store {llvmType} {exprVal}, {llvmType}* {currentID}')
         return lastRegUsed
+
+    lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # if the variable is a struct
     if llvmType[0] == '%':
@@ -122,13 +123,14 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
 def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str, str]:
     match expr:
         case m_id():
-            lastRegUsed, val, llvmType, lastNodeID = readVariable(lastRegUsed, expr.identifier, currentNode)
 
             # if id is a global variable
-            if val == None:
+            if expr.identifier not in currentNode.progRootNode.mappings:
                 llvmType = getLLVMType(env[expr.identifier][1].typeID)
                 currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}, {llvmType}* @{expr.identifier}'])
                 return lastRegUsed+1, f'%t{lastRegUsed+1}', llvmType
+            
+            lastRegUsed, val, llvmType, lastNodeID = readVariable(lastRegUsed, expr.identifier, currentNode)
             
             # handle with SSA form
             return lastRegUsed, val, llvmType
@@ -176,7 +178,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # TODO: structs won't be i32
             # NEED TO GET THE LLVMTYPE OF STRUCTS IN MAPPINGS SOMEHOW
             if identifier not in currentNode.progRootNode.mappings[identifier]:
-                return None, None, None, None
+                return lastRegUsed, None, None, None
             identifierType = currentNode.progRootNode.mappings[identifier][0]
             currentNode.mappings[identifier] = (identifierType, f'%t{lastRegUsed+1}', currentNode.id)
             if len(currentNode.llvmCode) > 0 and currentNode.llvmCode[0][-1] == ':':
@@ -235,10 +237,9 @@ def readUnsealedBlock(lastRegUsed:int, node:CFG_Node, identifier:str, targetReg:
 
 def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:dict, currentNode:CFG_Node) -> Tuple[int, str ,str]:
     rootID = expression.ids[0].identifier
-    lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # variable is a global variable in the top env
-    if currentID == None:
+    if rootID not in currentNode.progRootNode.mappings:
         currentID = rootID
         currentIDTypeID = env[currentID][1].typeID
         
@@ -264,6 +265,7 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
         currentNode.llvmCode.append(f'%t{lastRegUsed + 1} = load {llvmType}, {llvmType}* {currentID}')
         return lastRegUsed + 1, f'%t{lastRegUsed + 1}' , llvmType
 
+    lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # variable is a parameter or declared locally
     # llvmType should always be in form %struct.__*
