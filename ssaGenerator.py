@@ -68,7 +68,7 @@ def assignToSSA(lastRegUsed:int, assign:m_assignment, env:dict, types:dict, func
     lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # variable is a global variable
-    if lastRegUsed == None:
+    if currentID == None:
         currentIDTypeID = env[rootID][1].typeID
         currentID = f'@{rootID}'
         
@@ -125,7 +125,7 @@ def expressionToSSA(lastRegUsed:int, expr, env:dict, types:dict, functions:dict,
             lastRegUsed, val, llvmType, lastNodeID = readVariable(lastRegUsed, expr.identifier, currentNode)
 
             # if id is a global variable
-            if lastRegUsed == None:
+            if val == None:
                 llvmType = getLLVMType(env[expr.identifier][1].typeID)
                 currentNode.llvmCode.extend([f'%t{lastRegUsed+1} = load {llvmType}, {llvmType}* @{expr.identifier}'])
                 return lastRegUsed+1, f'%t{lastRegUsed+1}', llvmType
@@ -188,7 +188,7 @@ def readVariable(lastRegUsed:int, identifier:str, currentNode:CFG_Node) -> Tuple
             # val is undefined
             # should never encounter this case
             # print('ERROR: hit the undefined part for readVariable')
-            return None, None, None, None
+            return lastRegUsed, None, None, None
         elif len(currentNode.prevNodes) == 1:
             # call expressionToLLVM with expr and prev block's mappings
             prevNode = currentNode.prevNodes[0]
@@ -238,7 +238,7 @@ def dotToSSA(lastRegUsed:int, expression:m_dot, env:dict, types:dict, functions:
     lastRegUsed, currentID, llvmType, lastLabel = readVariable(lastRegUsed, rootID, currentNode)
 
     # variable is a global variable in the top env
-    if lastRegUsed == None:
+    if currentID == None:
         currentID = rootID
         currentIDTypeID = env[currentID][1].typeID
         
